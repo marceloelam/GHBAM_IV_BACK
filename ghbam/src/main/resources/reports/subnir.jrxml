@@ -1,0 +1,234 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Created with Jaspersoft Studio version 6.18.1.final using JasperReports Library version 6.18.1-9d75d1969e774d4f179fb3be8401e98a0e6d1611  -->
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="subnir" pageWidth="595" pageHeight="842" columnWidth="595" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0" uuid="fdce5a7f-4cbe-442d-818c-ebd62c6aa44e">
+	<property name="com.jaspersoft.studio.data.sql.tables" value=""/>
+	<property name="com.jaspersoft.studio.data.defaultdataadapter" value="itaguai_conn"/>
+	<property name="com.jaspersoft.studio.unit." value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.pageHeight" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.pageWidth" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.topMargin" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.bottomMargin" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.leftMargin" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.rightMargin" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.columnWidth" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.columnSpacing" value="pixel"/>
+	<parameter name="idbamLab" class="java.lang.String"/>
+	<queryString language="SQL">
+		<![CDATA[select * from novointernado where  cast(bam_idbam as text) =  $P{idbamLab}]]>
+	</queryString>
+	<field name="idninternado" class="java.lang.Integer">
+		<property name="com.jaspersoft.studio.field.name" value="idninternado"/>
+		<property name="com.jaspersoft.studio.field.label" value="idninternado"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="novointernado"/>
+	</field>
+	<field name="agente" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="agente"/>
+		<property name="com.jaspersoft.studio.field.label" value="agente"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="novointernado"/>
+	</field>
+	<field name="alta" class="java.lang.Boolean">
+		<property name="com.jaspersoft.studio.field.name" value="alta"/>
+		<property name="com.jaspersoft.studio.field.label" value="alta"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="novointernado"/>
+	</field>
+	<field name="datadaacao" class="java.sql.Date">
+		<property name="com.jaspersoft.studio.field.name" value="datadaacao"/>
+		<property name="com.jaspersoft.studio.field.label" value="datadaacao"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="novointernado"/>
+	</field>
+	<field name="datainsercaoser" class="java.sql.Date">
+		<property name="com.jaspersoft.studio.field.name" value="datainsercaoser"/>
+		<property name="com.jaspersoft.studio.field.label" value="datainsercaoser"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="novointernado"/>
+	</field>
+	<field name="diagnostico" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="diagnostico"/>
+		<property name="com.jaspersoft.studio.field.label" value="diagnostico"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="novointernado"/>
+	</field>
+	<field name="diainternacao" class="java.sql.Date">
+		<property name="com.jaspersoft.studio.field.name" value="diainternacao"/>
+		<property name="com.jaspersoft.studio.field.label" value="diainternacao"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="novointernado"/>
+	</field>
+	<field name="especialidade" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="especialidade"/>
+		<property name="com.jaspersoft.studio.field.label" value="especialidade"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="novointernado"/>
+	</field>
+	<field name="internado" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="internado"/>
+		<property name="com.jaspersoft.studio.field.label" value="internado"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="novointernado"/>
+	</field>
+	<field name="leitoocupado" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="leitoocupado"/>
+		<property name="com.jaspersoft.studio.field.label" value="leitoocupado"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="novointernado"/>
+	</field>
+	<field name="motivosaida" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="motivosaida"/>
+		<property name="com.jaspersoft.studio.field.label" value="motivosaida"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="novointernado"/>
+	</field>
+	<field name="nbam" class="java.lang.Integer">
+		<property name="com.jaspersoft.studio.field.name" value="nbam"/>
+		<property name="com.jaspersoft.studio.field.label" value="nbam"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="novointernado"/>
+	</field>
+	<field name="pendencia" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="pendencia"/>
+		<property name="com.jaspersoft.studio.field.label" value="pendencia"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="novointernado"/>
+	</field>
+	<field name="prontuario" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="prontuario"/>
+		<property name="com.jaspersoft.studio.field.label" value="prontuario"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="novointernado"/>
+	</field>
+	<field name="tempodias" class="java.lang.Integer">
+		<property name="com.jaspersoft.studio.field.name" value="tempodias"/>
+		<property name="com.jaspersoft.studio.field.label" value="tempodias"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="novointernado"/>
+	</field>
+	<field name="tipo" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="tipo"/>
+		<property name="com.jaspersoft.studio.field.label" value="tipo"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="novointernado"/>
+	</field>
+	<field name="bam_idbam" class="java.lang.Integer">
+		<property name="com.jaspersoft.studio.field.name" value="bam_idbam"/>
+		<property name="com.jaspersoft.studio.field.label" value="bam_idbam"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="novointernado"/>
+	</field>
+	<field name="local_idsetorlocalcenso" class="java.lang.Integer">
+		<property name="com.jaspersoft.studio.field.name" value="local_idsetorlocalcenso"/>
+		<property name="com.jaspersoft.studio.field.label" value="local_idsetorlocalcenso"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="novointernado"/>
+	</field>
+	<field name="pacientes_idpaciente" class="java.lang.Integer">
+		<property name="com.jaspersoft.studio.field.name" value="pacientes_idpaciente"/>
+		<property name="com.jaspersoft.studio.field.label" value="pacientes_idpaciente"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="novointernado"/>
+	</field>
+	<field name="setor_idsetorcenso" class="java.lang.Integer">
+		<property name="com.jaspersoft.studio.field.name" value="setor_idsetorcenso"/>
+		<property name="com.jaspersoft.studio.field.label" value="setor_idsetorcenso"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="novointernado"/>
+	</field>
+	<field name="unidade" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="unidade"/>
+		<property name="com.jaspersoft.studio.field.label" value="unidade"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="novointernado"/>
+	</field>
+	<field name="tipo_alocacao" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="tipo_alocacao"/>
+		<property name="com.jaspersoft.studio.field.label" value="tipo_alocacao"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="novointernado"/>
+	</field>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band height="17" splitType="Stretch">
+			<staticText>
+				<reportElement x="0" y="3" width="80" height="13" uuid="713b1896-e074-497c-8d49-b8a7e2d0178a">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement>
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[* NIR]]></text>
+			</staticText>
+			<line>
+				<reportElement x="74" y="9" width="471" height="1" uuid="aaad580c-6d78-4776-8467-cdfa95bea110"/>
+			</line>
+		</band>
+	</title>
+	<detail>
+		<band height="72" splitType="Stretch">
+			<textField>
+				<reportElement x="90" y="14" width="490" height="13" uuid="9f8de4a8-df0c-47db-852d-f8971b00e02a"/>
+				<textElement verticalAlignment="Middle">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{diagnostico} + " - Especialidade : " + $F{especialidade}]]></textFieldExpression>
+			</textField>
+			<textField pattern="dd/MM/yyyy">
+				<reportElement x="91" y="0" width="60" height="13" uuid="edeb2195-5261-4dfc-b1ed-a4ccdb64c5bc">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{diainternacao}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="4" y="0" width="78" height="13" uuid="1db66c2b-74b9-49ee-a59d-09af2a114bae">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left" verticalAlignment="Bottom">
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[D. Internação :]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="4" y="14" width="80" height="13" uuid="34152ac7-75d2-43f4-a2dc-b971917ebc3a">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left" verticalAlignment="Bottom">
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Diagnóstico :]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="4" y="29" width="80" height="13" uuid="39f6b7dd-f871-4164-a4e3-aa9cd838956b">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left" verticalAlignment="Bottom">
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Agente :]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="91" y="29" width="188" height="13" uuid="f0e2e9b6-a061-4170-8078-900ee462e4d1"/>
+				<textElement verticalAlignment="Middle">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{agente}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="292" y="28" width="80" height="13" uuid="68e5ae8f-dbc6-45e4-823c-a6061be067e3">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left" verticalAlignment="Bottom">
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Motivo saída :]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="380" y="28" width="200" height="13" uuid="cb8b0df6-b43f-4cda-bf1d-cf8fe8999551"/>
+				<textElement verticalAlignment="Middle">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{motivosaida}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="4" y="45" width="80" height="13" uuid="ff4455ec-84a9-4325-8126-cf183faace92">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left" verticalAlignment="Bottom">
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Alta :]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="90" y="46" width="188" height="13" uuid="07d1a3c0-6620-487e-b272-be34d4534d56"/>
+				<textElement verticalAlignment="Middle">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{alta} == true ?"Sim" :"Não ")]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+</jasperReport>

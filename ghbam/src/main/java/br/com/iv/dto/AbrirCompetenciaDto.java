@@ -1,0 +1,12 @@
+package br.com.iv.dto;
+
+import java.io.Serializable;
+
+import lombok.Data;
+
+@Data
+public class AbrirCompetenciaDto implements Serializable {
+    private static final long serialVersionUID = 1L;
+
+    private String competencia;
+}

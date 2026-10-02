@@ -1,0 +1,23 @@
+package br.com.iv.enums;
+
+public enum OrigemProducao {
+    ATENDIMENTO,
+    EMERGENCIA,
+    AMBULATORIO,
+    LABORATORIO,
+    RADIOLOGIA,
+    MEDICACAO,
+    ODONTOLOGIA,
+    FISIOTERAPIA,
+    PSICOLOGIA,
+    NUTRICAO,
+    MULTIDISCIPLINAR,
+    INTERNACAO,
+    CIRURGIA,
+    UTI,
+    MATERNIDADE,
+    NEONATAL,
+    CAPS,
+    MANUAL,
+    OUTROS
+}

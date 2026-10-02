@@ -1,0 +1,203 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Created with Jaspersoft Studio version 6.18.1.final using JasperReports Library version 6.18.1-9d75d1969e774d4f179fb3be8401e98a0e6d1611  -->
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="leitos" pageWidth="595" pageHeight="842" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20" uuid="f90ae1c5-b6cd-4c8c-a958-50b845e718d3">
+	<property name="com.jaspersoft.studio.data.sql.tables" value=""/>
+	<property name="com.jaspersoft.studio.data.defaultdataadapter" value="conn"/>
+	<property name="com.jaspersoft.studio.data.sql.SQLQueryDesigner.sash.w1" value="471"/>
+	<property name="com.jaspersoft.studio.data.sql.SQLQueryDesigner.sash.w2" value="523"/>
+	<property name="com.jaspersoft.studio.report.description" value=""/>
+	<parameter name="logo" class="java.lang.String"/>
+	<parameter name="hospital" class="java.lang.String"/>
+	<parameter name="ssigla" class="java.lang.String"/>
+	<parameter name="prefeitura" class="java.lang.String"/>
+	<parameter name="complemento" class="java.lang.String"/>
+	<queryString language="SQL">
+		<![CDATA[select * from localcenso l, setorcenso s
+where l.setorcenso_idsetorcenso = s.idsetorcenso 
+and l.unidade =  $P{ssigla}  and l.excluido = false
+and idsetorlocalcenso not in  
+(select nov.local_idsetorlocalcenso from novointernado nov where alta = false ) 
+	  order by s.setor, l.local]]>
+	</queryString>
+	<field name="idsetorlocalcenso" class="java.lang.Integer">
+		<property name="com.jaspersoft.studio.field.name" value="idsetorlocalcenso"/>
+		<property name="com.jaspersoft.studio.field.label" value="idsetorlocalcenso"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="localcenso"/>
+	</field>
+	<field name="codigo" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="codigo"/>
+		<property name="com.jaspersoft.studio.field.label" value="codigo"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="localcenso"/>
+	</field>
+	<field name="disponivel" class="java.lang.Boolean">
+		<property name="com.jaspersoft.studio.field.name" value="disponivel"/>
+		<property name="com.jaspersoft.studio.field.label" value="disponivel"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="localcenso"/>
+	</field>
+	<field name="local" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="local"/>
+		<property name="com.jaspersoft.studio.field.label" value="local"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="localcenso"/>
+	</field>
+	<field name="setorcenso_idsetorcenso" class="java.lang.Integer">
+		<property name="com.jaspersoft.studio.field.name" value="setorcenso_idsetorcenso"/>
+		<property name="com.jaspersoft.studio.field.label" value="setorcenso_idsetorcenso"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="localcenso"/>
+	</field>
+	<field name="unidade" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="unidade"/>
+		<property name="com.jaspersoft.studio.field.label" value="unidade"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="localcenso"/>
+	</field>
+	<field name="excluido" class="java.lang.Boolean">
+		<property name="com.jaspersoft.studio.field.name" value="excluido"/>
+		<property name="com.jaspersoft.studio.field.label" value="excluido"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="localcenso"/>
+	</field>
+	<field name="idsetorcenso" class="java.lang.Integer">
+		<property name="com.jaspersoft.studio.field.name" value="idsetorcenso"/>
+		<property name="com.jaspersoft.studio.field.label" value="idsetorcenso"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="setorcenso"/>
+	</field>
+	<field name="codigo_setorcenso" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="setorcenso.codigo"/>
+		<property name="com.jaspersoft.studio.field.label" value="setorcenso.codigo"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="setorcenso"/>
+		<property name="net.sf.jasperreports.sql.field.column.name" value="codigo"/>
+		<property name="net.sf.jasperreports.sql.field.column.label" value="codigo"/>
+	</field>
+	<field name="setor" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="setor"/>
+		<property name="com.jaspersoft.studio.field.label" value="setor"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="setorcenso"/>
+	</field>
+	<field name="unidade_setorcenso" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="setorcenso.unidade"/>
+		<property name="com.jaspersoft.studio.field.label" value="setorcenso.unidade"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="setorcenso"/>
+		<property name="net.sf.jasperreports.sql.field.column.name" value="unidade"/>
+		<property name="net.sf.jasperreports.sql.field.column.label" value="unidade"/>
+	</field>
+	<field name="excluido_setorcenso" class="java.lang.Boolean">
+		<property name="com.jaspersoft.studio.field.name" value="setorcenso.excluido"/>
+		<property name="com.jaspersoft.studio.field.label" value="setorcenso.excluido"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="setorcenso"/>
+		<property name="net.sf.jasperreports.sql.field.column.name" value="excluido"/>
+		<property name="net.sf.jasperreports.sql.field.column.label" value="excluido"/>
+	</field>
+	<variable name="total" class="java.lang.Integer" calculation="Count">
+		<variableExpression><![CDATA[$F{local}]]></variableExpression>
+	</variable>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band height="102" splitType="Stretch">
+			<rectangle>
+				<reportElement mode="Transparent" x="26" y="85" width="529" height="16" backcolor="#D9D9D9" uuid="c117f7b8-f93f-43cb-89af-e79e6e94f7ee"/>
+			</rectangle>
+			<rectangle>
+				<reportElement mode="Transparent" x="1" y="85" width="25" height="16" backcolor="#D4D4D4" uuid="c100fce2-66a0-4e43-a4d1-16025c9e8bd8"/>
+			</rectangle>
+			<textField pattern="dd/MM/yyyy">
+				<reportElement x="500" y="71" width="55" height="12" uuid="11f71742-8145-4818-ba59-56ff7becab82"/>
+				<textElement>
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[new java.util.Date()]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="460" y="41" width="90" height="30" uuid="6d856789-0d30-4858-bbe5-607a2d022677"/>
+				<textElement textAlignment="Center">
+					<font size="14" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Censo Diário]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="30" y="86" width="228" height="15" uuid="3dc7e5cb-1c16-487a-a34f-2ca795c9db22">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left" verticalAlignment="Bottom">
+					<font size="9" isBold="true"/>
+				</textElement>
+				<text><![CDATA[( Cód. enfer / leito )  Enfermaria / Leito]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="130" y="45" width="310" height="20" uuid="924d5306-eab6-4bf5-b3f5-fc7a5d2ad333"/>
+				<textElement textAlignment="Center">
+					<font size="10" isBold="true"/>
+				</textElement>
+				<text><![CDATA[LEITO(S) LIVRE(S)]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="150" y="21" width="295" height="30" uuid="dc8f676f-bed6-49f2-a3d6-c6515ca782bf"/>
+				<textElement>
+					<font size="12" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{hospital}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="150" y="1" width="350" height="20" uuid="df4dffc8-9393-4b12-b5b9-0ed5247432b6"/>
+				<textElement verticalAlignment="Middle">
+					<font size="14" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{prefeitura}]]></textFieldExpression>
+			</textField>
+			<image hAlign="Center" vAlign="Middle" onErrorType="Blank">
+				<reportElement stretchType="RelativeToTallestObject" x="0" y="2" width="121" height="44" uuid="5b186b55-f19f-46ac-9ea9-41502efe85bb">
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<imageExpression><![CDATA[new ByteArrayInputStream(org.apache.commons.codec.binary.Base64.decodeBase64($P{logo}.getBytes()))]]></imageExpression>
+			</image>
+		</band>
+	</title>
+	<detail>
+		<band height="16" splitType="Stretch">
+			<rectangle>
+				<reportElement x="1" y="-1" width="25" height="16" uuid="ddb12fe8-0d13-47e5-b94a-8393067a6095"/>
+			</rectangle>
+			<rectangle>
+				<reportElement mode="Transparent" x="1" y="-1" width="554" height="16" backcolor="#D9D9D9" uuid="6d28b300-5ec8-490e-b5c6-35bad1f1cc3a"/>
+			</rectangle>
+			<textField>
+				<reportElement x="29" y="1" width="308" height="15" uuid="ae00fc31-ce21-460d-9f7c-41e4165a9efa">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Middle">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA["( E: " +$F{idsetorcenso}  + " /  L: " + $F{idsetorlocalcenso} + " )  - " + $F{setor} + " / " + $F{local}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="455" y="0" width="100" height="15" uuid="5c8a3819-c988-4544-9ea5-5f119d9df40c">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font size="7" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{disponivel}==true?"*** Leito disponível ***":"*** Não dispinível ***")]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="5" y="-1" width="17" height="14" uuid="96fd5adf-0961-4b37-b207-c3b3e690ce61"/>
+				<textElement textAlignment="Center" verticalAlignment="Bottom">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{REPORT_COUNT}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<lastPageFooter>
+		<band height="17">
+			<textField>
+				<reportElement x="330" y="0" width="225" height="15" uuid="30ce85e0-48e3-431c-8d00-6c1596473314">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Right">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Total de leitos : " + $V{total}]]></textFieldExpression>
+			</textField>
+		</band>
+	</lastPageFooter>
+</jasperReport>

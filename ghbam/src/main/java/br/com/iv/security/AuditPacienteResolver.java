@@ -1,0 +1,54 @@
+package br.com.iv.security;
+
+import java.util.List;
+
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
+import jakarta.transaction.Transactional;
+
+// Traduz a referencia extraida do path auditado (BAM, id do paciente ou prontuario)
+// em "NOME (prontuario X)". Roda na thread assincrona do log, nunca na requisicao;
+// tem transacao propria para que uma falha aqui nao contamine a gravacao do log.
+@ApplicationScoped
+public class AuditPacienteResolver {
+
+    public static final String TIPO_BAM = "bam";
+    public static final String TIPO_ID_PACIENTE = "idpaciente";
+    public static final String TIPO_PRONTUARIO = "prontuario";
+
+    @Inject
+    EntityManager em;
+
+    @Transactional
+    public String descrever(String tipo, String valor) {
+        String rotulo = tipo + "=" + valor;
+        Object[] linha = buscar(tipo, valor);
+        if (linha == null) {
+            return " | paciente=nao localizado (" + rotulo + ")";
+        }
+        String nome = linha[0] == null ? "" : String.valueOf(linha[0]).trim();
+        String prontuario = linha[1] == null ? "" : String.valueOf(linha[1]).trim();
+        return " | paciente=" + nome + " (prontuario " + prontuario + ", " + rotulo + ")";
+    }
+
+    private Object[] buscar(String tipo, String valor) {
+        String sql;
+        Object parametro;
+        if (TIPO_BAM.equals(tipo)) {
+            sql = "SELECT p.nome, p.prontuario FROM bam b JOIN pacientes p ON p.idpaciente = b.paciente_idpaciente WHERE b.idbam = :v";
+            parametro = Integer.valueOf(valor);
+        } else if (TIPO_ID_PACIENTE.equals(tipo)) {
+            sql = "SELECT p.nome, p.prontuario FROM pacientes p WHERE p.idpaciente = :v";
+            parametro = Integer.valueOf(valor);
+        } else if (TIPO_PRONTUARIO.equals(tipo)) {
+            sql = "SELECT p.nome, p.prontuario FROM pacientes p WHERE p.prontuario = :v";
+            parametro = valor;
+        } else {
+            return null;
+        }
+        @SuppressWarnings("unchecked")
+        List<Object[]> linhas = em.createNativeQuery(sql).setParameter("v", parametro).setMaxResults(1).getResultList();
+        return linhas.isEmpty() ? null : linhas.get(0);
+    }
+}

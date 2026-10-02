@@ -1,0 +1,97 @@
+CREATE TABLE IF NOT EXISTS atendimento_multidisciplinar (
+  id SERIAL PRIMARY KEY,
+  idpaciente INTEGER NOT NULL,
+  idbam INTEGER,
+  prontuario VARCHAR(40),
+  unidade VARCHAR(20),
+  setor VARCHAR(60),
+  leito VARCHAR(30),
+
+  categoria_profissional VARCHAR(40) NOT NULL,
+  profissional VARCHAR(120),
+  matricula_profissional VARCHAR(40),
+  conselho VARCHAR(15),
+  numero_conselho VARCHAR(30),
+
+  data_atendimento DATE,
+  hora_inicial VARCHAR(5),
+  hora_final VARCHAR(5),
+  motivo TEXT,
+  origem VARCHAR(40),
+  solicitante VARCHAR(120),
+  prioridade VARCHAR(15),
+  tipo_atendimento VARCHAR(30),
+  acompanhante_presente BOOLEAN,
+  observacoes_iniciais TEXT,
+
+  queixa_principal TEXT,
+  historia_atual TEXT,
+  condicao_clinica_observada TEXT,
+  nivel_consciencia VARCHAR(30),
+  orientacao VARCHAR(30),
+  comunicacao TEXT,
+  mobilidade TEXT,
+  autonomia TEXT,
+  dor VARCHAR(30),
+  alimentacao_avaliacao TEXT,
+  degluticao TEXT,
+  respiracao TEXT,
+  eliminacoes TEXT,
+  condicoes_emocionais TEXT,
+  condicoes_familiares TEXT,
+  rede_apoio TEXT,
+  vulnerabilidade_social TEXT,
+  adesao_tratamento TEXT,
+  riscos_identificados TEXT,
+  necessidades_identificadas TEXT,
+  observacoes_gerais TEXT,
+
+  dados_especificos TEXT,
+
+  objetivos TEXT,
+  condutas TEXT,
+  intervencoes TEXT,
+  orientacoes TEXT,
+  encaminhamentos_texto TEXT,
+  solicitacoes TEXT,
+  metas TEXT,
+  prazo_estimado VARCHAR(60),
+  necessita_retorno BOOLEAN,
+  data_prevista_reavaliacao DATE,
+
+  evolucao TEXT,
+  resposta_intervencoes TEXT,
+  intercorrencias TEXT,
+  alteracao_conduta TEXT,
+  orientacoes_fornecidas TEXT,
+  contato_familiares TEXT,
+  contato_outros_profissionais TEXT,
+  resultado_atendimento TEXT,
+
+  condicao_termino TEXT,
+  atendimento_concluido BOOLEAN,
+  necessita_acompanhamento BOOLEAN,
+  necessita_retorno_final BOOLEAN,
+  encaminhamento_realizado BOOLEAN,
+  transferencia_setor BOOLEAN,
+  transferencia_unidade BOOLEAN,
+  alta_multidisciplinar BOOLEAN,
+  observacoes_finais TEXT,
+  data_encerramento TIMESTAMP,
+
+  status VARCHAR(20) NOT NULL DEFAULT 'AGUARDANDO',
+  ativo BOOLEAN NOT NULL DEFAULT TRUE,
+  motivo_cancelamento TEXT,
+
+  criado_por_matricula VARCHAR(40),
+  criado_em TIMESTAMP,
+  atualizado_por_matricula VARCHAR(40),
+  atualizado_em TIMESTAMP,
+  versao INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE INDEX IF NOT EXISTS idx_atendimento_multi_paciente ON atendimento_multidisciplinar (idpaciente);
+CREATE INDEX IF NOT EXISTS idx_atendimento_multi_idbam ON atendimento_multidisciplinar (idbam);
+CREATE INDEX IF NOT EXISTS idx_atendimento_multi_status ON atendimento_multidisciplinar (status);
+CREATE INDEX IF NOT EXISTS idx_atendimento_multi_categoria ON atendimento_multidisciplinar (categoria_profissional);
+CREATE INDEX IF NOT EXISTS idx_atendimento_multi_unidade_data ON atendimento_multidisciplinar (unidade, data_atendimento);

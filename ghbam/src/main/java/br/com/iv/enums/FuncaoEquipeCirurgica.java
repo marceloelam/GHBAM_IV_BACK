@@ -1,0 +1,15 @@
+package br.com.iv.enums;
+
+public enum FuncaoEquipeCirurgica {
+    CIRURGIAO,
+    PRIMEIRO_AUXILIAR,
+    SEGUNDO_AUXILIAR,
+    ANESTESISTA,
+    INSTRUMENTADOR,
+    CIRCULANTE,
+    ENFERMEIRO,
+    TECNICO_ENFERMAGEM,
+    PERFUSIONISTA,
+    RESIDENTE,
+    OUTRO
+}

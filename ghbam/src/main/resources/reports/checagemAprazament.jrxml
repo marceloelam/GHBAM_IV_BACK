@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Created with Jaspersoft Studio version 6.21.5.final using JasperReports Library version 6.21.5-74d586df47b25dbd05bd0957999819196e59934a  -->
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="checagemAprazament" pageWidth="595" pageHeight="842" columnWidth="593" leftMargin="1" rightMargin="1" topMargin="1" bottomMargin="1" uuid="68ad8006-2153-429c-851c-51b0129e3851">
+	<property name="com.jaspersoft.studio.data.sql.tables" value=""/>
+	<property name="com.jaspersoft.studio.data.defaultdataadapter" value="conn"/>
+	<property name="com.jaspersoft.studio.unit." value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.pageHeight" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.pageWidth" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.topMargin" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.bottomMargin" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.leftMargin" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.rightMargin" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.columnWidth" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.columnSpacing" value="pixel"/>
+	<parameter name="idPA" class="java.lang.Integer"/>
+	<queryString language="SQL">
+		<![CDATA[select * from prescricao_aprazamento_checagem pa where idprescricao = $P{idPA}     order by cast(horario_aprazado as time)]]>
+	</queryString>
+	<field name="idaprazamentochecagem" class="java.lang.Integer">
+		<property name="com.jaspersoft.studio.field.name" value="idaprazamentochecagem"/>
+		<property name="com.jaspersoft.studio.field.label" value="idaprazamentochecagem"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="prescricao_aprazamento_checagem"/>
+	</field>
+	<field name="aprazado_em" class="java.sql.Timestamp">
+		<property name="com.jaspersoft.studio.field.name" value="aprazado_em"/>
+		<property name="com.jaspersoft.studio.field.label" value="aprazado_em"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="prescricao_aprazamento_checagem"/>
+	</field>
+	<field name="aprazado_por" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="aprazado_por"/>
+		<property name="com.jaspersoft.studio.field.label" value="aprazado_por"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="prescricao_aprazamento_checagem"/>
+	</field>
+	<field name="aprazado_por_matricula" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="aprazado_por_matricula"/>
+		<property name="com.jaspersoft.studio.field.label" value="aprazado_por_matricula"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="prescricao_aprazamento_checagem"/>
+	</field>
+	<field name="atualizado_em" class="java.sql.Timestamp">
+		<property name="com.jaspersoft.studio.field.name" value="atualizado_em"/>
+		<property name="com.jaspersoft.studio.field.label" value="atualizado_em"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="prescricao_aprazamento_checagem"/>
+	</field>
+	<field name="checado" class="java.lang.Boolean">
+		<property name="com.jaspersoft.studio.field.name" value="checado"/>
+		<property name="com.jaspersoft.studio.field.label" value="checado"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="prescricao_aprazamento_checagem"/>
+	</field>
+	<field name="checado_em" class="java.sql.Timestamp">
+		<property name="com.jaspersoft.studio.field.name" value="checado_em"/>
+		<property name="com.jaspersoft.studio.field.label" value="checado_em"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="prescricao_aprazamento_checagem"/>
+	</field>
+	<field name="checado_por" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="checado_por"/>
+		<property name="com.jaspersoft.studio.field.label" value="checado_por"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="prescricao_aprazamento_checagem"/>
+	</field>
+	<field name="checado_por_matricula" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="checado_por_matricula"/>
+		<property name="com.jaspersoft.studio.field.label" value="checado_por_matricula"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="prescricao_aprazamento_checagem"/>
+	</field>
+	<field name="criado_em" class="java.sql.Timestamp">
+		<property name="com.jaspersoft.studio.field.name" value="criado_em"/>
+		<property name="com.jaspersoft.studio.field.label" value="criado_em"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="prescricao_aprazamento_checagem"/>
+	</field>
+	<field name="horario_aprazado" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="horario_aprazado"/>
+		<property name="com.jaspersoft.studio.field.label" value="horario_aprazado"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="prescricao_aprazamento_checagem"/>
+	</field>
+	<field name="idbam" class="java.lang.Integer">
+		<property name="com.jaspersoft.studio.field.name" value="idbam"/>
+		<property name="com.jaspersoft.studio.field.label" value="idbam"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="prescricao_aprazamento_checagem"/>
+	</field>
+	<field name="idpaciente" class="java.lang.Integer">
+		<property name="com.jaspersoft.studio.field.name" value="idpaciente"/>
+		<property name="com.jaspersoft.studio.field.label" value="idpaciente"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="prescricao_aprazamento_checagem"/>
+	</field>
+	<field name="idprescricao" class="java.lang.Integer">
+		<property name="com.jaspersoft.studio.field.name" value="idprescricao"/>
+		<property name="com.jaspersoft.studio.field.label" value="idprescricao"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="prescricao_aprazamento_checagem"/>
+	</field>
+	<field name="indice_horario" class="java.lang.Integer">
+		<property name="com.jaspersoft.studio.field.name" value="indice_horario"/>
+		<property name="com.jaspersoft.studio.field.label" value="indice_horario"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="prescricao_aprazamento_checagem"/>
+	</field>
+	<field name="observacao_aprazamento" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="observacao_aprazamento"/>
+		<property name="com.jaspersoft.studio.field.label" value="observacao_aprazamento"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="prescricao_aprazamento_checagem"/>
+	</field>
+	<field name="observacao_checagem" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="observacao_checagem"/>
+		<property name="com.jaspersoft.studio.field.label" value="observacao_checagem"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="prescricao_aprazamento_checagem"/>
+	</field>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band height="13" splitType="Stretch">
+			<staticText>
+				<reportElement x="10" y="0" width="71" height="11" uuid="23fc27d6-a702-4a41-8319-98a642e100bb">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement>
+					<font size="8" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Aprazado por :]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="276" y="2" width="71" height="11" uuid="0c184450-e8f7-48ee-8310-69858fe81043">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement>
+					<font size="8" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Checado por:]]></text>
+			</staticText>
+		</band>
+	</title>
+	<detail>
+		<band height="13" splitType="Stretch">
+			<textField textAdjust="StretchHeight" isBlankWhenNull="true">
+				<reportElement stretchType="ContainerHeight" x="10" y="0" width="260" height="13" uuid="9ad3fe45-88bb-4c88-b64a-341e0b6499e0">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement>
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{horario_aprazado} + " " + $F{observacao_aprazamento} + " ( " + $F{aprazado_por} + " - " + $F{aprazado_por_matricula} + " )"]]></textFieldExpression>
+			</textField>
+			<textField textAdjust="StretchHeight" isBlankWhenNull="true">
+				<reportElement stretchType="ContainerHeight" x="276" y="0" width="264" height="13" uuid="a9a1fe06-4db8-4a27-8923-c8528a68ccaa">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement>
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[new java.text.SimpleDateFormat("HH:mm:ss").format($F{checado_em}) + " " + $F{observacao_checagem} + " ( " + $F{checado_por} + " - " + $F{checado_por_matricula} + " )"]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+</jasperReport>

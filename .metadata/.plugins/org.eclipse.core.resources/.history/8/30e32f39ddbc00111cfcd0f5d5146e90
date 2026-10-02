@@ -1,0 +1,511 @@
+# =============================================================================
+# SERVIDOR
+# =============================================================================
+quarkus.http.host=0.0.0.0
+quarkus.http.port=8080
+
+# Reconstrói a URL pública original (/api) a partir dos headers definidos pelo Nginx.
+# Somente o proxy local é confiável; requisições diretas não podem forjar esses headers.
+quarkus.http.proxy.proxy-address-forwarding=true
+quarkus.http.proxy.allow-forwarded=false
+quarkus.http.proxy.allow-x-forwarded=true
+quarkus.http.proxy.enable-forwarded-host=true
+quarkus.http.proxy.enable-forwarded-prefix=true
+quarkus.http.proxy.trusted-proxies=127.0.0.1 
+
+
+# =============================================================================
+# APP
+# =============================================================================
+app.version=4.0.0
+
+# Pasta-base dos vídeos do painel de chamada (cada unidade usa {dir}/{sigla}/)
+app.painel-videos.dir=${PAINEL_VIDEOS_DIR:painel-videos}
+
+# -----------------------------------------------------------------------------
+# HuggingFace / Featherless AI
+# -----------------------------------------------------------------------------
+# Token NÃO fica aqui — está em AppSecrets.java (HF_API_TOKEN)
+# Endpoint esperado:
+# POST /v1/chat/completions
+# Body:
+# {
+#   "model": "...",
+#   "messages": [...]
+# }
+
+hf.router.url=${HF_ROUTER_URL:https://router.huggingface.co/featherless-ai}
+
+# Mapeamento:
+# alias:modelo_real,alias2:modelo_real2
+hf.model.map=${HF_MODEL_MAP:}
+
+# Modelos disponíveis
+hf.available.models=${HF_AVAILABLE_MODELS:Qwen/Qwen2.5-1.5B-Instruct,HuggingFaceH4/zephyr-7b-beta,Qwen/Qwen2.5-7B-Instruct,Qwen/Qwen3-1.7B}
+
+# Modelo fallback
+hf.fallback.model=${HF_FALLBACK_MODEL:Qwen/Qwen2.5-1.5B-Instruct}
+
+# Request settings
+hf.request.timeout.ms=${HF_REQUEST_TIMEOUT_MS:30000}
+hf.request.retries=${HF_REQUEST_RETRIES:2}
+
+# RAG embeddings
+rag.embedding.local.url=${RAG_EMBEDDING_LOCAL_URL:http://localhost:8001/embed}
+rag.embedding.local.timeout.seconds=${RAG_EMBEDDING_LOCAL_TIMEOUT_SECONDS:5}
+rag.embedding.hf.timeout.seconds=${RAG_EMBEDDING_HF_TIMEOUT_SECONDS:10}
+
+
+# =============================================================================
+# BANCO DE DADOS (POSTGRESQL)
+# =============================================================================
+quarkus.datasource.db-kind=postgresql
+quarkus.datasource.username=${DB_USER:postgres}
+
+# SEGURANÇA:
+# senha fornecida exclusivamente via variável de ambiente
+quarkus.datasource.password=${DB_PASSWORD}
+
+quarkus.datasource.jdbc.url=jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}?tcpKeepAlive=true&loginTimeout=30&connectTimeout=30&socketTimeout=120&applicationName=ghbam-app&reWriteBatchedInserts=true&preparedStatementCacheQueries=64&preparedStatementCacheSizeMiB=4&options=-c%20statement_timeout=60000%20-c%20idle_in_transaction_session_timeout=120000
+
+
+# -----------------------------------------------------------------------------
+# Pool de conexões
+# -----------------------------------------------------------------------------
+quarkus.datasource.jdbc.min-size=5
+quarkus.datasource.jdbc.initial-size=5
+quarkus.datasource.jdbc.max-size=50
+
+# Timeouts
+quarkus.datasource.jdbc.acquisition-timeout=PT60S
+# O CacheMemoryContext do PostgreSQL so e liberado quando a conexao fecha.
+# Vida longa + plan cache grande esgota a memoria do servidor (SQLState 53200).
+quarkus.datasource.jdbc.max-lifetime=PT10M
+quarkus.datasource.jdbc.idle-removal-interval=PT5M
+
+# Validação de conexões
+quarkus.datasource.jdbc.validate-on-borrow=true
+quarkus.datasource.jdbc.background-validation-interval=PT2M
+
+# Leak detection
+quarkus.datasource.jdbc.leak-detection-interval=PT1M
+
+# Health check
+quarkus.datasource.health.enabled=true
+
+
+# =============================================================================
+# HIBERNATE / ORM
+# =============================================================================
+%dev.quarkus.hibernate-orm.database.generation=update
+# Transicao segura: preserva o comportamento atual. Depois de reconciliar e
+# homologar todas as migracoes, definir HIBERNATE_SCHEMA_GENERATION=validate
+# no ambiente de producao. Nunca alterar diretamente sem backup testado.
+%prod.quarkus.hibernate-orm.database.generation=${HIBERNATE_SCHEMA_GENERATION:validate}
+# O inicializador legado fica desligado; Flyway e a fonte de alteracoes do schema.
+ghbam.clinical-schema-initializer.enabled=${GHBAM_CLINICAL_SCHEMA_INITIALIZER_ENABLED:false}
+
+quarkus.hibernate-orm.log.sql=false
+
+# =============================================================================
+# FLYWAY V2 - linha controlada posterior ao baseline legado V68
+# =============================================================================
+# O catalogo antigo permanece fora desta localizacao para evitar colisoes e
+# checksums incompatíveis. A migracao no startup fica desativada por padrao.
+quarkus.flyway.locations=db/migration-v2
+quarkus.flyway.table=ghbam_schema_history_v2
+quarkus.flyway.baseline-on-migrate=true
+quarkus.flyway.baseline-version=68
+quarkus.flyway.baseline-description=GHBAM legacy schema through V68
+quarkus.flyway.migrate-at-start=${GHBAM_FLYWAY_MIGRATE_AT_START:true}
+
+# Batch / performance
+quarkus.hibernate-orm.jdbc.statement-batch-size=20
+quarkus.hibernate-orm.fetch.batch-size=16
+
+# Timezone JDBC
+quarkus.hibernate-orm.jdbc.timezone=UTC
+
+
+# =============================================================================
+# LDAP / ACTIVE DIRECTORY
+# =============================================================================
+quarkus.security.ldap.dir-context.url=${LDAP_SERVER_URI}
+quarkus.security.ldap.dir-context.principal=${LDAP_BIND_DN}
+
+# SEGURANÇA:
+# senha via variável de ambiente
+quarkus.security.ldap.dir-context.password=${LDAP_BIND_PASSWORD}
+
+quarkus.security.ldap.identity-mapping.search-base-dn=${LDAP_USER_SEARCH_BASE}
+quarkus.security.ldap.identity-mapping.rdn-identifier=${LDAP_RDN_IDENTIFIER:sAMAccountName}
+
+# Configurações adicionais
+ldap.admin.user=${LDAP_ADMIN_USER}
+ldap.admin.password=${LDAP_ADMIN_PASSWORD}
+ldap.domain=${LDAP_DOMAIN}
+
+
+# =============================================================================
+# LOGGING
+# =============================================================================
+quarkus.log.console.level=INFO
+%dev.quarkus.log.console.level=DEBUG
+
+# -----------------------------------------------------------------------------
+# Diagnóstico de conexões
+# -----------------------------------------------------------------------------
+%dev.quarkus.log.category."io.agroal".level=DEBUG
+%dev.quarkus.log.category."org.postgresql".level=DEBUG
+%dev.quarkus.log.category."org.hibernate.engine.jdbc.connections".level=DEBUG
+
+# -----------------------------------------------------------------------------
+# Proxy de DataSource (setAutoCommit)
+# Classe:
+# br.gov.secure.DataSourceProxyProducer
+#
+# Para ativar:
+# 1. Em AppSecrets:
+#    public static final boolean ENABLE_SET_AUTOCOMMIT_LOG = true;
+#
+# 2. Recompile/reinicie a aplicação
+# -----------------------------------------------------------------------------
+%dev.quarkus.log.category."br.gov.secure".level=DEBUG
+
+# Async logging
+
+# Console DEV
+%dev.quarkus.log.console.format=%d{HH:mm:ss} %-5p [%c{2.}] (%t) %s%e%n
+
+
+# =============================================================================
+# SWAGGER
+# =============================================================================
+quarkus.swagger-ui.always-include=true
+
+
+# =============================================================================
+# WEBSOCKET
+# =============================================================================
+quarkus.websocket.max-frame-size=1048576
+
+
+# =============================================================================
+# RELATÓRIOS (JASPER)
+# =============================================================================
+%dev.reports.directory=${REPORTS_DIR}
+%prod.reports.directory=${REPORTS_DIR:/opt/app/reports}
+
+reports.directory=${REPORTS_DIR:reports}
+
+# Cache
+reports.cache.enabled=true
+reports.cache.max-size=50
+reports.cache.ttl.minutes=60
+
+# Jasper otimizações
+net.sf.jasperreports.virtualizer.enabled=true
+net.sf.jasperreports.virtualizer.max.size=100
+net.sf.jasperreports.virtualizer.initial.size=10
+net.sf.jasperreports.print.keep.full.text=false
+net.sf.jasperreports.export.pdf.compressed=true
+
+
+# =============================================================================
+# SEGURANÇA / JWT
+# =============================================================================
+# Em producao, aponte para arquivos FORA do .jar (ex.: file:/opt/app/secrets/jwt/privateKey.pem)
+# via GHBAM_JWT_PRIVATE_KEY_LOCATION / GHBAM_JWT_PUBLIC_KEY_LOCATION. O fallback classpath
+# existe so para dev e nao quebrar ambientes atuais; o SecureConfigValidator avisa no startup.
+smallrye.jwt.sign.key.location=${GHBAM_JWT_PRIVATE_KEY_LOCATION:classpath:jwt/privateKey.pem}
+mp.jwt.verify.publickey.location=${GHBAM_JWT_PUBLIC_KEY_LOCATION:classpath:jwt/publicKey.pem}
+mp.jwt.verify.issuer=ghbam-iv
+
+# Autenticacao proativa DESLIGADA: por padrao o Quarkus, com smallrye-jwt
+# instalado, tenta validar QUALQUER header Authorization: Bearer recebido
+# ANTES de qualquer filtro JAX-RS rodar (inclusive o RbacRequestFilter
+# customizado). Nenhum endpoint usa @RolesAllowed/@Authenticated — toda a
+# autorizacao real passa pelo RbacRequestFilter/SecurityPermissionService.
+# Com proactive=true, um Bearer malformado (ex.: header duplicado por um
+# interceptador do frontend, virando "Bearer x, Bearer x" apos o RestEasy
+# juntar valores repetidos) e rejeitado com 401 generico (corpo vazio,
+# WWW-Authenticate: Bearer) sem nunca chegar no resolve() com fallback por
+# X-GHBAM-MATRICULA — o filtro customizado nunca roda para esses casos.
+quarkus.http.auth.proactive=false
+
+# RBAC backend
+# false = apenas auditoria/calculo sem bloqueio
+# true  = exige Authorization Bearer em chamadas críticas
+# Default religado para true em 2026-07-22 depois do sweep de autenticação do
+# frontend: chamadas auxiliares/publicas nao recebem Bearer velho, leituras
+# legadas de setor/sala usam o fluxo compatível e 401 auxiliar nao derruba a
+# sessao. Em emergencia operacional, defina GHBAM_SECURITY_RBAC_ENFORCE=false.
+ghbam.security.rbac.enforce=${GHBAM_SECURITY_RBAC_ENFORCE:true}
+# Flag separado do enforce acima, so para as permissoes OBRIGATORIAS (logica E)
+# de RoutePermissionCatalog.requiredAllPermissionsFor. Comeca em false de
+# proposito: entradas nesse mapa so passam a bloquear de verdade depois de
+# rodar em shadow (grep RBAC-SHADOW-REQUIRED nos logs) e confirmar que nao ha
+# usuario legitimo pego de surpresa. Ver [[project_ghbam_rbac_gap_permissoes_finas]]
+# na memoria do projeto.
+ghbam.security.rbac.enforceRequiredPermissions=${GHBAM_SECURITY_RBAC_ENFORCE_REQUIRED_PERMISSIONS:false}
+# Compatibilidade temporaria para telas legadas internas. Em producao publica,
+# identidade por X-GHBAM-MATRICULA fica desligada por padrao.
+ghbam.security.legacy-header-auth.enabled=${GHBAM_SECURITY_LEGACY_HEADER_AUTH_ENABLED:false}
+%dev.ghbam.security.legacy-header-auth.enabled=${GHBAM_SECURITY_LEGACY_HEADER_AUTH_ENABLED:true}
+%test.ghbam.security.legacy-header-auth.enabled=${GHBAM_SECURITY_LEGACY_HEADER_AUTH_ENABLED:true}
+
+
+# =============================================================================
+# CORS (Safari / iOS compatível)
+# =============================================================================
+quarkus.http.cors.enabled=true
+
+# Lista completa (usada em dev/local por padrao — inclui localhost, rede
+# interna de dev etc). Em producao, %prod.quarkus.http.cors.origins abaixo
+# SUBSTITUI essa lista inteira por uma so com as origens que fazem sentido
+# fora da rede de desenvolvimento — antes disso, o backend de producao
+# aceitava credenciais de origem ate de localhost, sem necessidade nenhuma.
+quarkus.http.cors.origins=https://ghbam-iv.itaguai.rj.gov.br,https://ghbam.com.br,http://ghbam.com.br,https://www.ghbam.com.br,http://www.ghbam.com.br,http://ghbamiv.vps-kinghost.net:8080,http://ghbamiv.vps-kinghost.net,http://${DB_HOST}:3000,http://${DB_HOST}:5173,http://127.0.0.1:5173, http://${DB_HOST}:8080,http://localhost:3000,http://localhost:5173,http://127.0.0.1:3000,http://127.0.0.1:5173,https://191.252.209.82:12474,http://191.252.209.82:12474,https://191.252.209.82:3000,http://191.252.209.82:3000
+
+# 2026-07-20: removida a entrada duplicada http://10.200.200.7:5173 (identica
+# a http://${DB_HOST}:5173, ja que DB_HOST=10.200.200.7) e https/http
+# ghbam.com.br:3000 (dominio de producao com porta de dev — nada serve ali,
+# parecia sobra de teste). O IP 191.252.209.82 (4 entradas) ficou mantido por
+# enquanto — pendente de confirmacao do dono se ainda esta em uso.
+%prod.quarkus.http.cors.origins=${GHBAM_PROD_CORS_ORIGINS:https://ghbam-iv.itaguai.rj.gov.br,https://ghbam.com.br,https://www.ghbam.com.br}
+
+ghbam.webauthn.rp-id=${GHBAM_WEBAUTHN_RP_ID:ghbam-iv.itaguai.rj.gov.br}
+ghbam.webauthn.rp-name=${GHBAM_WEBAUTHN_RP_NAME:GHBAM}
+ghbam.webauthn.origins=${GHBAM_WEBAUTHN_ORIGINS:https://ghbam-iv.itaguai.rj.gov.br,https://ghbam.com.br,https://www.ghbam.com.br,http://localhost:3000,http://localhost:5173,http://127.0.0.1:5173}
+
+quarkus.http.cors.methods=GET,PUT,POST,DELETE,PATCH,OPTIONS
+
+quarkus.http.cors.headers=Content-Type,Authorization,Cache-Control,Pragma,Expires,X-Requested-With,Accept,X-PACS-AUTHORIZATION,X-GHBAM-USER-ID,X-GHBAM-USER-NAME,X-GHBAM-MATRICULA,X-GHBAM-ROLE,X-GHBAM-UNIT,X-GHBAM-PERMISSIONS,X-GHBAM-REQUEST-ID,X-GHBAM-LEGACY-AUTH-ONLY,X-APS-UNIDADE,X-APS-LOTACAO
+
+quarkus.http.cors.exposed-headers=Content-Disposition
+quarkus.http.cors.access-control-allow-credentials=true
+quarkus.http.cors.access-control-max-age=PT24H
+
+
+# =============================================================================
+# SSL (PRODUÇÃO)
+# =============================================================================
+ %prod.quarkus.http.ssl.certificate.files=/etc/letsencrypt/live/ghbam-iv.itaguai.rj.gov.br/fullchain.pem
+ %prod.quarkus.http.ssl.certificate.key-files=/etc/letsencrypt/live/ghbam-iv.itaguai.rj.gov.br/privkey.pem
+ %prod.quarkus.http.ssl-port=8443
+ %prod.quarkus.http.insecure-requests=redirect
+
+
+# =============================================================================
+# BUILD / RECURSOS
+# =============================================================================
+quarkus.package.jar.type=uber-jar
+quarkus.native.resources.includes=reports/.*\.jrxml,reports/.*\.jasper,reports/.*\.jpg,reports/.*\.png
+
+
+# =============================================================================
+# JNI
+# =============================================================================
+quarkus.jni.library-paths=${NITGEN_LIB}:/usr/local/lib:/usr/lib/x86_64-linux-gnu/jni
+
+
+# =============================================================================
+# THREADS / PERFORMANCE
+# =============================================================================
+quarkus.thread-pool.max-threads=25
+quarkus.thread-pool.queue-size=1000
+quarkus.thread-pool.growth-resistance=0.5
+
+quarkus.vertx.event-loops-pool-size=4
+
+
+# =============================================================================
+# NATIVE IMAGE
+# =============================================================================
+quarkus.native.native-image-xmx=4g
+quarkus.native.additional-build-args=-R:MaxHeapSize=4g,-R:MinHeapSize=1g
+
+
+# =============================================================================
+# TRANSACTION MANAGER
+# =============================================================================
+# Deve ser maior que o statement_timeout do PostgreSQL (60s)
+# para evitar race condition no commit.
+quarkus.transaction-manager.default-transaction-timeout=PT120S
+quarkus.transaction-manager.enable-recovery=true
+
+
+# =============================================================================
+# MICROMETER / MÉTRICAS
+# =============================================================================
+
+
+# =============================================================================
+# DEV
+# =============================================================================
+quarkus.http.auth.form.error-page=/error.html
+
+
+# =============================================================================
+# SECURE CONFIG (br.gov.secure.SecureConfig)
+# =============================================================================
+# Propriedades lidas via:
+# @ConfigMapping(prefix = "secure.app")
+#
+# Os valores devem vir EXCLUSIVAMENTE de variáveis de ambiente.
+# Para desenvolvimento local:
+# utilizar arquivo .env (gitignored)
+
+# -----------------------------------------------------------------------------
+# Database
+# -----------------------------------------------------------------------------
+secure.app.database.password=${DB_PASSWORD}
+secure.app.database.host=${DB_HOST}
+secure.app.database.port=${DB_PORT:5432}
+secure.app.database.name=${DB_NAME:hospitalit}
+secure.app.database.username=${DB_USER:postgres}
+
+# -----------------------------------------------------------------------------
+# LDAP
+# -----------------------------------------------------------------------------
+secure.app.ldap.server-uri=${LDAP_SERVER_URI:ldap://itg.rio:389}
+secure.app.ldap.bind-dn=${LDAP_BIND_DN:itadeskAuth@itg.rio}
+secure.app.ldap.bind-password=${LDAP_BIND_PASSWORD}
+
+secure.app.ldap.search-base-dn=${LDAP_USER_SEARCH_BASE:DC=itg,DC=rio}
+
+secure.app.ldap.admin-user=${LDAP_ADMIN_USER:itadeskAuth@itg.rio}
+secure.app.ldap.admin-password=${LDAP_ADMIN_PASSWORD}
+
+secure.app.ldap.domain=${LDAP_DOMAIN:itg.rio}
+
+# -----------------------------------------------------------------------------
+# App
+# -----------------------------------------------------------------------------
+secure.app.app.reports-dir=${REPORTS_DIR:reports}
+secure.app.app.jwt-issuer=ghbam-iv
+
+
+# =============================================================================
+# JACKSON
+# =============================================================================
+# Serializa java.time em ISO-8601
+quarkus.jackson.write-dates-as-timestamps=false
+
+# Resumo Clínico Inteligente. Reutiliza os provedores e segredos já utilizados
+# pelo RAG/triagem através de AcessoIa (GROQ_API_KEY, HF_API_TOKEN/HF_MODEL ou
+# OPENROUTER_API_KEY). Desabilitado por padrão para fallback local seguro.
+ghbam.ia.enabled=${GHBAM_IA_ENABLED:false}
+ghbam.ia.max-context-chars=${GHBAM_IA_MAX_CONTEXT_CHARS:24000}
+ghbam.ia.rate-limit-seconds=${GHBAM_IA_RATE_LIMIT_SECONDS:10}
+ghbam.ia.model=${GHBAM_IA_MODEL:groq:llama-3.3-70b-versatile}
+
+# =============================================================================
+# RECONHECIMENTO FACIAL PARA RESET DE SENHA
+# =============================================================================
+# Configure com um servico biometrico server-side, como CompreFace Face
+# Verification. Sem essas variaveis, /auth/esqueci-senha/facial nao redefine
+# senha.
+ghbam.face.verification.url=${GHBAM_FACE_VERIFICATION_URL:}
+ghbam.face.api-key=${GHBAM_FACE_API_KEY:}
+ghbam.face.similarity-threshold=${GHBAM_FACE_SIMILARITY_THRESHOLD:0.85}
+ghbam.face.timeout.seconds=${GHBAM_FACE_TIMEOUT_SECONDS:20}
+
+# =============================================================================
+# INTEGRACAO EXTERNA - CONSULTA DE PACIENTE (GET /integracao/pacientes)
+# =============================================================================
+# Formato: sistema|SIGLA_UNIDADE|chave (chave com 32+ caracteres), varias separadas
+# por virgula. A unidade define a credencial CADSUS usada quando o paciente nao esta
+# no cadastro local. Vazio = rota fechada (401 para qualquer chamada).
+ghbam.integracao.api-keys=${GHBAM_INTEGRACAO_API_KEYS:}
+%dev.ghbam.integracao.api-keys=postman|DEV|7119c87ff4114a41230e1ec8eeb473e56bc51f957e8f984c7a516c28807dd568
+
+}
+
+
+# =============================================================================
+# ZAMED
+# =============================================================================
+zamed.endpoint=${ZAMED_ENDPOINT:https://zamed.tec.br/itaguai/apiservice/ghbam/prescricoes.php}
+zamed.autenticacao=${ZAMED_AUTENTICACAO:}
+
+# =============================================================================
+# INTEGRACAO SUS / RNDS
+# =============================================================================
+# Em producao, configure GHBAM_SUS_CREDENTIALS_KEY no ambiente do servidor.
+# Em dev/test, a chave fixa evita perder a leitura dos segredos a cada restart.
+ghbam.sus.credentials.key=${GHBAM_SUS_CREDENTIALS_KEY:}
+%dev.ghbam.sus.credentials.key=${GHBAM_SUS_CREDENTIALS_KEY:ghbam-sus-dev-key-local-nao-usar-em-producao}
+%test.ghbam.sus.credentials.key=${GHBAM_SUS_CREDENTIALS_KEY:ghbam-sus-test-key-local-nao-usar-em-producao}
+
+# =============================================================================
+# ENVIO FHIR (sumario de alta) - RISAH/RNDS-ready, generico por destino
+# =============================================================================
+# Disparo real fica sempre desligado ate existir uma linha ativa em
+# fhir_envio_destino (ativo=true) com endpoint/credencial reais; sem isso,
+# nenhuma chamada de rede e feita (ver FhirDispatchService).
+ghbam.fhir.credentials.key=${GHBAM_FHIR_CREDENTIALS_KEY:}
+%dev.ghbam.fhir.credentials.key=${GHBAM_FHIR_CREDENTIALS_KEY:ghbam-fhir-dev-key-local-nao-usar-em-producao}
+%test.ghbam.fhir.credentials.key=${GHBAM_FHIR_CREDENTIALS_KEY:ghbam-fhir-test-key-local-nao-usar-em-producao}
+ghbam.fhir.dispatch.max-tentativas=${GHBAM_FHIR_DISPATCH_MAX_TENTATIVAS:10}
+ghbam.fhir.dispatch.retry.cron=${GHBAM_FHIR_DISPATCH_RETRY_CRON:1m}
+
+# =============================================================================
+# Consulta de CNS no cadastro publico do CNES (CPF + nascimento -> CNS)
+# Usada pela /recepcao. Desligue com GHBAM_CNS_CONSULTA=false se o DATASUS
+# estiver instavel: o campo volta a ser 100% digitado, nada mais quebra.
+# =============================================================================
+ghbam.cns.consulta.habilitado=${GHBAM_CNS_CONSULTA:true}
+ghbam.cns.consulta.url=${GHBAM_CNS_CONSULTA_URL:https://cnesadm.datasus.gov.br/cnesadm/publico/usuarios/cadastro}
+ghbam.cns.consulta.timeout.seconds=${GHBAM_CNS_CONSULTA_TIMEOUT:15}
+ghbam.cns.consulta.cache.minutos=${GHBAM_CNS_CONSULTA_CACHE:60}
+
+# O toggle que liga a consulta oficial do PDQ na /recepcao NAO fica mais aqui - virou
+# um registro no banco (tabela configuracao_cns_pdq, ver ConfiguracaoCnsPdqService),
+# controlavel direto pela tela /base2/integracao-sus, sem precisar de deploy/restart.
+# Estado inicial (migration V159): desativado - comportamento identico ao de antes.
+
+# =============================================================================
+# API oficial PDQ CADSUS/CNS do DATASUS (Manual de Integracao PDQ CNS v2.1)
+# Usa o certificado digital ICP-Brasil (PFX/A1) ja salvo em integracao_sus_credencial
+# (tela Integracao SUS) para autenticar via Two-way SSL e gerar token EHR-Auth.
+# Enderecos fixos definidos pelo DATASUS, um par por ambiente (nao configuravel
+# por unidade porque sao os mesmos hosts oficiais para todo mundo).
+# =============================================================================
+ghbam.cadsus.pdq.token-url.homologacao=${GHBAM_CADSUS_TOKEN_URL_HMG:https://ehr-auth-hmg.saude.gov.br/api/osb/token}
+ghbam.cadsus.pdq.token-url.producao=${GHBAM_CADSUS_TOKEN_URL_PRD:https://ehr-auth.saude.gov.br/api/osb/token}
+ghbam.cadsus.pdq.consulta-url.homologacao=${GHBAM_CADSUS_CONSULTA_URL_HMG:https://servicoshm.saude.gov.br/cadsus/v2/PDQSupplierJWT}
+ghbam.cadsus.pdq.consulta-url.producao=${GHBAM_CADSUS_CONSULTA_URL_PRD:https://servicos.saude.gov.br/cadsus/v2/PDQSupplierJWT}
+ghbam.cadsus.pdq.timeout.seconds=${GHBAM_CADSUS_TIMEOUT:20}
+# Token oficial dura 30 minutos; renovamos 2 minutos antes para nao arriscar
+# uma chamada com token vencido no meio do caminho.
+ghbam.cadsus.pdq.token.margem-seguranca.minutos=${GHBAM_CADSUS_TOKEN_MARGEM:2}
+# Token da RNDS (envio FHIR do Sumario de Alta, tipo de autenticacao RNDS_CERTIFICADO):
+# mesmo certificado e mesmo EHR-Auth, mas path proprio da RNDS (o do CADSUS e /api/osb/token).
+# Confirmar no guia rnds-guia.saude.gov.br (Ambientes) antes do primeiro teste em homologacao.
+ghbam.rnds.token-url.homologacao=${GHBAM_RNDS_TOKEN_URL_HMG:https://ehr-auth-hmg.saude.gov.br/api/token}
+ghbam.rnds.token-url.producao=${GHBAM_RNDS_TOKEN_URL_PRD:https://ehr-auth.saude.gov.br/api/token}
+
+# =============================================================================
+# Preparo automatico do Faturamento SUS (FaturamentoAutomacaoJob, 03:20 diario)
+#
+# abrir-competencia=false e o padrao: quem escolhe o mes a faturar e o operador,
+# em Faturamento SUS > Competencias. Sem competencia aberta o job so registra o
+# adiamento na auditoria (AUTOMACAO_FATURAMENTO/ADIADO) dizendo qual e o clique
+# que falta. Ligue para voltar ao comportamento antigo (abertura pelo job).
+#
+# importar-sigtap busca o arquivo no FTP do DATASUS; desligue em ambiente sem
+# saida para a internet, senao a tentativa se repete toda madrugada no log.
+# habilitada=false para nada rodar.
+# =============================================================================
+ghbam.faturamento.automacao.habilitada=${GHBAM_FATURAMENTO_AUTOMACAO:true}
+ghbam.faturamento.automacao.abrir-competencia=${GHBAM_FATURAMENTO_AUTOMACAO_ABRIR_COMPETENCIA:false}
+ghbam.faturamento.automacao.importar-sigtap=${GHBAM_FATURAMENTO_AUTOMACAO_SIGTAP:true}
+ghbam.faturamento.automacao.cron=${GHBAM_FATURAMENTO_AUTOMACAO_CRON:0 20 3 * * ?}
+
+# GED - anexos ficam em ged_documento.conteudo_base64 (TEXT). O limite abaixo vale
+# para o arquivo decodificado; em Base64 o corpo da requisicao fica ~33% maior,
+# por isso max-body-size precisa de folga sobre o limite do GED.
+quarkus.http.limits.max-body-size=25M
+ghbam.ged.tamanho-maximo-bytes=15728640
+ghbam.ged.mimes-permitidos=application/pdf,image/jpeg,image/png,image/webp

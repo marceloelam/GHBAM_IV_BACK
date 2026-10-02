@@ -1,0 +1,2208 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Created with Jaspersoft Studio version 6.18.1.final using JasperReports Library version 6.18.1-9d75d1969e774d4f179fb3be8401e98a0e6d1611  -->
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="bamRelatorio" pageWidth="595" pageHeight="842" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20" uuid="c7200f39-5573-4916-a700-22f30d890aef">
+	<property name="com.jaspersoft.studio.data.sql.tables" value=""/>
+	<property name="com.jaspersoft.studio.data.sql.SQLQueryDesigner.sash.w1" value="176"/>
+	<property name="com.jaspersoft.studio.data.sql.SQLQueryDesigner.sash.w2" value="818"/>
+	<property name="com.jaspersoft.studio.data.defaultdataadapter" value="teste"/>
+	<parameter name="nbam" class="java.lang.String"/>
+	<parameter name="logo" class="java.lang.String"/>
+	<parameter name="hospital" class="java.lang.String"/>
+	<parameter name="ssigla" class="java.lang.String"/>
+	<parameter name="prefeitura" class="java.lang.String"/>
+	<parameter name="complemento" class="java.lang.String"/>
+	<parameter name="datainicial" class="java.lang.String"/>
+	<parameter name="datafinal" class="java.lang.String"/>
+	<parameter name="tea" class="java.lang.String"/>
+	<parameter name="pcd" class="java.lang.String"/>
+	<queryString language="SQL">
+		<![CDATA[SELECT public.bam.idbam,
+	public.bam.controle,
+	public.bam.data,
+	public.bam.hora,
+	public.bam.avaliacao_idavaliacao,
+	public.bam.paciente_idpaciente,
+	public.bam.prontuario_idprontuario,
+	public.pacientes.pacienteespecial,
+	public.bam.registro_idregistro,
+	public.bam.servidor_idservidor,
+	public.bam.tratamento_idtratamento,
+	public.pacientes.idpaciente,
+	public.pacientes.bairro,
+	public.pacientes.cep,
+	public.pacientes.cns,
+	public.pacientes.cpf,
+	public.pacientes.ecivil,
+	public.pacientes.endereco,
+	public.pacientes.estado,
+	public.pacientes.etnia,
+	public.pacientes.idade,
+	public.pacientes.prontuario,
+	public.pacientes.latitude,
+	public.pacientes.longitude,
+	public.pacientes.mae,
+	public.pacientes.municipio,
+	public.pacientes.nascimento,
+	public.pacientes.naturalidade,
+	public.pacientes.nome,
+	public.pacientes.numero,
+	public.pacientes.pai,
+	public.pacientes.profissao,
+	public.pacientes.rg,
+	public.pacientes.sangue,
+	public.pacientes.sexo,
+	public.pacientes.telefone,
+	public.prontuario.idprontuario,
+	public.prontuario.controle,
+	public.prontuario.prontuario,
+	public.registro.idregistro,
+	public.registro.causalesao,
+	public.registro.controle,
+	public.registro.convenio,
+	public.registro.especialidade,
+	public.registro.obsentrada,
+	public.registro.queixaprincipal,
+	public.registro.responsavel,
+	public.registro.setor,
+	public.registro.eletivo,
+	public.registro.tipochegada,
+	public.registro.tipoocorrencia,
+	public.servidor.idservidor,
+	public.servidor.administracao,
+	public.servidor.cargo,
+	public.servidor.corem,
+	public.servidor.crm,
+	public.servidor.danfe,
+	public.servidor.email,
+	public.servidor.especialidade,
+	public.servidor.farmacia,
+	public.servidor.faturamento,
+	public.servidor.matricula,
+	public.servidor.medico,
+	public.servidor.nome,
+	public.servidor.pwd,
+	public.servidor.recepcao,
+	public.servidor.remedios,
+	public.servidor.tel,
+	public.servidor.triagem,
+	public.tratamento.idtratamento,
+	public.tratamento.controle,
+	public.tratamento.data,
+	public.tratamento.destino,
+	public.tratamento.diagnostico_provisorio,
+	public.tratamento.encaminhamento,
+	public.tratamento.evolucao_prescricao,
+	public.tratamento.exames_solicitados,
+	public.tratamento.hora,
+	public.tratamento.medicoecrm,
+	public.tratamento.obs_enfermagem,
+	public.tratamento.obs_saida,
+	public.tratamento.parecer_especialista,
+	public.tratamento.prescricao_inicial,
+	public.tratamento.tipo_alta,
+	public.tratamento.tratado,
+	public.avaliacao.idavaliacao,
+	public.avaliacao.abdome,
+	public.avaliacao.acianotico,
+	public.avaliacao.acordado,
+	public.avaliacao.anamnese,
+	public.avaliacao.anicterico,
+	public.avaliacao.anisocorico,
+	public.avaliacao.avaliado,
+	public.avaliacao.cabeca,
+	public.avaliacao.cianotico,
+	public.avaliacao.comatoso,
+	public.avaliacao.controle,
+	public.avaliacao.data,
+	public.avaliacao.spo,
+	public.avaliacao.desidratado,
+	public.avaliacao.desorientado,
+	public.avaliacao.dispneico,
+	public.avaliacao.etilismo,
+	public.avaliacao.eupneico,
+	public.avaliacao.fc,
+	public.avaliacao.fr,
+	public.avaliacao.hidratado,
+	public.avaliacao.hipocorado,
+	public.avaliacao.hora,
+	public.avaliacao.icterico,
+	public.avaliacao.idmedico,
+	public.avaliacao.idpaciente,
+	public.avaliacao.isocorico,
+	public.avaliacao.membro,
+	public.avaliacao.midriatico,
+	public.avaliacao.miotico,
+	public.avaliacao.normocorado,
+	public.avaliacao.orientado,
+	public.avaliacao.padiast,
+	public.avaliacao.pasist,
+	public.avaliacao.peso,
+	public.avaliacao.pulsocheio,
+	public.avaliacao.pulsofino,
+	public.avaliacao.rigideznuca,
+	public.avaliacao.sudoreico,
+	public.avaliacao.taquipneico,
+	public.avaliacao.tax,
+	public.avaliacao.alergiasoun,
+	public.avaliacao.torporoso,
+	public.avaliacao.comentario,
+	public.avaliacao.glasgow,
+	public.avaliacao.niveldor,
+	public.avaliacao.risco
+FROM public.bam
+	INNER JOIN public.pacientes ON 
+	 public.bam.paciente_idpaciente = public.pacientes.idpaciente 
+	INNER JOIN public.prontuario ON 
+	 public.bam.prontuario_idprontuario = public.prontuario.idprontuario 
+	INNER JOIN public.registro ON 
+	 public.bam.registro_idregistro = public.registro.idregistro 
+	INNER JOIN public.servidor ON 
+	 public.bam.servidor_idservidor = public.servidor.idservidor 
+	INNER JOIN public.tratamento ON 
+	 public.bam.tratamento_idtratamento = public.tratamento.idtratamento 
+	INNER JOIN public.avaliacao ON 
+	 public.bam.avaliacao_idavaliacao = public.avaliacao.idavaliacao 
+WHERE 
+	 public.bam.data between  cast($P{datainicial} as date ) and  cast($P{datafinal}  as date ) and public.avaliacao.unidade =  $P{ssigla}]]>
+	</queryString>
+	<field name="idbam" class="java.lang.Integer">
+		<property name="com.jaspersoft.studio.field.name" value="idbam"/>
+		<property name="com.jaspersoft.studio.field.label" value="idbam"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="bam"/>
+	</field>
+	<field name="controle" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="controle"/>
+		<property name="com.jaspersoft.studio.field.label" value="controle"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="bam"/>
+	</field>
+	<field name="data" class="java.sql.Date">
+		<property name="com.jaspersoft.studio.field.name" value="data"/>
+		<property name="com.jaspersoft.studio.field.label" value="data"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="bam"/>
+	</field>
+	<field name="hora" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="hora"/>
+		<property name="com.jaspersoft.studio.field.label" value="hora"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="bam"/>
+	</field>
+	<field name="avaliacao_idavaliacao" class="java.lang.Integer">
+		<property name="com.jaspersoft.studio.field.name" value="avaliacao_idavaliacao"/>
+		<property name="com.jaspersoft.studio.field.label" value="avaliacao_idavaliacao"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="bam"/>
+	</field>
+	<field name="paciente_idpaciente" class="java.lang.Integer">
+		<property name="com.jaspersoft.studio.field.name" value="paciente_idpaciente"/>
+		<property name="com.jaspersoft.studio.field.label" value="paciente_idpaciente"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="bam"/>
+	</field>
+	<field name="prontuario_idprontuario" class="java.lang.Integer">
+		<property name="com.jaspersoft.studio.field.name" value="prontuario_idprontuario"/>
+		<property name="com.jaspersoft.studio.field.label" value="prontuario_idprontuario"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="bam"/>
+	</field>
+	<field name="pacienteespecial" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="pacienteespecial"/>
+		<property name="com.jaspersoft.studio.field.label" value="pacienteespecial"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pacientes"/>
+	</field>
+	<field name="registro_idregistro" class="java.lang.Integer">
+		<property name="com.jaspersoft.studio.field.name" value="registro_idregistro"/>
+		<property name="com.jaspersoft.studio.field.label" value="registro_idregistro"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="bam"/>
+	</field>
+	<field name="servidor_idservidor" class="java.lang.Integer">
+		<property name="com.jaspersoft.studio.field.name" value="servidor_idservidor"/>
+		<property name="com.jaspersoft.studio.field.label" value="servidor_idservidor"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="bam"/>
+	</field>
+	<field name="tratamento_idtratamento" class="java.lang.Integer">
+		<property name="com.jaspersoft.studio.field.name" value="tratamento_idtratamento"/>
+		<property name="com.jaspersoft.studio.field.label" value="tratamento_idtratamento"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="bam"/>
+	</field>
+	<field name="idpaciente" class="java.lang.Integer">
+		<property name="com.jaspersoft.studio.field.name" value="idpaciente"/>
+		<property name="com.jaspersoft.studio.field.label" value="idpaciente"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pacientes"/>
+	</field>
+	<field name="bairro" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="bairro"/>
+		<property name="com.jaspersoft.studio.field.label" value="bairro"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pacientes"/>
+	</field>
+	<field name="cep" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="cep"/>
+		<property name="com.jaspersoft.studio.field.label" value="cep"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pacientes"/>
+	</field>
+	<field name="cns" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="cns"/>
+		<property name="com.jaspersoft.studio.field.label" value="cns"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pacientes"/>
+	</field>
+	<field name="cpf" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="cpf"/>
+		<property name="com.jaspersoft.studio.field.label" value="cpf"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pacientes"/>
+	</field>
+	<field name="ecivil" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="ecivil"/>
+		<property name="com.jaspersoft.studio.field.label" value="ecivil"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pacientes"/>
+	</field>
+	<field name="endereco" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="endereco"/>
+		<property name="com.jaspersoft.studio.field.label" value="endereco"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pacientes"/>
+	</field>
+	<field name="estado" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="estado"/>
+		<property name="com.jaspersoft.studio.field.label" value="estado"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pacientes"/>
+	</field>
+	<field name="etnia" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="etnia"/>
+		<property name="com.jaspersoft.studio.field.label" value="etnia"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pacientes"/>
+	</field>
+	<field name="idade" class="java.lang.Integer">
+		<property name="com.jaspersoft.studio.field.name" value="idade"/>
+		<property name="com.jaspersoft.studio.field.label" value="idade"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pacientes"/>
+	</field>
+	<field name="prontuario" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="prontuario"/>
+		<property name="com.jaspersoft.studio.field.label" value="prontuario"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pacientes"/>
+	</field>
+	<field name="latitude" class="java.lang.Double">
+		<property name="com.jaspersoft.studio.field.name" value="latitude"/>
+		<property name="com.jaspersoft.studio.field.label" value="latitude"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pacientes"/>
+	</field>
+	<field name="longitude" class="java.lang.Double">
+		<property name="com.jaspersoft.studio.field.name" value="longitude"/>
+		<property name="com.jaspersoft.studio.field.label" value="longitude"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pacientes"/>
+	</field>
+	<field name="mae" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="mae"/>
+		<property name="com.jaspersoft.studio.field.label" value="mae"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pacientes"/>
+	</field>
+	<field name="municipio" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="municipio"/>
+		<property name="com.jaspersoft.studio.field.label" value="municipio"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pacientes"/>
+	</field>
+	<field name="nascimento" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="nascimento"/>
+		<property name="com.jaspersoft.studio.field.label" value="nascimento"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pacientes"/>
+	</field>
+	<field name="naturalidade" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="naturalidade"/>
+		<property name="com.jaspersoft.studio.field.label" value="naturalidade"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pacientes"/>
+	</field>
+	<field name="nome" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="nome"/>
+		<property name="com.jaspersoft.studio.field.label" value="nome"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pacientes"/>
+	</field>
+	<field name="numero" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="numero"/>
+		<property name="com.jaspersoft.studio.field.label" value="numero"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pacientes"/>
+	</field>
+	<field name="pai" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="pai"/>
+		<property name="com.jaspersoft.studio.field.label" value="pai"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pacientes"/>
+	</field>
+	<field name="profissao" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="profissao"/>
+		<property name="com.jaspersoft.studio.field.label" value="profissao"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pacientes"/>
+	</field>
+	<field name="rg" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="rg"/>
+		<property name="com.jaspersoft.studio.field.label" value="rg"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pacientes"/>
+	</field>
+	<field name="sangue" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="sangue"/>
+		<property name="com.jaspersoft.studio.field.label" value="sangue"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pacientes"/>
+	</field>
+	<field name="sexo" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="sexo"/>
+		<property name="com.jaspersoft.studio.field.label" value="sexo"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pacientes"/>
+	</field>
+	<field name="telefone" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="telefone"/>
+		<property name="com.jaspersoft.studio.field.label" value="telefone"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pacientes"/>
+	</field>
+	<field name="idprontuario" class="java.lang.Integer">
+		<property name="com.jaspersoft.studio.field.name" value="idprontuario"/>
+		<property name="com.jaspersoft.studio.field.label" value="idprontuario"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="prontuario"/>
+	</field>
+	<field name="COLUMN_38" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="controle"/>
+		<property name="com.jaspersoft.studio.field.label" value="controle"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="prontuario"/>
+	</field>
+	<field name="COLUMN_39" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="prontuario"/>
+		<property name="com.jaspersoft.studio.field.label" value="prontuario"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="prontuario"/>
+	</field>
+	<field name="idregistro" class="java.lang.Integer">
+		<property name="com.jaspersoft.studio.field.name" value="idregistro"/>
+		<property name="com.jaspersoft.studio.field.label" value="idregistro"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="registro"/>
+	</field>
+	<field name="causalesao" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="causalesao"/>
+		<property name="com.jaspersoft.studio.field.label" value="causalesao"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="registro"/>
+	</field>
+	<field name="COLUMN_42" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="controle"/>
+		<property name="com.jaspersoft.studio.field.label" value="controle"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="registro"/>
+	</field>
+	<field name="convenio" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="convenio"/>
+		<property name="com.jaspersoft.studio.field.label" value="convenio"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="registro"/>
+	</field>
+	<field name="especialidade" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="especialidade"/>
+		<property name="com.jaspersoft.studio.field.label" value="especialidade"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="registro"/>
+	</field>
+	<field name="obsentrada" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="obsentrada"/>
+		<property name="com.jaspersoft.studio.field.label" value="obsentrada"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="registro"/>
+	</field>
+	<field name="queixaprincipal" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="queixaprincipal"/>
+		<property name="com.jaspersoft.studio.field.label" value="queixaprincipal"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="registro"/>
+	</field>
+	<field name="responsavel" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="responsavel"/>
+		<property name="com.jaspersoft.studio.field.label" value="responsavel"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="registro"/>
+	</field>
+	<field name="setor" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="setor"/>
+		<property name="com.jaspersoft.studio.field.label" value="setor"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="registro"/>
+	</field>
+	<field name="eletivo" class="java.lang.Boolean">
+		<property name="com.jaspersoft.studio.field.name" value="eletivo"/>
+		<property name="com.jaspersoft.studio.field.label" value="eletivo"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="registro"/>
+	</field>
+	<field name="tipochegada" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="tipochegada"/>
+		<property name="com.jaspersoft.studio.field.label" value="tipochegada"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="registro"/>
+	</field>
+	<field name="tipoocorrencia" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="tipoocorrencia"/>
+		<property name="com.jaspersoft.studio.field.label" value="tipoocorrencia"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="registro"/>
+	</field>
+	<field name="idservidor" class="java.lang.Integer">
+		<property name="com.jaspersoft.studio.field.name" value="idservidor"/>
+		<property name="com.jaspersoft.studio.field.label" value="idservidor"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="servidor"/>
+	</field>
+	<field name="administracao" class="java.lang.Boolean">
+		<property name="com.jaspersoft.studio.field.name" value="administracao"/>
+		<property name="com.jaspersoft.studio.field.label" value="administracao"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="servidor"/>
+	</field>
+	<field name="cargo" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="cargo"/>
+		<property name="com.jaspersoft.studio.field.label" value="cargo"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="servidor"/>
+	</field>
+	<field name="corem" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="corem"/>
+		<property name="com.jaspersoft.studio.field.label" value="corem"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="servidor"/>
+	</field>
+	<field name="crm" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="crm"/>
+		<property name="com.jaspersoft.studio.field.label" value="crm"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="servidor"/>
+	</field>
+	<field name="danfe" class="java.lang.Boolean">
+		<property name="com.jaspersoft.studio.field.name" value="danfe"/>
+		<property name="com.jaspersoft.studio.field.label" value="danfe"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="servidor"/>
+	</field>
+	<field name="email" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="email"/>
+		<property name="com.jaspersoft.studio.field.label" value="email"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="servidor"/>
+	</field>
+	<field name="COLUMN_59" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="especialidade"/>
+		<property name="com.jaspersoft.studio.field.label" value="especialidade"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="servidor"/>
+	</field>
+	<field name="farmacia" class="java.lang.Boolean">
+		<property name="com.jaspersoft.studio.field.name" value="farmacia"/>
+		<property name="com.jaspersoft.studio.field.label" value="farmacia"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="servidor"/>
+	</field>
+	<field name="faturamento" class="java.lang.Boolean">
+		<property name="com.jaspersoft.studio.field.name" value="faturamento"/>
+		<property name="com.jaspersoft.studio.field.label" value="faturamento"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="servidor"/>
+	</field>
+	<field name="matricula" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="matricula"/>
+		<property name="com.jaspersoft.studio.field.label" value="matricula"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="servidor"/>
+	</field>
+	<field name="medico" class="java.lang.Boolean">
+		<property name="com.jaspersoft.studio.field.name" value="medico"/>
+		<property name="com.jaspersoft.studio.field.label" value="medico"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="servidor"/>
+	</field>
+	<field name="COLUMN_64" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="nome"/>
+		<property name="com.jaspersoft.studio.field.label" value="nome"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="servidor"/>
+	</field>
+	<field name="pwd" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="pwd"/>
+		<property name="com.jaspersoft.studio.field.label" value="pwd"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="servidor"/>
+	</field>
+	<field name="recepcao" class="java.lang.Boolean">
+		<property name="com.jaspersoft.studio.field.name" value="recepcao"/>
+		<property name="com.jaspersoft.studio.field.label" value="recepcao"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="servidor"/>
+	</field>
+	<field name="remedios" class="java.lang.Boolean">
+		<property name="com.jaspersoft.studio.field.name" value="remedios"/>
+		<property name="com.jaspersoft.studio.field.label" value="remedios"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="servidor"/>
+	</field>
+	<field name="tel" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="tel"/>
+		<property name="com.jaspersoft.studio.field.label" value="tel"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="servidor"/>
+	</field>
+	<field name="triagem" class="java.lang.Boolean">
+		<property name="com.jaspersoft.studio.field.name" value="triagem"/>
+		<property name="com.jaspersoft.studio.field.label" value="triagem"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="servidor"/>
+	</field>
+	<field name="idtratamento" class="java.lang.Integer">
+		<property name="com.jaspersoft.studio.field.name" value="idtratamento"/>
+		<property name="com.jaspersoft.studio.field.label" value="idtratamento"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="tratamento"/>
+	</field>
+	<field name="COLUMN_71" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="controle"/>
+		<property name="com.jaspersoft.studio.field.label" value="controle"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="tratamento"/>
+	</field>
+	<field name="COLUMN_72" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="data"/>
+		<property name="com.jaspersoft.studio.field.label" value="data"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="tratamento"/>
+	</field>
+	<field name="destino" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="destino"/>
+		<property name="com.jaspersoft.studio.field.label" value="destino"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="tratamento"/>
+	</field>
+	<field name="diagnostico_provisorio" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="diagnostico_provisorio"/>
+		<property name="com.jaspersoft.studio.field.label" value="diagnostico_provisorio"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="tratamento"/>
+	</field>
+	<field name="encaminhamento" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="encaminhamento"/>
+		<property name="com.jaspersoft.studio.field.label" value="encaminhamento"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="tratamento"/>
+	</field>
+	<field name="evolucao_prescricao" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="evolucao_prescricao"/>
+		<property name="com.jaspersoft.studio.field.label" value="evolucao_prescricao"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="tratamento"/>
+	</field>
+	<field name="exames_solicitados" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="exames_solicitados"/>
+		<property name="com.jaspersoft.studio.field.label" value="exames_solicitados"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="tratamento"/>
+	</field>
+	<field name="COLUMN_78" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="hora"/>
+		<property name="com.jaspersoft.studio.field.label" value="hora"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="tratamento"/>
+	</field>
+	<field name="medicoecrm" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="medicoecrm"/>
+		<property name="com.jaspersoft.studio.field.label" value="medicoecrm"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="tratamento"/>
+	</field>
+	<field name="obs_enfermagem" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="obs_enfermagem"/>
+		<property name="com.jaspersoft.studio.field.label" value="obs_enfermagem"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="tratamento"/>
+	</field>
+	<field name="obs_saida" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="obs_saida"/>
+		<property name="com.jaspersoft.studio.field.label" value="obs_saida"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="tratamento"/>
+	</field>
+	<field name="parecer_especialista" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="parecer_especialista"/>
+		<property name="com.jaspersoft.studio.field.label" value="parecer_especialista"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="tratamento"/>
+	</field>
+	<field name="prescricao_inicial" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="prescricao_inicial"/>
+		<property name="com.jaspersoft.studio.field.label" value="prescricao_inicial"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="tratamento"/>
+	</field>
+	<field name="tipo_alta" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="tipo_alta"/>
+		<property name="com.jaspersoft.studio.field.label" value="tipo_alta"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="tratamento"/>
+	</field>
+	<field name="tratado" class="java.lang.Integer">
+		<property name="com.jaspersoft.studio.field.name" value="tratado"/>
+		<property name="com.jaspersoft.studio.field.label" value="tratado"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="tratamento"/>
+	</field>
+	<field name="idavaliacao" class="java.lang.Integer">
+		<property name="com.jaspersoft.studio.field.name" value="idavaliacao"/>
+		<property name="com.jaspersoft.studio.field.label" value="idavaliacao"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="abdome" class="java.lang.Double">
+		<property name="com.jaspersoft.studio.field.name" value="abdome"/>
+		<property name="com.jaspersoft.studio.field.label" value="abdome"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="acianotico" class="java.lang.Boolean">
+		<property name="com.jaspersoft.studio.field.name" value="acianotico"/>
+		<property name="com.jaspersoft.studio.field.label" value="acianotico"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="acordado" class="java.lang.Boolean">
+		<property name="com.jaspersoft.studio.field.name" value="acordado"/>
+		<property name="com.jaspersoft.studio.field.label" value="acordado"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="anamnese" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="anamnese"/>
+		<property name="com.jaspersoft.studio.field.label" value="anamnese"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="anicterico" class="java.lang.Boolean">
+		<property name="com.jaspersoft.studio.field.name" value="anicterico"/>
+		<property name="com.jaspersoft.studio.field.label" value="anicterico"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="anisocorico" class="java.lang.Boolean">
+		<property name="com.jaspersoft.studio.field.name" value="anisocorico"/>
+		<property name="com.jaspersoft.studio.field.label" value="anisocorico"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="avaliado" class="java.lang.Integer">
+		<property name="com.jaspersoft.studio.field.name" value="avaliado"/>
+		<property name="com.jaspersoft.studio.field.label" value="avaliado"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="cabeca" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="cabeca"/>
+		<property name="com.jaspersoft.studio.field.label" value="cabeca"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="cianotico" class="java.lang.Boolean">
+		<property name="com.jaspersoft.studio.field.name" value="cianotico"/>
+		<property name="com.jaspersoft.studio.field.label" value="cianotico"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="comatoso" class="java.lang.Boolean">
+		<property name="com.jaspersoft.studio.field.name" value="comatoso"/>
+		<property name="com.jaspersoft.studio.field.label" value="comatoso"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="COLUMN_97" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="controle"/>
+		<property name="com.jaspersoft.studio.field.label" value="controle"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="COLUMN_98" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="data"/>
+		<property name="com.jaspersoft.studio.field.label" value="data"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="spo" class="java.lang.Double">
+		<property name="com.jaspersoft.studio.field.name" value="spo"/>
+		<property name="com.jaspersoft.studio.field.label" value="spo"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="desidratado" class="java.lang.Boolean">
+		<property name="com.jaspersoft.studio.field.name" value="desidratado"/>
+		<property name="com.jaspersoft.studio.field.label" value="desidratado"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="desorientado" class="java.lang.Boolean">
+		<property name="com.jaspersoft.studio.field.name" value="desorientado"/>
+		<property name="com.jaspersoft.studio.field.label" value="desorientado"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="dispneico" class="java.lang.Boolean">
+		<property name="com.jaspersoft.studio.field.name" value="dispneico"/>
+		<property name="com.jaspersoft.studio.field.label" value="dispneico"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="etilismo" class="java.lang.Boolean">
+		<property name="com.jaspersoft.studio.field.name" value="etilismo"/>
+		<property name="com.jaspersoft.studio.field.label" value="etilismo"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="eupneico" class="java.lang.Boolean">
+		<property name="com.jaspersoft.studio.field.name" value="eupneico"/>
+		<property name="com.jaspersoft.studio.field.label" value="eupneico"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="fc" class="java.lang.Double">
+		<property name="com.jaspersoft.studio.field.name" value="fc"/>
+		<property name="com.jaspersoft.studio.field.label" value="fc"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="fr" class="java.lang.Double">
+		<property name="com.jaspersoft.studio.field.name" value="fr"/>
+		<property name="com.jaspersoft.studio.field.label" value="fr"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="hidratado" class="java.lang.Boolean">
+		<property name="com.jaspersoft.studio.field.name" value="hidratado"/>
+		<property name="com.jaspersoft.studio.field.label" value="hidratado"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="hipocorado" class="java.lang.Boolean">
+		<property name="com.jaspersoft.studio.field.name" value="hipocorado"/>
+		<property name="com.jaspersoft.studio.field.label" value="hipocorado"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="COLUMN_109" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="hora"/>
+		<property name="com.jaspersoft.studio.field.label" value="hora"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="icterico" class="java.lang.Boolean">
+		<property name="com.jaspersoft.studio.field.name" value="icterico"/>
+		<property name="com.jaspersoft.studio.field.label" value="icterico"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="idmedico" class="java.lang.Integer">
+		<property name="com.jaspersoft.studio.field.name" value="idmedico"/>
+		<property name="com.jaspersoft.studio.field.label" value="idmedico"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="COLUMN_112" class="java.lang.Integer">
+		<property name="com.jaspersoft.studio.field.name" value="idpaciente"/>
+		<property name="com.jaspersoft.studio.field.label" value="idpaciente"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="isocorico" class="java.lang.Boolean">
+		<property name="com.jaspersoft.studio.field.name" value="isocorico"/>
+		<property name="com.jaspersoft.studio.field.label" value="isocorico"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="membro" class="java.lang.Double">
+		<property name="com.jaspersoft.studio.field.name" value="membro"/>
+		<property name="com.jaspersoft.studio.field.label" value="membro"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="midriatico" class="java.lang.Boolean">
+		<property name="com.jaspersoft.studio.field.name" value="midriatico"/>
+		<property name="com.jaspersoft.studio.field.label" value="midriatico"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="miotico" class="java.lang.Boolean">
+		<property name="com.jaspersoft.studio.field.name" value="miotico"/>
+		<property name="com.jaspersoft.studio.field.label" value="miotico"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="normocorado" class="java.lang.Boolean">
+		<property name="com.jaspersoft.studio.field.name" value="normocorado"/>
+		<property name="com.jaspersoft.studio.field.label" value="normocorado"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="orientado" class="java.lang.Boolean">
+		<property name="com.jaspersoft.studio.field.name" value="orientado"/>
+		<property name="com.jaspersoft.studio.field.label" value="orientado"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="padiast" class="java.lang.Double">
+		<property name="com.jaspersoft.studio.field.name" value="padiast"/>
+		<property name="com.jaspersoft.studio.field.label" value="padiast"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="pasist" class="java.lang.Double">
+		<property name="com.jaspersoft.studio.field.name" value="pasist"/>
+		<property name="com.jaspersoft.studio.field.label" value="pasist"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="peso" class="java.lang.Double">
+		<property name="com.jaspersoft.studio.field.name" value="peso"/>
+		<property name="com.jaspersoft.studio.field.label" value="peso"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="pulsocheio" class="java.lang.Boolean">
+		<property name="com.jaspersoft.studio.field.name" value="pulsocheio"/>
+		<property name="com.jaspersoft.studio.field.label" value="pulsocheio"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="pulsofino" class="java.lang.Boolean">
+		<property name="com.jaspersoft.studio.field.name" value="pulsofino"/>
+		<property name="com.jaspersoft.studio.field.label" value="pulsofino"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="rigideznuca" class="java.lang.Boolean">
+		<property name="com.jaspersoft.studio.field.name" value="rigideznuca"/>
+		<property name="com.jaspersoft.studio.field.label" value="rigideznuca"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="sudoreico" class="java.lang.Boolean">
+		<property name="com.jaspersoft.studio.field.name" value="sudoreico"/>
+		<property name="com.jaspersoft.studio.field.label" value="sudoreico"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="taquipneico" class="java.lang.Boolean">
+		<property name="com.jaspersoft.studio.field.name" value="taquipneico"/>
+		<property name="com.jaspersoft.studio.field.label" value="taquipneico"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="tax" class="java.lang.Double">
+		<property name="com.jaspersoft.studio.field.name" value="tax"/>
+		<property name="com.jaspersoft.studio.field.label" value="tax"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="alergiasoun" class="java.lang.Boolean">
+		<property name="com.jaspersoft.studio.field.name" value="alergiasoun"/>
+		<property name="com.jaspersoft.studio.field.label" value="alergiasoun"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="torporoso" class="java.lang.Boolean">
+		<property name="com.jaspersoft.studio.field.name" value="torporoso"/>
+		<property name="com.jaspersoft.studio.field.label" value="torporoso"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="comentario" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="comentario"/>
+		<property name="com.jaspersoft.studio.field.label" value="comentario"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="glasgow" class="java.lang.Integer">
+		<property name="com.jaspersoft.studio.field.name" value="glasgow"/>
+		<property name="com.jaspersoft.studio.field.label" value="glasgow"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="niveldor" class="java.lang.Integer">
+		<property name="com.jaspersoft.studio.field.name" value="niveldor"/>
+		<property name="com.jaspersoft.studio.field.label" value="niveldor"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="risco" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="risco"/>
+		<property name="com.jaspersoft.studio.field.label" value="risco"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<pageHeader>
+		<band height="77" splitType="Stretch">
+			<staticText>
+				<reportElement x="2" y="21" width="200" height="15" uuid="00171b31-e136-4db0-9e73-223efd532ed0"/>
+				<text><![CDATA[BOLETIM DE ATENDIMENTO MÉDICO :]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="3" y="37" width="145" height="15" uuid="c289f209-908f-4e3b-9872-d3bc399aeb1f"/>
+				<text><![CDATA[CLASSIFICAÇÃO DE RISCO :]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="4" y="56" width="47" height="15" uuid="357c581c-188f-4822-95ed-4ce2225e91da"/>
+				<text><![CDATA[DATA:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="112" y="56" width="47" height="15" uuid="5a3c6122-2cb2-4acb-92ea-c9ae5138f1da"/>
+				<text><![CDATA[HORA:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="365" y="21" width="190" height="15" uuid="eef32fa6-60dc-47b1-a2b7-d218bcce477d"/>
+				<textElement textAlignment="Right"/>
+				<text><![CDATA[SERVIÇO DE PRONTO SOCORRO]]></text>
+			</staticText>
+			<line>
+				<reportElement x="1" y="72" width="554" height="1" uuid="92034e03-e1ee-4dda-b613-25d14675892a"/>
+			</line>
+			<textField>
+				<reportElement x="198" y="20" width="124" height="17" uuid="7c69a01b-069e-4774-9c91-8e34aa54d1b3">
+					<property name="com.jaspersoft.studio.unit.y" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement>
+					<font size="12" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{idbam}]]></textFieldExpression>
+			</textField>
+			<textField pattern="dd/MM/yyyy">
+				<reportElement x="40" y="56" width="59" height="15" uuid="bef8fcf8-67e7-4d34-8d70-4232da13a7fd">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textFieldExpression><![CDATA[$F{data}]]></textFieldExpression>
+			</textField>
+			<textField pattern="H:mm">
+				<reportElement x="150" y="56" width="51" height="15" uuid="021db861-e68d-4815-91d4-e22cc33fd682">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textFieldExpression><![CDATA[$F{hora}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="150" y="37" width="100" height="15" uuid="7728abd3-385e-45ac-8315-eb4f1b8df648"/>
+				<textElement textAlignment="Left">
+					<font isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{risco}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="1" y="0" width="483" height="20" uuid="69679bf2-b10c-48ce-adcd-4280a5d3f4f1"/>
+				<textElement verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{hospital}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="490" y="6" width="65" height="15" uuid="1c0c88a9-7088-4ace-8357-41c58bfd24d7"/>
+				<textElement textAlignment="Right">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[( v.2 )]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="345" y="56" width="173" height="15" uuid="41e89c27-dea8-4490-b67d-0eca7390990e">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement>
+					<font size="9" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{COLUMN_64}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="241" y="56" width="109" height="15" uuid="6f4e9453-5f22-42cd-9e97-f3a4142fa926"/>
+				<text><![CDATA[CADASTRADO POR :]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="256" y="37" width="59" height="15" uuid="7f383157-c844-4ea0-9c99-15f1ed98c5b7"/>
+				<text><![CDATA[GLASGOW :]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="322" y="37" width="30" height="15" uuid="498d1835-37aa-4944-a55b-5922c1f5262f"/>
+				<textElement textAlignment="Left">
+					<font isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{glasgow}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="348" y="37" width="84" height="15" uuid="fa5dcb8b-b305-4004-bbd5-4b228f0be487"/>
+				<text><![CDATA[NÍVEL DE DOR :]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="433" y="37" width="37" height="15" uuid="777fc5ad-f6fb-4ca5-9d83-929dfdb0d59f"/>
+				<textElement textAlignment="Left">
+					<font isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{niveldor}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="475" y="38" width="35" height="15" uuid="5812cd64-c5c9-4a97-be40-4941d280cf46"/>
+				<textElement textAlignment="Center">
+					<font isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[(!$F{pacienteespecial}.equals("TIPICO")?$F{pacienteespecial}:"")]]></textFieldExpression>
+			</textField>
+			<image onErrorType="Blank">
+				<reportElement stretchType="RelativeToTallestObject" x="518" y="34" width="34" height="37" uuid="1cb44c56-eb7a-4a8d-87fe-82971896cd51"/>
+				<imageExpression><![CDATA[($F{pacienteespecial}.equals("TEA")? $P{tea}: $F{pacienteespecial}.equals("PCD")? $P{pcd}: "")]]></imageExpression>
+			</image>
+		</band>
+	</pageHeader>
+	<detail>
+		<band height="710" splitType="Stretch">
+			<staticText>
+				<reportElement x="2" y="10" width="47" height="15" uuid="7695a028-587c-403a-9c7f-bd1107dea1d2"/>
+				<text><![CDATA[NOME :]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="400" y="10" width="87" height="15" uuid="392f5963-0ce3-4c12-a331-6b1026e31473"/>
+				<text><![CDATA[NASCIMENTO :]]></text>
+			</staticText>
+			<line>
+				<reportElement x="0" y="24" width="554" height="1" uuid="9a2bbe91-ed36-4962-8a96-5d49e8ef7fa7"/>
+			</line>
+			<staticText>
+				<reportElement x="2" y="31" width="78" height="15" uuid="abe30392-ff2e-4ad9-90cb-e1c1b8e3534d"/>
+				<text><![CDATA[PROFISSÃO :]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="31" width="47" height="15" uuid="495aa486-2206-4580-8534-08ad86a7265e"/>
+				<text><![CDATA[SEXO :]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="274" y="30" width="47" height="15" uuid="418b24b2-b6e4-4b3a-b9f0-a64417b13e4d"/>
+				<text><![CDATA[ETNIA :]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="400" y="31" width="47" height="15" uuid="04306b2d-13cb-4e9d-a2bb-35c06aa878fa"/>
+				<text><![CDATA[IDADE :]]></text>
+			</staticText>
+			<line>
+				<reportElement x="1" y="46" width="554" height="1" uuid="bb5eb193-264d-4346-9790-7b60cde63249"/>
+			</line>
+			<staticText>
+				<reportElement x="2" y="50" width="78" height="15" uuid="a8537e64-8bbe-4a28-b318-d4f064357f3c"/>
+				<text><![CDATA[MÃE :]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="274" y="49" width="47" height="15" uuid="2749093a-176d-4b26-8dbf-0b86075b102f"/>
+				<text><![CDATA[PAI :]]></text>
+			</staticText>
+			<line>
+				<reportElement x="1" y="65" width="554" height="1" uuid="4816fa96-aec5-484e-80ab-1f98592371dc"/>
+			</line>
+			<staticText>
+				<reportElement x="3" y="68" width="119" height="15" uuid="e405cc6b-f606-4b17-947d-c36fe20fed4a"/>
+				<text><![CDATA[PRONTUÁRIO ÚNICO :]]></text>
+			</staticText>
+			<line>
+				<reportElement x="0" y="84" width="554" height="1" uuid="56f6f2ff-6ecc-4298-b076-f093e1665de8"/>
+			</line>
+			<staticText>
+				<reportElement x="274" y="68" width="47" height="15" uuid="99559a92-e534-41c1-b493-2149ca467fe9"/>
+				<text><![CDATA[CNS :]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="274" y="87" width="47" height="15" uuid="7794f6db-ca47-43de-82ff-997e29a785c1"/>
+				<text><![CDATA[RG :]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="2" y="88" width="78" height="15" uuid="872a2299-095d-4be3-8fcc-4bf599735306"/>
+				<text><![CDATA[CPF :]]></text>
+			</staticText>
+			<line>
+				<reportElement x="1" y="103" width="554" height="1" uuid="abd5b487-54e7-4c37-97c9-1af96de83edd"/>
+			</line>
+			<line>
+				<reportElement x="1" y="121" width="554" height="1" uuid="ecc5cb08-0805-4069-94ea-79febc91a695"/>
+			</line>
+			<staticText>
+				<reportElement x="275" y="105" width="105" height="15" uuid="9858f572-cec0-43fe-8361-d9752faf1165"/>
+				<text><![CDATA[NATURALIDADE :]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="3" y="106" width="78" height="15" uuid="a48906ec-5c1c-41b4-9007-bb7bb0983c87"/>
+				<text><![CDATA[ESTADO CIVIL :]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="441" y="124" width="47" height="15" uuid="8aee6c3c-0d0d-4e2b-9a0d-c45372d0d75b"/>
+				<text><![CDATA[CEP:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="274" y="124" width="119" height="15" uuid="826bd3fc-e659-42a7-9c26-a75cbbcb5808"/>
+				<text><![CDATA[NÚMERO :]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="2" y="125" width="78" height="15" uuid="4b01b2dd-d7e8-43b5-8f5c-76614208b559"/>
+				<text><![CDATA[ENDEREÇO:]]></text>
+			</staticText>
+			<line>
+				<reportElement x="1" y="140" width="554" height="1" uuid="ef3623d5-9cb8-4853-b82b-3f589ea95ae4"/>
+			</line>
+			<staticText>
+				<reportElement x="275" y="143" width="47" height="15" uuid="50ff4c13-0e79-4ad1-8420-4d5266d4f195"/>
+				<text><![CDATA[BAIRRO :]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="105" y="143" width="86" height="15" uuid="938ff133-caa5-4163-a9c5-9e0fc41a3b9d"/>
+				<text><![CDATA[MUNICÍPIO :]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="2" y="144" width="61" height="15" uuid="16f450f0-7a46-4f6f-8b73-fb8a182d5d42"/>
+				<text><![CDATA[ESTADO :]]></text>
+			</staticText>
+			<line>
+				<reportElement x="1" y="159" width="554" height="1" uuid="868c504b-0945-429d-b9da-750c7d82c887"/>
+			</line>
+			<line>
+				<reportElement x="1" y="177" width="554" height="1" uuid="1b546550-7be1-45ab-a222-df49c5c2127d"/>
+			</line>
+			<staticText>
+				<reportElement x="275" y="161" width="65" height="15" uuid="f6be57c1-a05e-4c24-b7f6-6673fa1b710f"/>
+				<text><![CDATA[SANGUE :]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="2" y="162" width="78" height="15" uuid="6eb8a212-3394-4eb0-b494-cb053e15a594"/>
+				<text><![CDATA[TELEFONES :]]></text>
+			</staticText>
+			<rectangle>
+				<reportElement x="340" y="182" width="214" height="61" uuid="a6d63918-1bb1-4328-8ddb-e3f25b8dc7a7"/>
+			</rectangle>
+			<rectangle>
+				<reportElement x="0" y="182" width="340" height="61" uuid="8f28b5b3-7882-411d-a15c-9c1ef8857f64"/>
+			</rectangle>
+			<staticText>
+				<reportElement x="6" y="189" width="78" height="15" uuid="1c613192-e6e3-4ebc-98aa-adeae4311467"/>
+				<text><![CDATA[RESPONSÁVEL :]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="347" y="189" width="50" height="15" uuid="f2380304-cfca-48f2-bcce-aa39a15ad5d9"/>
+				<text><![CDATA[SETOR :]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="348" y="205" width="96" height="15" uuid="ab6d5c2d-b851-474d-8f88-9136f49dedc2"/>
+				<text><![CDATA[ESPECIALIDADE :]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="348" y="223" width="78" height="15" uuid="c4c67603-d40e-4423-a17e-e4ac5e02fb79"/>
+				<text><![CDATA[CONVÊNIO :]]></text>
+			</staticText>
+			<rectangle>
+				<reportElement x="9" y="209" width="21" height="19" uuid="6983d76f-c074-4e15-8b77-3389990fb3ba"/>
+			</rectangle>
+			<rectangle>
+				<reportElement x="64" y="210" width="21" height="19" uuid="23a39ab5-b3c6-4a2d-bc04-87d54cc4c1ca"/>
+			</rectangle>
+			<rectangle>
+				<reportElement x="113" y="209" width="21" height="19" uuid="b5b78737-f6e0-4db3-9d54-2bcb3ddc4b94"/>
+			</rectangle>
+			<rectangle>
+				<reportElement x="196" y="209" width="21" height="19" uuid="50a36348-9d90-44b0-88a6-5cd50686fc32"/>
+			</rectangle>
+			<rectangle>
+				<reportElement x="264" y="208" width="21" height="19" uuid="2dc9c372-a5e5-4a26-a5ee-5904e4bd30e7"/>
+			</rectangle>
+			<staticText>
+				<reportElement x="33" y="213" width="31" height="15" uuid="15500590-0c91-4c7c-94f4-1bd26bb817cd"/>
+				<text><![CDATA[MÃE]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="89" y="213" width="31" height="15" uuid="84176769-4593-4147-a7ee-34360285b193"/>
+				<text><![CDATA[PAI]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="140" y="213" width="60" height="15" uuid="96e0ff29-7b35-4677-9ae6-5894610f07d7"/>
+				<text><![CDATA[CÔNJUGE]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="220" y="213" width="41" height="15" uuid="5400a37f-5828-43bb-b015-300158e16adc"/>
+				<text><![CDATA[OUTRO]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="290" y="213" width="65" height="15" uuid="09c622ef-8c20-4fe7-8bb9-46b178158c52"/>
+				<text><![CDATA[PRÓPRIO]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="275" y="250" width="117" height="15" uuid="44da11f5-20b1-465a-97eb-3f8c0a8d59e4"/>
+				<text><![CDATA[TIPO OCORRÊNCIA :]]></text>
+			</staticText>
+			<line>
+				<reportElement x="1" y="266" width="554" height="1" uuid="42b68fa0-a22f-47bb-a0e7-88834b885cae"/>
+			</line>
+			<staticText>
+				<reportElement x="2" y="251" width="98" height="15" uuid="0d065a28-640e-4200-9a22-6af99641622a"/>
+				<text><![CDATA[TIPO CHEGADA :]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="2" y="274" width="118" height="15" uuid="b226543a-c826-4148-b1ed-c1c18ee77ddd"/>
+				<text><![CDATA[QUEIXA PRINCIPAL :]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="275" y="273" width="117" height="15" uuid="3b80bdf9-3864-43f7-af55-17d31863b05e"/>
+				<text><![CDATA[CAUSA LESÃO :]]></text>
+			</staticText>
+			<line>
+				<reportElement x="1" y="289" width="554" height="1" uuid="5c4ec631-c829-486a-a861-8690c7bb2124"/>
+			</line>
+			<rectangle>
+				<reportElement x="1" y="290" width="552" height="360" uuid="e677d517-ef24-4b6f-8c40-0b75fc3cb6e0"/>
+			</rectangle>
+			<staticText>
+				<reportElement x="5" y="290" width="83" height="15" uuid="a2d35390-8d42-478e-9dfd-a70fbd59480e"/>
+				<text><![CDATA[ANAMNESE :]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="163" y="663" width="223" height="14" uuid="1a5d96d8-bae8-4a6e-903d-5a5b2bfef5c2"/>
+				<textElement textAlignment="Center">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[RIO DE JANEIRO]]></text>
+			</staticText>
+			<line>
+				<reportElement x="150" y="689" width="267" height="1" uuid="b0ff741a-d42a-4cfd-81de-64fcb7ea759a"/>
+			</line>
+			<textField>
+				<reportElement x="39" y="10" width="348" height="15" uuid="1d14c5a3-83e0-465f-82d9-204d20e6e827">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textFieldExpression><![CDATA[$F{nome}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="321" y="143" width="230" height="15" uuid="1979bed3-8dce-4383-9008-1ce4c42b56e7">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textFieldExpression><![CDATA[$F{bairro}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="467" y="125" width="86" height="15" uuid="fe1debf7-6498-431f-bf42-c4c32476a25b">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textFieldExpression><![CDATA[$F{cep}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="303" y="68" width="211" height="15" uuid="fb6900a5-71f1-4949-9571-dde96da1ffb2">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textFieldExpression><![CDATA[$F{cns}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="32" y="88" width="158" height="15" uuid="e3745f5e-733d-422d-b542-919136c5ab9a">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textFieldExpression><![CDATA[$F{cpf}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="79" y="106" width="158" height="15" uuid="db67d1f0-b697-4482-b1db-07e6d745910b">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textFieldExpression><![CDATA[$F{ecivil}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="310" y="31" width="84" height="15" uuid="7b8e5fa6-b0e5-4610-8aec-3fb124529524">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement>
+					<font size="9"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{etnia}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="437" y="31" width="56" height="15" uuid="df8b9591-f83a-4375-9546-f69055d2d244">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textFieldExpression><![CDATA[$F{idade}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="32" y="51" width="232" height="15" uuid="ae29fbea-5b6c-44b6-9597-01c7e4697508">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textFieldExpression><![CDATA[$F{mae}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="164" y="143" width="104" height="15" uuid="598aee63-cf6c-4956-8d4d-e4586d5dbcf5">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textFieldExpression><![CDATA[$F{municipio}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="300" y="50" width="251" height="15" uuid="27d0d48e-1cb2-4db3-8600-0a151173ecaa">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textFieldExpression><![CDATA[$F{pai}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="480" y="10" width="74" height="15" uuid="df2f581f-3655-4aac-afe2-9e7139d6660a">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textFieldExpression><![CDATA[$F{nascimento}.substring(8,10) + "/" + $F{nascimento}.substring(5,7)+"/"+$F{nascimento}.substring(0,4)]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="300" y="87" width="169" height="15" uuid="6af7b7ff-6167-4719-be29-ca4c2d0cb321">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textFieldExpression><![CDATA[$F{rg}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="226" y="31" width="47" height="15" uuid="568a721b-bfc2-4e59-aa81-a38d4cb9f41c">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textFieldExpression><![CDATA[$F{sexo}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="70" y="31" width="109" height="15" uuid="8e1951f6-723f-4b33-9b56-7981204268b7">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textFieldExpression><![CDATA[$F{profissao}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="364" y="105" width="165" height="15" uuid="d7a6d01d-17a6-495a-a416-12c6914c82a3">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textFieldExpression><![CDATA[$F{naturalidade}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="327" y="125" width="73" height="15" uuid="f723d61f-ce2a-4176-8c72-25cda1eaecaf">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textFieldExpression><![CDATA[$F{numero}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="113" y="68" width="148" height="15" uuid="49a0daae-be96-4330-bb4f-ea7eb3b0f105">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textFieldExpression><![CDATA[$F{prontuario}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="63" y="125" width="201" height="15" uuid="b36fa9c5-0673-4943-860f-7ab5f791824b">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textFieldExpression><![CDATA[$F{endereco}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="68" y="162" width="202" height="15" uuid="cfaf426d-8c1e-465e-81b3-4ee8567841dd">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textFieldExpression><![CDATA[$F{telefone}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="327" y="161" width="103" height="15" uuid="11c8655c-9b8b-4a7f-b385-47be2fb8766d">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textFieldExpression><![CDATA[$F{sangue}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="352" y="273" width="198" height="15" uuid="35471259-fa9d-46d9-b9e5-dd8375f4fe10">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textFieldExpression><![CDATA[$F{causalesao}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="413" y="223" width="133" height="15" uuid="beffbfda-8966-4359-afae-98ad3a458490">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textFieldExpression><![CDATA[$F{convenio}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="102" y="274" width="162" height="15" uuid="52429a58-fec6-4590-be5c-a49da8bc506c">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textFieldExpression><![CDATA[$F{queixaprincipal}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="88" y="251" width="100" height="15" uuid="a8b648f7-0688-4646-830e-3a710c647fb6">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textFieldExpression><![CDATA[$F{tipochegada}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="437" y="205" width="109" height="15" uuid="c93c81f3-5a50-4d04-8091-03d72b03b109">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textFieldExpression><![CDATA[$F{especialidade}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="270" y="211" width="16" height="15" uuid="979804d0-827b-42ab-aa4c-505cde40d73b"/>
+				<textFieldExpression><![CDATA[($F{responsavel}.equals( "PRÓPRIO" )?"X":"")]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="201" y="211" width="16" height="15" uuid="5a1f0b8c-468d-417e-9203-b535d7f60d92">
+					<property name="com.jaspersoft.studio.unit.y" value="px"/>
+				</reportElement>
+				<textFieldExpression><![CDATA[($F{responsavel}.equals( "OUTRO" )?"X":"")]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="120" y="211" width="16" height="15" uuid="3fb43fee-a09a-40a3-91fc-cfd851cd134e">
+					<property name="com.jaspersoft.studio.unit.y" value="px"/>
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+				</reportElement>
+				<textFieldExpression><![CDATA[($F{responsavel}.equals( "CÔNJUGE" )?"X":"")]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="69" y="211" width="16" height="15" uuid="c96e0708-b12f-424b-9a13-2019cc3295d1">
+					<property name="com.jaspersoft.studio.unit.y" value="px"/>
+				</reportElement>
+				<textFieldExpression><![CDATA[($F{responsavel}.equals( "PAI" )?"X":"")]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="15" y="211" width="16" height="15" uuid="c60fa307-6161-4e2f-8668-01bc482ce1c2"/>
+				<textFieldExpression><![CDATA[($F{responsavel}.equals( "MÃE" )?"X":"")]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="380" y="251" width="165" height="15" uuid="1e7ff146-166b-4534-9652-60cf560c62fa">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textFieldExpression><![CDATA[$F{tipoocorrencia}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="393" y="189" width="100" height="15" uuid="e778a033-ecf0-45a7-bea8-b506b8696b77">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textFieldExpression><![CDATA[$F{setor}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="4" y="305" width="541" height="335" isPrintWhenDetailOverflows="true" uuid="795afb28-2e80-4a76-ab10-6e03d87ff0f4"/>
+				<textElement>
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{anamnese} + "\n\n# EXAMES SOLICITADOS:  " + $F{exames_solicitados} + " ( " + $F{medicoecrm} + " )"]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="50" y="144" width="51" height="15" uuid="10534ece-d24b-4809-bff6-586cf9dae4b0"/>
+				<textFieldExpression><![CDATA[$F{estado}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="151" y="691" width="264" height="11" uuid="ce2ccf94-d665-48d4-a440-cd9e636c0048"/>
+				<textElement textAlignment="Center" verticalAlignment="Top">
+					<font size="7" isBold="true" isItalic="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{eletivo}==true?"":$F{medicoecrm})]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="500" y="161" width="48" height="15" uuid="bc9bfc84-e34b-4128-9fc2-1641a3e9f0f9"/>
+				<text><![CDATA[ELETIVO]]></text>
+			</staticText>
+			<rectangle>
+				<reportElement x="484" y="162" width="14" height="13" uuid="a431b68d-5d74-444f-ae2d-7b115fdc12d9"/>
+			</rectangle>
+			<textField>
+				<reportElement x="483" y="162" width="14" height="13" uuid="8936bdb3-d43b-4029-a9d3-a75f4f4d14a9"/>
+				<textElement textAlignment="Center">
+					<font size="9"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{eletivo}==true?"X":"")]]></textFieldExpression>
+			</textField>
+		</band>
+		<band height="703">
+			<rectangle>
+				<reportElement x="-1" y="500" width="555" height="90" uuid="4db25e46-e7bd-451c-9c90-fc7a8d3c081b"/>
+			</rectangle>
+			<rectangle>
+				<reportElement x="1" y="330" width="274" height="30" uuid="5b6dab0a-4ac2-431d-bc76-2b540b5aeefe"/>
+			</rectangle>
+			<staticText>
+				<reportElement x="8" y="331" width="159" height="18" uuid="33832569-8415-4437-8cff-cb764846bdcd"/>
+				<text><![CDATA[DESTINO :]]></text>
+			</staticText>
+			<rectangle>
+				<reportElement x="280" y="330" width="274" height="30" uuid="6893320f-fba1-4319-babb-30dff3426616"/>
+			</rectangle>
+			<staticText>
+				<reportElement x="284" y="332" width="159" height="18" uuid="4c58331a-3b88-4018-a1c9-a5c6a0b2f6ae"/>
+				<text><![CDATA[ENCAMINHAMENTO :]]></text>
+			</staticText>
+			<rectangle>
+				<reportElement x="1" y="363" width="125" height="30" uuid="7c7d7de7-3bda-4757-8e7e-a4239bcfe343"/>
+			</rectangle>
+			<staticText>
+				<reportElement x="7" y="363" width="105" height="18" uuid="e181a794-3e30-4d1f-9532-4e326c40f792"/>
+				<text><![CDATA[DATA :]]></text>
+			</staticText>
+			<rectangle>
+				<reportElement x="135" y="363" width="140" height="30" uuid="0d990c34-731e-4818-a973-771b77e439b5"/>
+			</rectangle>
+			<staticText>
+				<reportElement x="138" y="363" width="105" height="18" uuid="cd323390-9047-4448-8734-cd0f2a48dea7"/>
+				<text><![CDATA[HORA :]]></text>
+			</staticText>
+			<rectangle>
+				<reportElement x="3" y="401" width="21" height="19" uuid="ff448ecf-47a1-416a-bc16-f7b4f793e850"/>
+			</rectangle>
+			<staticText>
+				<reportElement x="28" y="403" width="122" height="15" uuid="e6f4f4e5-e6cb-40a2-8a0f-a9a0b6ffab81"/>
+				<text><![CDATA[ALTA HOSPITALAR]]></text>
+			</staticText>
+			<rectangle>
+				<reportElement x="3" y="425" width="21" height="19" uuid="53607503-326d-4cd5-ab5d-79eee05ab7db"/>
+			</rectangle>
+			<staticText>
+				<reportElement x="28" y="428" width="98" height="15" uuid="1fc82e73-ca39-419c-8502-de6404da2ff5"/>
+				<text><![CDATA[ALTA MÉDICA]]></text>
+			</staticText>
+			<rectangle>
+				<reportElement x="3" y="449" width="21" height="19" uuid="5a8c08e6-6a5b-4f3a-a3e3-410d12de8ee8"/>
+			</rectangle>
+			<staticText>
+				<reportElement x="28" y="451" width="98" height="15" uuid="59d6c363-76d3-41f0-8048-2817c963ce70"/>
+				<text><![CDATA[ALTA À REVELIA]]></text>
+			</staticText>
+			<rectangle>
+				<reportElement x="3" y="474" width="21" height="19" uuid="65a6b1e3-49eb-431a-9c93-1a8d4fc047c5"/>
+			</rectangle>
+			<staticText>
+				<reportElement x="28" y="476" width="90" height="15" uuid="89045553-9e54-497f-894b-b12c30f1dc5a"/>
+				<text><![CDATA[ALTA SOCIAL]]></text>
+			</staticText>
+			<rectangle>
+				<reportElement x="130" y="426" width="21" height="19" uuid="39d450e9-424a-4ce4-9d6a-82ac94f5b8f7"/>
+			</rectangle>
+			<rectangle>
+				<reportElement x="130" y="402" width="21" height="19" uuid="c2af8d13-6f7a-4717-adc4-980d58339c4c"/>
+			</rectangle>
+			<staticText>
+				<reportElement x="155" y="452" width="98" height="15" uuid="0e2466ab-8fa5-496b-83c9-4c3421f03cbb"/>
+				<text><![CDATA[TRANSFERÊNCIA]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="155" y="477" width="90" height="15" uuid="53fb0efa-24fb-472c-8774-719f060b6054"/>
+				<text><![CDATA[DESISTÊNCIA]]></text>
+			</staticText>
+			<rectangle>
+				<reportElement x="130" y="475" width="21" height="19" uuid="1d9de3f9-0d58-4384-90e4-4480065a189d"/>
+			</rectangle>
+			<rectangle>
+				<reportElement x="130" y="450" width="21" height="19" uuid="7d2ed466-8948-4f57-8bcf-c5fbce6f83c3"/>
+			</rectangle>
+			<staticText>
+				<reportElement x="155" y="429" width="98" height="15" uuid="74f6c267-8e43-48db-8d7f-8fc2aa8ddfc0"/>
+				<text><![CDATA[ÓBITO]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="155" y="404" width="122" height="15" uuid="f0da7a1c-d466-4540-8cc9-fd4d53b1d0e4"/>
+				<text><![CDATA[INTERNAÇÃO]]></text>
+			</staticText>
+			<rectangle>
+				<reportElement x="280" y="363" width="274" height="128" uuid="ff296df0-5bae-4d8c-a067-fd1f75e187c9"/>
+			</rectangle>
+			<staticText>
+				<reportElement x="284" y="365" width="159" height="18" uuid="81572d2b-6e22-4614-a88c-42b7e8c7d363"/>
+				<text><![CDATA[OBSERVAÇÃO DE SAÍDA :]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="8" y="504" width="159" height="18" uuid="2f9898c9-7e14-41df-82dc-855f5604e1b2"/>
+				<text><![CDATA[PARECER DO ESPECIALISTA :]]></text>
+			</staticText>
+			<rectangle>
+				<reportElement x="0" y="596" width="555" height="95" uuid="d424ce0e-1a99-4622-a680-6538fe5c28f6"/>
+			</rectangle>
+			<staticText>
+				<reportElement x="7" y="600" width="213" height="18" uuid="d8e770b4-21fe-476d-a2e4-de9930ebb591"/>
+				<text><![CDATA[OBSERVAÇÕES DA ENFERMAGEM :]]></text>
+			</staticText>
+			<line>
+				<reportElement x="10" y="572" width="264" height="1" uuid="4ea79395-58d8-4490-a61f-19990cda6ace"/>
+			</line>
+			<line>
+				<reportElement x="280" y="572" width="264" height="1" uuid="3d88431c-0824-49be-87da-583377fd2460"/>
+			</line>
+			<staticText>
+				<reportElement x="34" y="573" width="183" height="15" uuid="a3bf2a55-eb77-41a0-9168-fb9eb8ae0b60">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Center">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[Médico Responsável - Assinatura / Carimbo]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="311" y="573" width="183" height="15" uuid="f278e7ce-3d41-44e1-831e-05ca13547359">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Center">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[Chefe de equipe - Assinatura / Carimbo]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="313" y="674" width="183" height="15" uuid="f9978011-0b4d-4b75-9272-e33519c4fd5f">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Center">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[Chefe de equipe - Assinatura / Carimbo]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="36" y="674" width="183" height="15" uuid="0d563a90-6c58-40d5-8220-03b5a94886e8">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Center">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[Responsável - Assinatura / Carimbo]]></text>
+			</staticText>
+			<line>
+				<reportElement x="12" y="673" width="264" height="1" uuid="11a19de0-d127-48c2-b2a6-6b187773a048"/>
+			</line>
+			<line>
+				<reportElement x="282" y="673" width="264" height="1" uuid="0d6f8434-7cdb-45fc-ab22-8723ea717355"/>
+			</line>
+			<textField>
+				<reportElement x="63" y="330" width="206" height="30" isPrintWhenDetailOverflows="true" uuid="cfe140a2-fbd4-44b0-bd57-73ecfdde0763"/>
+				<textElement>
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{destino}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="282" y="382" width="266" height="107" isPrintWhenDetailOverflows="true" uuid="2b8257c9-626d-4a5d-bcf0-b83c87b86eb7"/>
+				<textElement>
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{obs_saida}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="283" y="344" width="266" height="15" uuid="b46a2098-0a37-4e8a-852c-44766a7f637b">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement>
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{encaminhamento}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="9" y="517" width="538" height="42" isPrintWhenDetailOverflows="true" uuid="f06d2dda-b4e4-4cb1-b9a8-df56e999b55c"/>
+				<textElement>
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{parecer_especialista}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="9" y="616" width="537" height="43" isPrintWhenDetailOverflows="true" uuid="0ab69fa5-1dd8-4dff-b0a4-23a50088d7a3"/>
+				<textElement>
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{obs_enfermagem}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="8" y="404" width="15" height="15" uuid="c43e78bb-498b-4ffb-b929-f7148a895c0a"/>
+				<textFieldExpression><![CDATA[($F{tipo_alta}.equals( "altahospitalar" )?"X":"")]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="7" y="427" width="15" height="15" uuid="9743605b-e04b-4a8a-9d2d-5b9408496ff3"/>
+				<textFieldExpression><![CDATA[($F{tipo_alta}.equals( "altamedica" )?"X":"")]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="6" y="451" width="15" height="15" uuid="fea2a0b2-9cc0-47a1-bf2d-9216522644e4"/>
+				<textFieldExpression><![CDATA[($F{tipo_alta}.equals( "altaarevelia" )?"X":"")]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="7" y="477" width="15" height="15" uuid="6e23a98d-8a92-4ed2-bda1-2f148d446d58"/>
+				<textFieldExpression><![CDATA[($F{tipo_alta}.equals( "altasocial" )?"X":"")]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="134" y="405" width="15" height="15" uuid="5d1f4387-94da-490d-8c6f-1e54c3926026"/>
+				<textFieldExpression><![CDATA[($F{tipo_alta}.equals( "internacao" )?"X":"")]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="133" y="429" width="15" height="15" uuid="6e80bc4f-406c-4699-9623-69aea78df0d3"/>
+				<textFieldExpression><![CDATA[($F{tipo_alta}.equals( "obito" )?"X":"")]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="134" y="452" width="15" height="15" uuid="8eac28b7-54aa-49cb-8520-358a89271c10"/>
+				<textFieldExpression><![CDATA[($F{tipo_alta}.equals( "transferencia" )?"X":"")]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="134" y="477" width="15" height="15" uuid="93064f54-8ac3-4851-b93a-3c3dcc500612"/>
+				<textFieldExpression><![CDATA[($F{tipo_alta}.equals( "desistencia" )?"X":"")]]></textFieldExpression>
+			</textField>
+			<textField pattern="HH:mm">
+				<reportElement x="180" y="377" width="61" height="13" uuid="86bd7145-9afa-4b7b-bc87-72422ae16d69"/>
+				<textFieldExpression><![CDATA[new java.util.Date()]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="11" y="561" width="260" height="11" uuid="d28ac5d9-4984-4216-bdc5-9d9a2ec87bdf"/>
+				<textElement textAlignment="Center" verticalAlignment="Top">
+					<font size="7" isItalic="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{eletivo}==true?"":$F{medicoecrm})]]></textFieldExpression>
+			</textField>
+			<textField pattern="dd/MM/yyyy">
+				<reportElement x="35" y="376" width="59" height="15" uuid="dcfb89cb-f735-4c99-ac7a-3c63b1d7d8fe">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textFieldExpression><![CDATA[$F{data}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="2" y="5" width="38" height="15" uuid="6c22a875-45e2-43f3-9d41-22665f65c57a"/>
+				<text><![CDATA[P.A.:]]></text>
+			</staticText>
+			<line>
+				<reportElement x="1" y="18" width="554" height="1" uuid="3ebdec65-6d07-4ba4-a1ff-267ff541cdd4"/>
+			</line>
+			<staticText>
+				<reportElement x="63" y="4" width="14" height="15" uuid="a8b13e64-f46e-4d40-8dc1-ce1845ec2f6d"/>
+				<text><![CDATA[x]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="108" y="4" width="38" height="15" uuid="dcc30280-5164-448a-a49f-4510b8f9429c"/>
+				<text><![CDATA[mmHg]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="151" y="4" width="38" height="15" uuid="af452aa4-abf8-4b81-86c8-69c689e3808f"/>
+				<text><![CDATA[F.C:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="211" y="4" width="38" height="15" uuid="f6118f53-eb2d-4f9c-a6a0-1ff24ccb2e74"/>
+				<text><![CDATA[bpm]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="238" y="5" width="44" height="15" uuid="9c793d91-e2bf-45e1-8ffb-8f65b201b4dc"/>
+				<text><![CDATA[T.A.X :]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="308" y="4" width="22" height="15" uuid="bd79d229-5b7d-4c25-a9f8-57b0615ff3ee"/>
+				<text><![CDATA[�C]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="334" y="4" width="38" height="15" uuid="47453337-d7bc-4f13-a158-a264010242a6"/>
+				<text><![CDATA[FR.:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="392" y="4" width="38" height="15" uuid="17416956-f5cc-46c5-9f34-234d5bf74db1"/>
+				<text><![CDATA[ipm]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="415" y="4" width="50" height="15" uuid="deddadbd-f78f-4003-ba40-5bcb7ab6e78e"/>
+				<text><![CDATA[HGT :]]></text>
+			</staticText>
+			<rectangle>
+				<reportElement x="1" y="22" width="552" height="128" uuid="13c2f51c-5658-4b51-8849-756d6b2204e8"/>
+			</rectangle>
+			<rectangle>
+				<reportElement x="5" y="26" width="21" height="19" uuid="c8c82d68-aa67-4bd9-bb10-d4d957b13797"/>
+			</rectangle>
+			<rectangle>
+				<reportElement x="5" y="50" width="21" height="19" uuid="45fe3b01-7a36-4e98-8809-1d9f4d6800c2"/>
+			</rectangle>
+			<rectangle>
+				<reportElement x="5" y="74" width="21" height="19" uuid="2bf1ab57-9509-4372-b973-5abbe3e2c72b"/>
+			</rectangle>
+			<rectangle>
+				<reportElement x="5" y="99" width="21" height="19" uuid="6495ef7b-2e9f-423b-a435-71f8ef9a9baf"/>
+			</rectangle>
+			<rectangle>
+				<reportElement x="5" y="124" width="21" height="19" uuid="07f27014-1921-48fc-8429-d4863b2443fa"/>
+			</rectangle>
+			<rectangle>
+				<reportElement x="101" y="124" width="21" height="19" uuid="8300f68f-d142-4437-a501-a3fe9521b269"/>
+			</rectangle>
+			<rectangle>
+				<reportElement x="101" y="26" width="21" height="19" uuid="8567372c-dcd8-434e-9aa9-0259ba147f03"/>
+			</rectangle>
+			<rectangle>
+				<reportElement x="101" y="99" width="21" height="19" uuid="318fef49-f44e-4c58-a3fa-e6c030d49c2c"/>
+			</rectangle>
+			<rectangle>
+				<reportElement x="101" y="50" width="21" height="19" uuid="c68c7b26-21fa-4e31-aa01-47eb9ebf66d1"/>
+			</rectangle>
+			<rectangle>
+				<reportElement x="101" y="74" width="21" height="19" uuid="18aed768-e9c2-4339-95f1-f6157817194a"/>
+			</rectangle>
+			<rectangle>
+				<reportElement x="212" y="124" width="21" height="19" uuid="77dc61fc-755f-430a-ae2d-94966017d9ce"/>
+			</rectangle>
+			<rectangle>
+				<reportElement x="212" y="26" width="21" height="19" uuid="4654c55d-97a4-4276-ad8a-5ee06fc2d315"/>
+			</rectangle>
+			<rectangle>
+				<reportElement x="212" y="99" width="21" height="19" uuid="85dd6862-5497-415c-bd29-5f6cd87f7f68"/>
+			</rectangle>
+			<rectangle>
+				<reportElement x="212" y="50" width="21" height="19" uuid="d9239790-a730-4ba6-8d5c-eed5fc0ecb0e"/>
+			</rectangle>
+			<rectangle>
+				<reportElement x="212" y="74" width="21" height="19" uuid="de3c2ff8-ce1a-4424-aaed-7bbbf072231c"/>
+			</rectangle>
+			<rectangle>
+				<reportElement x="330" y="124" width="21" height="19" uuid="f7b01421-285f-479e-823c-d6ea3598b8c6"/>
+			</rectangle>
+			<rectangle>
+				<reportElement x="330" y="26" width="21" height="19" uuid="93641242-b4e9-4d5b-84ae-03f6f02838ee"/>
+			</rectangle>
+			<rectangle>
+				<reportElement x="330" y="99" width="21" height="19" uuid="46754f66-3169-4b66-94a2-888c525d4808"/>
+			</rectangle>
+			<rectangle>
+				<reportElement x="330" y="50" width="21" height="19" uuid="95ab5829-5000-48fc-8113-db7f2c1045c6"/>
+			</rectangle>
+			<rectangle>
+				<reportElement x="330" y="74" width="21" height="19" uuid="1dd8c323-001f-4f40-a562-b04c8ad008b5"/>
+			</rectangle>
+			<rectangle>
+				<reportElement x="446" y="124" width="21" height="19" uuid="0d60bdb5-ac49-493a-950d-0c41d94d45a2"/>
+			</rectangle>
+			<rectangle>
+				<reportElement x="446" y="26" width="21" height="19" uuid="d9c5b13c-14bf-443f-be69-d3377889f85f"/>
+			</rectangle>
+			<rectangle>
+				<reportElement x="446" y="99" width="21" height="19" uuid="430732df-1c09-4c28-a095-ae265795b823"/>
+			</rectangle>
+			<rectangle>
+				<reportElement x="446" y="50" width="21" height="19" uuid="13cc2b68-4fdc-45eb-b6a3-9b94ab4a6d2f"/>
+			</rectangle>
+			<rectangle>
+				<reportElement x="446" y="74" width="21" height="19" uuid="b3cad197-c8f0-4ec3-afd1-dab693b8e8cb"/>
+			</rectangle>
+			<staticText>
+				<reportElement x="30" y="28" width="90" height="15" uuid="083cf7e8-5e7f-4951-aee2-1e4632d1d1f1"/>
+				<text><![CDATA[EUPNEICO]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="30" y="53" width="90" height="15" uuid="53edad2a-4019-4ed3-b913-692853c57b56"/>
+				<text><![CDATA[HIDRATADO]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="30" y="76" width="90" height="15" uuid="97fb06bd-c2cb-4a83-af9f-206cfd063df2"/>
+				<text><![CDATA[ANICTÓRICO]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="30" y="101" width="90" height="15" uuid="e286755e-de1a-4574-ac10-c082ca78a7b1"/>
+				<text><![CDATA[ACORDADO]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="30" y="124" width="90" height="15" uuid="f49f0f7c-f0fb-4526-beac-78957da9986b"/>
+				<text><![CDATA[ISOCÓRICO]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="126" y="125" width="90" height="15" uuid="e1e8a379-031e-480f-b1d3-3b9590741fba"/>
+				<text><![CDATA[ANISOCÓRICO]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="126" y="102" width="90" height="15" uuid="2f3d5526-82c8-475a-b0ce-585b88614ab1"/>
+				<text><![CDATA[ORIENTADO]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="126" y="77" width="90" height="15" uuid="5b2dc975-8c89-4cbe-af4f-8be7a7a36795"/>
+				<text><![CDATA[ICTÉRICO]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="126" y="54" width="90" height="15" uuid="fd49a1a7-ef9f-4412-8de9-6f65837b8a14"/>
+				<text><![CDATA[DESIDRATADO]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="126" y="29" width="90" height="15" uuid="923969d5-050e-4215-b25d-3834ac173b76"/>
+				<text><![CDATA[DISPNEICO]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="238" y="77" width="90" height="15" uuid="e3dec4c0-bf90-4265-8d51-eaa674439a63"/>
+				<text><![CDATA[PULSO CHEIO]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="238" y="125" width="90" height="15" uuid="93865a02-e5f0-4738-b729-2a8ad0cdd710"/>
+				<text><![CDATA[MIDRIÁTICO]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="238" y="102" width="90" height="15" uuid="78057093-b231-473e-90e7-68f8da0ab94c"/>
+				<text><![CDATA[DESORIENTADO]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="238" y="29" width="90" height="15" uuid="b99883b9-ecdf-4e82-bcd6-6f36506b780e"/>
+				<text><![CDATA[TAQUIPNEICO]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="238" y="54" width="104" height="15" uuid="9ce4f0c7-326f-4e54-8955-e31dd55008fe"/>
+				<text><![CDATA[NORMOCORADO]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="357" y="101" width="90" height="15" uuid="64215446-dd49-4874-a9ee-a27cd99ebc7d"/>
+				<text><![CDATA[TORPOSO]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="357" y="28" width="90" height="15" uuid="cf8b0b1c-6554-4c3f-a68b-8ebfd103ed4d"/>
+				<text><![CDATA[ACIANÓTICO]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="357" y="124" width="90" height="15" uuid="863c858a-1b80-4733-9a35-9903f055025f"/>
+				<text><![CDATA[MIÓTICO]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="357" y="53" width="88" height="15" uuid="0db40b7e-f637-4f9c-a624-28d4a6a9e936"/>
+				<text><![CDATA[HIPOCORADO]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="357" y="76" width="90" height="15" uuid="2ba4def4-d2ea-4bf4-bc42-37b94847f55d"/>
+				<text><![CDATA[PULSO FINO]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="470" y="77" width="83" height="15" uuid="d87038d6-24e6-4403-9b5b-9273374b71a9"/>
+				<text><![CDATA[ETILISMO]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="470" y="125" width="82" height="15" uuid="6b02cee6-cf66-4156-87b8-6d52deb2dc8a"/>
+				<text><![CDATA[RIGIDEZ NUCA]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="470" y="102" width="82" height="15" uuid="063e1cf7-f841-4b01-a466-a5cff8299935"/>
+				<text><![CDATA[COMATOSO]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="470" y="54" width="82" height="15" uuid="1a384ecf-77dc-435c-98d5-988698f0719b"/>
+				<text><![CDATA[SUDOREICO]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="470" y="29" width="82" height="15" uuid="e90b5814-9fe6-4ecc-bd28-4f7e6304a7d6"/>
+				<text><![CDATA[CIANÓTICO]]></text>
+			</staticText>
+			<rectangle>
+				<reportElement x="1" y="154" width="190" height="166" uuid="a16dbba0-2fcc-4696-833a-1874dd6f778b"/>
+			</rectangle>
+			<textField>
+				<reportElement x="337" y="28" width="20" height="18" uuid="34aea993-ea11-4724-b76e-6f58ca93f71b">
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement>
+					<font size="14"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{acianotico}==true?"X":"")]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="335" y="126" width="20" height="18" uuid="fa8c7cee-744d-4085-889a-7035dc2cfc30">
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement>
+					<font size="14"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{miotico}==true?"X":"")]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="335" y="53" width="20" height="18" uuid="278caceb-fb62-46e2-b6da-680787c7b489">
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement>
+					<font size="14"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{hipocorado}==true?"X":"")]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="335" y="76" width="20" height="18" uuid="a569bf96-c729-42f7-abcd-7f76086e523d">
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement>
+					<font size="14"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{pulsofino}==true?"X":"")]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="336" y="101" width="20" height="18" uuid="bd59d911-fe51-4a6e-be73-6161dd4b66f2">
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement>
+					<font size="14"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{torporoso}==true?"X":"")]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="452" y="27" width="20" height="18" uuid="0644ce5e-7535-421c-afd6-ba6c52d6d434">
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement>
+					<font size="14"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{cianotico}==true?"X":"")]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="452" y="52" width="20" height="18" uuid="851fac84-a2d1-4632-ae54-add169f79f1e">
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement>
+					<font size="14"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{sudoreico}==true?"X":"")]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="452" y="75" width="20" height="18" uuid="918e00f3-4632-477c-ac51-540da2a981c0">
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement>
+					<font size="14"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{etilismo}==true?"X":"")]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="452" y="102" width="20" height="18" uuid="5212a337-c3d0-40f9-82bc-24cfd68ecc91">
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement>
+					<font size="14"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{comatoso}==true?"X":"")]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="452" y="125" width="20" height="18" uuid="0e46ba2a-e302-4723-923f-9caf31301cfa">
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement>
+					<font size="14"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{rigideznuca}==true?"X":"")]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="217" y="28" width="20" height="18" uuid="0445056b-82a2-41da-8f8a-e9675858afee">
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement>
+					<font size="14"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{taquipneico}==true?"X":"")]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="217" y="51" width="20" height="18" uuid="02b9b02c-3cec-4424-bcdd-8cda6fcab7ca">
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement>
+					<font size="14"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{normocorado}==true?"X":"")]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="217" y="75" width="20" height="18" uuid="7d5ae4ad-fd10-45a8-84c7-0b4f74843a1f">
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement>
+					<font size="14"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{pulsocheio}==true?"X":"")]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="218" y="101" width="20" height="18" uuid="a85efabe-8258-4898-a87e-a0e99ecf0bc3">
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement>
+					<font size="14"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{desorientado}==true?"X":"")]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="218" y="126" width="20" height="18" uuid="bb92c400-1397-46a2-94cf-657d3baa57d4">
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement>
+					<font size="14"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{midriatico}==true?"X":"")]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="106" y="28" width="20" height="18" uuid="43960a24-2d47-4aea-a341-f7bdee82bb26">
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement>
+					<font size="14"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{dispneico}==true?"X":"")]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="106" y="53" width="20" height="18" uuid="dce6d686-325e-44d5-9800-98451a50be4b">
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement>
+					<font size="14"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{desidratado}==true?"X":"")]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="107" y="77" width="20" height="18" uuid="95cd3e49-bf13-4e8d-8149-02b966adc2d9">
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement>
+					<font size="14"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{icterico}==true?"X":"")]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="107" y="101" width="20" height="18" uuid="c0dc04db-ef91-4049-be02-481d84991bd9">
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement>
+					<font size="14"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{orientado}==true?"X":"")]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="107" y="125" width="20" height="18" uuid="40b6fd89-27dd-42cd-82bf-5233b5945960">
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement>
+					<font size="14"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{anisocorico}==true?"X":"")]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="11" y="28" width="20" height="18" uuid="1bdcd344-722f-4532-9582-bc037db61945">
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement>
+					<font size="14"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{eupneico}==true?"X":"")]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="11" y="52" width="20" height="18" uuid="078fc18e-2c0b-416f-8ab0-a106e0751e62">
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement>
+					<font size="14"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{hidratado}==true?"X":"")]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="11" y="76" width="20" height="18" uuid="7f1b610a-03ea-4917-9c55-7328d2b72f4d">
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement>
+					<font size="14"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{anisocorico}==true?"X":"")]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="11" y="101" width="20" height="18" uuid="cdf64f50-5e6b-4535-8daf-f239fc7e10cc">
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement>
+					<font size="14"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{acordado}==true?"X":"")]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="10" y="126" width="20" height="18" uuid="20427581-16ac-483d-9e5b-4591eb842f1e">
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement>
+					<font size="14"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{isocorico}==true?"X":"")]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="77" y="4" width="28" height="15" uuid="ef9eb141-4d4c-40d2-b8b2-c11bf0e65fc3">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textFieldExpression><![CDATA[$F{padiast}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="29" y="4" width="30" height="15" uuid="d5ea48f2-1125-4cde-a17a-8a997a295a38">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textFieldExpression><![CDATA[$F{pasist}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="173" y="4" width="36" height="15" uuid="f016bc58-fcec-4331-8fa2-44018ad4a2d2">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Center"/>
+				<textFieldExpression><![CDATA[$F{fc}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="271" y="5" width="41" height="15" uuid="5d432b0e-67fe-4629-8208-8842dbef83fc">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Center"/>
+				<textFieldExpression><![CDATA[$F{tax}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="444" y="5" width="39" height="15" uuid="9eb99173-09f2-4fc4-994b-8ebd8455dfb5">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Center"/>
+				<textFieldExpression><![CDATA[$F{peso}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="354" y="4" width="36" height="15" uuid="d3734443-0118-4122-a47f-7f4b8004bc23">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textFieldExpression><![CDATA[$F{fr}]]></textFieldExpression>
+			</textField>
+			<rectangle>
+				<reportElement x="195" y="154" width="358" height="166" uuid="76b9cb07-4537-4e23-a7ca-1e5b78e68358"/>
+			</rectangle>
+			<staticText>
+				<reportElement x="198" y="157" width="346" height="15" uuid="62aca104-8930-49f3-b089-aba48cd286b8"/>
+				<text><![CDATA[OBSERVAÇÃO DA RECEPÇÃO / ENFERMAGEM :]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="199" y="174" width="345" height="136" isPrintWhenDetailOverflows="true" uuid="d86731b8-84ad-4fcb-8d70-c6c07ef263d7">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement>
+					<font size="8" isItalic="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["( Recep : " + $F{obsentrada} + " ) - ( Triagem:  " + $F{comentario} + " )"]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="5" y="163" width="74" height="15" uuid="9b0f0a7c-09df-4d09-8381-4ca8bc904931"/>
+				<text><![CDATA[Possui alergia?]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="83" y="163" width="73" height="15" uuid="ab09dd2c-9008-4958-9b07-2f5a2e7a16a8">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement>
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{alergiasoun}==true?"Sim":"Não")]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="5" y="179" width="66" height="14" uuid="66f3d016-4c85-47c0-b889-f2ce7127ab3d"/>
+				<textElement>
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{alergiasoun}==true?"Qual?":"")]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="5" y="194" width="173" height="32" isPrintWhenDetailOverflows="true" uuid="3adbd63d-4f36-4932-96e5-2b532511020d">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement>
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{alergiasoun}==true?$F{cabeca}:"")]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="514" y="4" width="39" height="15" uuid="d150a565-d268-4d41-806a-17e664febf34">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Center"/>
+				<textFieldExpression><![CDATA[$F{spo}+" %"]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="485" y="4" width="33" height="15" uuid="29b0b55b-7b65-4bc7-a0fb-12b1c5887adc"/>
+				<text><![CDATA[SPO2]]></text>
+			</staticText>
+		</band>
+	</detail>
+</jasperReport>
