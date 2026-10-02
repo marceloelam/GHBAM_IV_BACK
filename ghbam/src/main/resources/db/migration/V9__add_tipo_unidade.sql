@@ -1,0 +1,2 @@
+ALTER TABLE configurarunidade
+    ADD COLUMN IF NOT EXISTS tipounidade VARCHAR(30) NOT NULL DEFAULT 'HOSPITAL';

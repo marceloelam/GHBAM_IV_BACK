@@ -1,0 +1,248 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Created with Jaspersoft Studio version 6.18.1.final using JasperReports Library version 6.18.1-9d75d1969e774d4f179fb3be8401e98a0e6d1611  -->
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="subprescricao" pageWidth="595" pageHeight="842" columnWidth="595" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0" uuid="fdce5a7f-4cbe-442d-818c-ebd62c6aa44e">
+	<property name="com.jaspersoft.studio.data.sql.tables" value=""/>
+	<property name="com.jaspersoft.studio.data.defaultdataadapter" value="itaguai_conn"/>
+	<property name="com.jaspersoft.studio.unit." value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.pageHeight" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.pageWidth" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.topMargin" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.bottomMargin" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.leftMargin" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.rightMargin" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.columnWidth" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.columnSpacing" value="pixel"/>
+	<parameter name="idbamLab" class="java.lang.String"/>
+	<queryString language="SQL">
+		<![CDATA[select * from prescricao where  cast(bam as text) =  $P{idbamLab} order by cast(data as date ) desc]]>
+	</queryString>
+	<field name="idprescricao" class="java.lang.Integer">
+		<property name="com.jaspersoft.studio.field.name" value="idprescricao"/>
+		<property name="com.jaspersoft.studio.field.label" value="idprescricao"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="prescricao"/>
+	</field>
+	<field name="bam" class="java.lang.Integer">
+		<property name="com.jaspersoft.studio.field.name" value="bam"/>
+		<property name="com.jaspersoft.studio.field.label" value="bam"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="prescricao"/>
+	</field>
+	<field name="cness" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="cness"/>
+		<property name="com.jaspersoft.studio.field.label" value="cness"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="prescricao"/>
+	</field>
+	<field name="data" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="data"/>
+		<property name="com.jaspersoft.studio.field.label" value="data"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="prescricao"/>
+	</field>
+	<field name="feito" class="java.lang.Boolean">
+		<property name="com.jaspersoft.studio.field.name" value="feito"/>
+		<property name="com.jaspersoft.studio.field.label" value="feito"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="prescricao"/>
+	</field>
+	<field name="hora" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="hora"/>
+		<property name="com.jaspersoft.studio.field.label" value="hora"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="prescricao"/>
+	</field>
+	<field name="localsolicitante" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="localsolicitante"/>
+		<property name="com.jaspersoft.studio.field.label" value="localsolicitante"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="prescricao"/>
+	</field>
+	<field name="observacao" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="observacao"/>
+		<property name="com.jaspersoft.studio.field.label" value="observacao"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="prescricao"/>
+	</field>
+	<field name="observacao2" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="observacao2"/>
+		<property name="com.jaspersoft.studio.field.label" value="observacao2"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="prescricao"/>
+	</field>
+	<field name="prescricao" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="prescricao"/>
+		<property name="com.jaspersoft.studio.field.label" value="prescricao"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="prescricao"/>
+	</field>
+	<field name="tprpa" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="tprpa"/>
+		<property name="com.jaspersoft.studio.field.label" value="tprpa"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="prescricao"/>
+	</field>
+	<field name="hora1" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="hora1"/>
+		<property name="com.jaspersoft.studio.field.label" value="hora1"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="prescricao"/>
+	</field>
+	<field name="hora11" class="java.lang.Boolean">
+		<property name="com.jaspersoft.studio.field.name" value="hora11"/>
+		<property name="com.jaspersoft.studio.field.label" value="hora11"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="prescricao"/>
+	</field>
+	<field name="hora22" class="java.lang.Boolean">
+		<property name="com.jaspersoft.studio.field.name" value="hora22"/>
+		<property name="com.jaspersoft.studio.field.label" value="hora22"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="prescricao"/>
+	</field>
+	<field name="hora2" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="hora2"/>
+		<property name="com.jaspersoft.studio.field.label" value="hora2"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="prescricao"/>
+	</field>
+	<field name="hora33" class="java.lang.Boolean">
+		<property name="com.jaspersoft.studio.field.name" value="hora33"/>
+		<property name="com.jaspersoft.studio.field.label" value="hora33"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="prescricao"/>
+	</field>
+	<field name="hora3" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="hora3"/>
+		<property name="com.jaspersoft.studio.field.label" value="hora3"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="prescricao"/>
+	</field>
+	<field name="hora44" class="java.lang.Boolean">
+		<property name="com.jaspersoft.studio.field.name" value="hora44"/>
+		<property name="com.jaspersoft.studio.field.label" value="hora44"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="prescricao"/>
+	</field>
+	<field name="hora4" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="hora4"/>
+		<property name="com.jaspersoft.studio.field.label" value="hora4"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="prescricao"/>
+	</field>
+	<field name="hora55" class="java.lang.Boolean">
+		<property name="com.jaspersoft.studio.field.name" value="hora55"/>
+		<property name="com.jaspersoft.studio.field.label" value="hora55"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="prescricao"/>
+	</field>
+	<field name="hora5" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="hora5"/>
+		<property name="com.jaspersoft.studio.field.label" value="hora5"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="prescricao"/>
+	</field>
+	<field name="hora66" class="java.lang.Boolean">
+		<property name="com.jaspersoft.studio.field.name" value="hora66"/>
+		<property name="com.jaspersoft.studio.field.label" value="hora66"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="prescricao"/>
+	</field>
+	<field name="hora6" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="hora6"/>
+		<property name="com.jaspersoft.studio.field.label" value="hora6"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="prescricao"/>
+	</field>
+	<field name="hora77" class="java.lang.Boolean">
+		<property name="com.jaspersoft.studio.field.name" value="hora77"/>
+		<property name="com.jaspersoft.studio.field.label" value="hora77"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="prescricao"/>
+	</field>
+	<field name="hora7" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="hora7"/>
+		<property name="com.jaspersoft.studio.field.label" value="hora7"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="prescricao"/>
+	</field>
+	<field name="hora88" class="java.lang.Boolean">
+		<property name="com.jaspersoft.studio.field.name" value="hora88"/>
+		<property name="com.jaspersoft.studio.field.label" value="hora88"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="prescricao"/>
+	</field>
+	<field name="hora8" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="hora8"/>
+		<property name="com.jaspersoft.studio.field.label" value="hora8"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="prescricao"/>
+	</field>
+	<field name="mediccrm" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="mediccrm"/>
+		<property name="com.jaspersoft.studio.field.label" value="mediccrm"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="prescricao"/>
+	</field>
+	<field name="medicacao" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="medicacao"/>
+		<property name="com.jaspersoft.studio.field.label" value="medicacao"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="prescricao"/>
+	</field>
+	<field name="medicoq" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="medicoq"/>
+		<property name="com.jaspersoft.studio.field.label" value="medicoq"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="prescricao"/>
+	</field>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band height="31" splitType="Stretch">
+			<rectangle>
+				<reportElement mode="Opaque" x="10" y="18" width="549" height="11" backcolor="#DEDEDE" uuid="2cc0625a-233b-4d50-a1d8-d6106cf4290c"/>
+				<graphicElement>
+					<pen lineWidth="0.0"/>
+				</graphicElement>
+			</rectangle>
+			<staticText>
+				<reportElement x="0" y="3" width="110" height="13" uuid="713b1896-e074-497c-8d49-b8a7e2d0178a">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement>
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[* Prescrição médica]]></text>
+			</staticText>
+			<line>
+				<reportElement x="120" y="10" width="425" height="1" uuid="aaad580c-6d78-4776-8467-cdfa95bea110"/>
+			</line>
+			<staticText>
+				<reportElement x="60" y="15" width="320" height="13" uuid="34152ac7-75d2-43f4-a2dc-b971917ebc3a">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Center" verticalAlignment="Bottom">
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Prescrição]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="380" y="16" width="171" height="13" uuid="275d2a0b-9d07-4087-a99b-b626382c5019">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Center" verticalAlignment="Bottom">
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Médico - crm]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="3" y="15" width="57" height="13" uuid="1db66c2b-74b9-49ee-a59d-09af2a114bae">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Center" verticalAlignment="Bottom">
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Data]]></text>
+			</staticText>
+		</band>
+	</title>
+	<detail>
+		<band height="20" splitType="Stretch">
+			<textField>
+				<reportElement x="60" y="2" width="300" height="18" uuid="9f8de4a8-df0c-47db-852d-f8971b00e02a"/>
+				<textElement verticalAlignment="Middle" markup="html">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{prescricao}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="360" y="2" width="200" height="18" uuid="a84da614-8f50-4376-93f0-416d34613fbf"/>
+				<textElement verticalAlignment="Middle">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{mediccrm} !=null?$F{mediccrm} :"")]]></textFieldExpression>
+			</textField>
+			<textField pattern="dd/MM/yyyy">
+				<reportElement x="0" y="1" width="60" height="19" uuid="edeb2195-5261-4dfc-b1ed-a4ccdb64c5bc">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{data}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+</jasperReport>

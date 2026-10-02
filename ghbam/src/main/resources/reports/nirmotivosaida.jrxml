@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Created with Jaspersoft Studio version 6.21.5.final using JasperReports Library version 6.21.5-74d586df47b25dbd05bd0957999819196e59934a  -->
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="graficoatendimentos" pageWidth="595" pageHeight="842" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20" uuid="199d6a17-8670-44dc-a36f-8d3ec47a618d">
+	<property name="com.jaspersoft.studio.data.sql.tables" value=""/>
+	<property name="com.jaspersoft.studio.data.defaultdataadapter" value="conn"/>
+	<property name="com.jaspersoft.studio.unit." value="cm"/>
+	<property name="com.jaspersoft.studio.unit.pageHeight" value="cm"/>
+	<property name="com.jaspersoft.studio.unit.pageWidth" value="cm"/>
+	<property name="com.jaspersoft.studio.unit.topMargin" value="cm"/>
+	<property name="com.jaspersoft.studio.unit.bottomMargin" value="cm"/>
+	<property name="com.jaspersoft.studio.unit.leftMargin" value="cm"/>
+	<property name="com.jaspersoft.studio.unit.rightMargin" value="cm"/>
+	<property name="com.jaspersoft.studio.unit.columnWidth" value="cm"/>
+	<property name="com.jaspersoft.studio.unit.columnSpacing" value="cm"/>
+	<parameter name="datainicial" class="java.lang.String"/>
+	<parameter name="datafinal" class="java.lang.String"/>
+	<parameter name="logo" class="java.lang.String"/>
+	<parameter name="hospital" class="java.lang.String"/>
+	<parameter name="ssigla" class="java.lang.String"/>
+	<parameter name="prefeitura" class="java.lang.String"/>
+	<parameter name="complemento" class="java.lang.String"/>
+	<queryString language="SQL">
+		<![CDATA[select datainternacao,motivodaalta , count(motivodaalta) as total from internacao
+where  cast(datasaida as date)  between  cast($P{datainicial} as date)  and cast($P{datafinal} as date)
+and cast(datasaida as date) is not null 
+and unidade =  $P{ssigla} 
+ group by datainternacao, motivodaalta order by datainternacao  desc]]>
+	</queryString>
+	<field name="datainternacao" class="java.sql.Date">
+		<property name="com.jaspersoft.studio.field.name" value="datainternacao"/>
+		<property name="com.jaspersoft.studio.field.label" value="datainternacao"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="internacao"/>
+	</field>
+	<field name="motivodaalta" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="motivodaalta"/>
+		<property name="com.jaspersoft.studio.field.label" value="motivodaalta"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="internacao"/>
+	</field>
+	<field name="total" class="java.lang.Long">
+		<property name="com.jaspersoft.studio.field.name" value="total"/>
+		<property name="com.jaspersoft.studio.field.label" value="total"/>
+	</field>
+	<variable name="total1" class="java.lang.Long" calculation="Sum">
+		<variableExpression><![CDATA[$F{total}]]></variableExpression>
+	</variable>
+	<title>
+		<band height="105" splitType="Stretch">
+			<property name="com.jaspersoft.studio.unit.height" value="cm"/>
+			<staticText>
+				<reportElement x="140" y="61" width="269" height="17" uuid="5bcd56ee-1bae-4167-a4e1-85929568c236"/>
+				<textElement textAlignment="Center">
+					<font size="11" isBold="true"/>
+				</textElement>
+				<text><![CDATA[ESTATÍSTICA MOTIVO DA SAÍDA]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="167" y="84" width="50" height="14" uuid="d6058134-d478-4a0c-9069-2c01c3c21a76">
+					<property name="com.jaspersoft.studio.unit.height" value="cm"/>
+				</reportElement>
+				<text><![CDATA[Período :]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="292" y="83" width="12" height="14" uuid="261fad5c-1e13-47fc-92d0-f71a2007a6aa">
+					<property name="com.jaspersoft.studio.unit.height" value="cm"/>
+				</reportElement>
+				<text><![CDATA[a]]></text>
+			</staticText>
+			<textField pattern="dd/MM/yyyy">
+				<reportElement x="224" y="84" width="72" height="14" uuid="0bc25f4a-20c1-442d-9aa8-18b691f7e161">
+					<property name="com.jaspersoft.studio.unit.height" value="cm"/>
+				</reportElement>
+				<textFieldExpression><![CDATA[$P{datainicial}.substring(8,10) + "/" + $P{datainicial}.substring(5,7)+"/"+$P{datainicial}.substring(0,4)]]></textFieldExpression>
+			</textField>
+			<textField pattern="dd/MM/yyyy">
+				<reportElement x="314" y="83" width="72" height="14" uuid="b506d40f-50ab-4ac2-8bc9-953894706f72">
+					<property name="com.jaspersoft.studio.unit.height" value="cm"/>
+				</reportElement>
+				<textFieldExpression><![CDATA[$P{datafinal}.substring(8,10) + "/" + $P{datafinal}.substring(5,7)+"/"+$P{datafinal}.substring(0,4)]]></textFieldExpression>
+			</textField>
+			<textField pattern="dd/MM/yyyy">
+				<reportElement x="455" y="11" width="100" height="19" uuid="6d6fa1d0-eb04-4c4b-8c14-5cd3060d8af5"/>
+				<textElement textAlignment="Right"/>
+				<textFieldExpression><![CDATA[new java.util.Date()]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="130" y="38" width="350" height="20" uuid="d68bdfa1-7c42-4864-a99d-1dd58945843e"/>
+				<textElement>
+					<font size="12" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{hospital}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="130" y="18" width="330" height="20" uuid="afde7ac4-945d-462f-ba03-c43faf52f6f3"/>
+				<textElement>
+					<font size="12" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{prefeitura}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="130" y="0" width="319" height="20" uuid="012cb287-de3c-4400-82cc-5779c37d7aec"/>
+				<textElement>
+					<font size="12" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Estado do Rio de Janeiro
+]]></text>
+			</staticText>
+			<image hAlign="Center" vAlign="Middle" onErrorType="Blank">
+				<reportElement stretchType="RelativeToTallestObject" x="1" y="3" width="107" height="55" uuid="388e39d4-e388-4976-8287-10491f1957a1"/>
+				<imageExpression><![CDATA[new ByteArrayInputStream(org.apache.commons.codec.binary.Base64.decodeBase64($P{logo}.getBytes()))]]></imageExpression>
+			</image>
+		</band>
+	</title>
+	<pageHeader>
+		<band splitType="Stretch"/>
+	</pageHeader>
+	<columnHeader>
+		<band splitType="Stretch"/>
+	</columnHeader>
+	<detail>
+		<band height="24" splitType="Stretch">
+			<property name="com.jaspersoft.studio.unit.height" value="cm"/>
+			<textField>
+				<reportElement x="322" y="3" width="28" height="14" uuid="3172ff71-d1e2-47fd-beb0-5a077845f341">
+					<property name="com.jaspersoft.studio.unit.height" value="cm"/>
+				</reportElement>
+				<textElement textAlignment="Center"/>
+				<textFieldExpression><![CDATA[$F{total}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="164" y="3" width="10" height="14" uuid="aac7a31c-f4f6-430c-83e5-aad88c9768bb"/>
+				<textElement textAlignment="Center"/>
+				<text><![CDATA[-]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="356" y="3" width="109" height="14" uuid="5792ea0c-0978-4d76-9283-964daa00caf5"/>
+				<textElement textAlignment="Left"/>
+				<text><![CDATA[- Saída(s)]]></text>
+			</staticText>
+			<textField pattern="dd/MM/yyyy">
+				<reportElement x="108" y="3" width="55" height="14" uuid="48fc5220-b773-4edf-8628-21379a6f5e90">
+					<property name="com.jaspersoft.studio.unit.height" value="cm"/>
+				</reportElement>
+				<textFieldExpression><![CDATA[$F{datainternacao}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="174" y="3" width="148" height="14" uuid="6da4d197-019f-4e19-8042-6a1cb027ed56">
+					<property name="com.jaspersoft.studio.unit.height" value="cm"/>
+				</reportElement>
+				<textElement textAlignment="Center"/>
+				<textFieldExpression><![CDATA[$F{motivodaalta}]]></textFieldExpression>
+			</textField>
+			<line>
+				<reportElement x="40" y="16" width="425" height="1" uuid="2d033789-0019-4c7c-a7f6-aaee4406509c">
+					<property name="com.jaspersoft.studio.unit.width" value="cm"/>
+				</reportElement>
+			</line>
+		</band>
+	</detail>
+	<summary>
+		<band height="17">
+			<textField>
+				<reportElement x="262" y="2" width="77" height="15" uuid="08ba1ed5-0307-4d81-9062-c37eb4472e1d"/>
+				<textElement textAlignment="Right">
+					<font isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{total1}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="185" y="2" width="81" height="15" uuid="9dddbeab-b0f1-41f2-bd9f-2ceb4844c50c"/>
+				<textElement textAlignment="Right">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Total :]]></text>
+			</staticText>
+		</band>
+	</summary>
+</jasperReport>

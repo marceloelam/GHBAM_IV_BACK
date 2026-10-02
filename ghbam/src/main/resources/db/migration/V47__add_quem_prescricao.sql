@@ -1,0 +1,2 @@
+ALTER TABLE prescricao
+    ADD COLUMN IF NOT EXISTS quem VARCHAR(60);

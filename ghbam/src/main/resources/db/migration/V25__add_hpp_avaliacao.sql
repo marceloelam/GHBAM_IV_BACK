@@ -1,0 +1,2 @@
+ALTER TABLE avaliacao
+    ADD COLUMN IF NOT EXISTS hpp TEXT;

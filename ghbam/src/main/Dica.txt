@@ -1,0 +1,57 @@
+***** Ajustar a sequencia da tabela *****
+
+
+select * from escalapaciente where agbam = 388025
+select max(idescalapaciente) from escalapaciente	
+ALTER TABLE escalapaciente 
+ALTER COLUMN idescalapaciente 
+RESTART WITH 178671;
+
+
+
+-- 1. Remover primary key
+ALTER TABLE escalapaciente DROP CONSTRAINT escalapaciente_pkey;
+
+-- 2. Criar sequence
+CREATE SEQUENCE IF NOT EXISTS escalapaciente_idescalapaciente_seq;
+
+-- 3. Definir default
+ALTER TABLE escalapaciente 
+ALTER COLUMN idescalapaciente 
+SET DEFAULT nextval('escalapaciente_idescalapaciente_seq');
+
+-- 4. Conectar sequence à coluna
+ALTER SEQUENCE escalapaciente_idescalapaciente_seq 
+OWNED BY escalapaciente.idescalapaciente;
+
+-- 5. Atualizar sequence
+SELECT setval('escalapaciente_idescalapaciente_seq', 
+              (SELECT COALESCE(MAX(idescalapaciente), 1) FROM escalapaciente));
+
+-- 6. Recriar primary key
+ALTER TABLE escalapaciente 
+ADD PRIMARY KEY (idescalapaciente);
+
+-- 7. Garantir NOT NULL
+ALTER TABLE escalapaciente ALTER COLUMN idescalapaciente SET NOT NULL;
+
+-- 8. (Opcional) Reiniciar sequence
+ALTER SEQUENCE escalapaciente_idescalapaciente_seq RESTART WITH 157236;
+
+
+
+Favor aplicar estilo moderno no meu formulário seguindo as normas de UI/UX modernas. Gostaria que inclua:
+
+Hover azul claro em todos os campos de entrada
+Layout responsivo com cards elevados e cantos arredondados
+Paleta de cores profissional (azuis #2563eb, #60a5fa, #dbeafe, neutros elegantes)
+seguindo o esquema de cores 60-30-10
+Micro-interações suaves com transições de 0.2s
+Sombras sutis para profundidade visual
+Estados visuais claros (normal, hover, focus)
+Tipografia hierárquica com pesos e tamanhos consistentes
+Espaçamento padronizado (gaps de 24px, padding interno adequado)
+Acessibilidade com contrastes apropriados
+Responsividade para diferentes tamanhos de tela
+Use o mesmo padrão visual moderno que aplicou nos formulários anteriores (Triagem, Laudo de Autorização, Anamnese), mantendo consistência no design system. mude o layout e não deixe a página muito alta, mas mantenha a funcionalidade
+Não mexa na programação só layout

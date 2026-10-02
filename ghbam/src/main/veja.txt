@@ -1,0 +1,35 @@
+Build no Eclipse:
+
+Clique com o botão direito no projeto.
+
+Vá para Run As > Maven build....
+
+Na janela que se abre, adicione a configuração para criar o über-jar:
+
+Em Goals, digite: clean package -Dquarkus.package.type=uber-jar.
+
+Clique em Run.
+
+Será gerado o arquivo: ghbam-4.0-runner.jar
+
+Execute-o: java -jar ghbam-4.0-runner.jar
+
+//////////////////////////////////////////
+
+Para rodar no VS Code: mvn quarkus:dev ou ./mvnw quarkus:dev
+
+Para compilar no VS Code:  ./mvnw clean package "-Dquarkus.package.type=uber-jar"
+
+
+
+
+
+
+/////////////////////////////////////
+winget install --interactive --exact dorssel.usbipd-win
+
+usbipd bind --busid=1-3  # Substitua pelo BUSID correto
+
+SELECT *
+FROM resumodealta
+WHERE row_to_json(resumodealta)::text LIKE '%QUEROTEACHARNATABELA%';

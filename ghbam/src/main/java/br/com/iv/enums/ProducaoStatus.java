@@ -1,0 +1,14 @@
+package br.com.iv.enums;
+
+public enum ProducaoStatus {
+    PENDENTE_CLASSIFICACAO,
+    APTO_FATURAMENTO,
+    REVISAO_RECOMENDADA,
+    PRODUCAO_COM_CRITICA,
+    NAO_FATURAVEL,
+    FATURADO,
+    CANCELADO,
+    SUBSTITUIDO,
+    RETIFICADO,
+    REJEITADO
+}
