@@ -65,7 +65,7 @@ public class PedidoMedico2Repository implements PanacheRepository<PedidoMedico2>
 				+ "pe.liberoucoleta, pe.liberouexame, pe.restaurou, pe.idunico, "
 				+ "s.setor AS nome_setor, l.local AS nome_local " + "FROM pacientes p "
 				+ "INNER JOIN bam b ON b.paciente_idpaciente = p.idpaciente "
-				+ "INNER JOIN novointernado n ON n.pacientes_idpaciente = b.paciente_idpaciente "
+				+ "INNER JOIN novointernado n ON n.nbam = b.idbam AND n.unidade = :unidade AND n.alta = FALSE "
 				+ "INNER JOIN setorcenso s ON s.idsetorcenso = n.setor_idsetorcenso "
 				+ "INNER JOIN localcenso l ON l.idsetorlocalcenso = n.local_idsetorlocalcenso "
 				+ "INNER JOIN tratamento t ON t.idtratamento = b.tratamento_idtratamento "
@@ -153,7 +153,7 @@ public class PedidoMedico2Repository implements PanacheRepository<PedidoMedico2>
 				+ "pe.liberoucoleta, pe.liberouexame, pe.restaurou, pe.idunico, "
 				+ "s.setor AS nome_setor, l.local AS nome_local " + "FROM pacientes p "
 				+ "INNER JOIN bam b ON b.paciente_idpaciente = p.idpaciente "
-				+ "INNER JOIN novointernado n ON n.pacientes_idpaciente = b.paciente_idpaciente "
+				+ "INNER JOIN novointernado n ON n.nbam = b.idbam AND n.unidade = :unidade AND n.alta = FALSE "
 				+ "INNER JOIN setorcenso s ON s.idsetorcenso = n.setor_idsetorcenso "
 				+ "INNER JOIN localcenso l ON l.idsetorlocalcenso = n.local_idsetorlocalcenso "
 				+ "INNER JOIN tratamento t ON t.idtratamento = b.tratamento_idtratamento "
@@ -424,7 +424,7 @@ public class PedidoMedico2Repository implements PanacheRepository<PedidoMedico2>
 				+ "pe.liberoucoleta, pe.liberouexame, pe.restaurou, pe.idunico, "
 				+ "s.setor AS nome_setor, l.local AS nome_local " + "FROM pacientes p "
 				+ "INNER JOIN bam b ON b.paciente_idpaciente = p.idpaciente "
-				+ "INNER JOIN novointernado n ON n.pacientes_idpaciente = b.paciente_idpaciente "
+				+ "INNER JOIN novointernado n ON n.nbam = b.idbam AND n.unidade = :unidade AND n.alta = FALSE "
 				+ "INNER JOIN setorcenso s ON s.idsetorcenso = n.setor_idsetorcenso "
 				+ "INNER JOIN localcenso l ON l.idsetorlocalcenso = n.local_idsetorlocalcenso "
 				+ "INNER JOIN tratamento t ON t.idtratamento = b.tratamento_idtratamento "
@@ -521,7 +521,7 @@ public class PedidoMedico2Repository implements PanacheRepository<PedidoMedico2>
 				+ "pe.liberoucoleta, pe.liberouexame, pe.restaurou, pe.idunico, "
 				+ "s.setor AS nome_setor, l.local AS nome_local " + "FROM pacientes p "
 				+ "INNER JOIN bam b ON b.paciente_idpaciente = p.idpaciente "
-				+ "INNER JOIN novointernado n ON n.pacientes_idpaciente = b.paciente_idpaciente "
+				+ "INNER JOIN novointernado n ON n.nbam = b.idbam AND n.unidade = :unidade AND n.alta = FALSE "
 				+ "INNER JOIN setorcenso s ON s.idsetorcenso = n.setor_idsetorcenso "
 				+ "INNER JOIN localcenso l ON l.idsetorlocalcenso = n.local_idsetorlocalcenso "
 				+ "INNER JOIN tratamento t ON t.idtratamento = b.tratamento_idtratamento "
@@ -580,7 +580,6 @@ public class PedidoMedico2Repository implements PanacheRepository<PedidoMedico2>
 			// novos campos
 			dto.setNomeSetor((String) r[37]);
 			dto.setNomeLocal((String) r[38]);
-
 			lista.add(dto);
 		}
 
@@ -772,14 +771,17 @@ public class PedidoMedico2Repository implements PanacheRepository<PedidoMedico2>
 					+ "pe.efetuado, pe.coletar, pe.emergencia, pe.internado, pe.confirmado, "
 					+ "pe.medicoviu, pe.eas, pe.dt, pe.hr, pe.unidade, "
 					+ "pe.liberoucoleta, pe.liberouexame, pe.restaurou, pe.idunico, "
-					+ "s.setor AS nome_setor, l.local AS nome_local " + "FROM pacientes p "
+					+ "s.setor AS nome_setor, l.local AS nome_local, "
+					+ "EXISTS (SELECT 1 FROM pedidomedico2 pe_lab WHERE pe_lab.bam = b.idbam AND pe_lab.local = 'LABORATORIO') AS tem_pedido_laboratorio "
+					+ "FROM pacientes p "
 					+ "INNER JOIN bam b ON b.paciente_idpaciente = p.idpaciente "
-					+ "LEFT JOIN novointernado n ON n.pacientes_idpaciente = b.paciente_idpaciente and n.unidade = :unidade "
+					+ "LEFT JOIN novointernado n ON n.nbam = b.idbam and n.unidade = :unidade and n.alta = FALSE "
 					+ "LEFT JOIN setorcenso s ON s.idsetorcenso = n.setor_idsetorcenso "
 					+ "LEFT JOIN localcenso l ON l.idsetorlocalcenso = n.local_idsetorlocalcenso "
 					+ "INNER JOIN tratamento t ON t.idtratamento = b.tratamento_idtratamento "
 					+ "INNER JOIN pedidomedico2 pe ON pe.bam = b.idbam WHERE  pe.efetuado = FALSE "
-					+ "AND (pe.local = 'MEDICACAO' OR pe.local = 'MEDICAMENTO') " + "AND pe.unidade = :unidade ";
+					+ "AND (pe.local = 'MEDICACAO' OR pe.local = 'MEDICAMENTO') " + "AND pe.unidade = :unidade "
+					+ "ORDER BY p.nome, b.idbam DESC, pe.idpedidomedico DESC";
 
 			try {
 				results = getEntityManager().createNativeQuery(sql).setParameter("unidade", unidade).getResultList();
@@ -799,14 +801,17 @@ public class PedidoMedico2Repository implements PanacheRepository<PedidoMedico2>
 					+ "pe.efetuado, pe.coletar, pe.emergencia, pe.internado, pe.confirmado, "
 					+ "pe.medicoviu, pe.eas, pe.dt, pe.hr, pe.unidade, "
 					+ "pe.liberoucoleta, pe.liberouexame, pe.restaurou, pe.idunico, "
-					+ "s.setor AS nome_setor, l.local AS nome_local " + "FROM pacientes p "
+					+ "s.setor AS nome_setor, l.local AS nome_local, "
+					+ "EXISTS (SELECT 1 FROM pedidomedico2 pe_lab WHERE pe_lab.bam = b.idbam AND pe_lab.local = 'LABORATORIO') AS tem_pedido_laboratorio "
+					+ "FROM pacientes p "
 					+ "INNER JOIN bam b ON b.paciente_idpaciente = p.idpaciente "
-					+ "LEFT JOIN novointernado n ON n.pacientes_idpaciente = b.paciente_idpaciente  and n.unidade = :unidade "
+					+ "LEFT JOIN novointernado n ON n.nbam = b.idbam and n.unidade = :unidade and n.alta = FALSE "
 					+ "LEFT JOIN setorcenso s ON s.idsetorcenso = n.setor_idsetorcenso "
 					+ "LEFT JOIN localcenso l ON l.idsetorlocalcenso = n.local_idsetorlocalcenso "
 					+ "INNER JOIN tratamento t ON t.idtratamento = b.tratamento_idtratamento "
 					+ "INNER JOIN pedidomedico2 pe ON pe.bam = b.idbam " + "WHERE " + " pe.efetuado = FALSE "
-					+ "AND pe.local = :local " + "AND pe.unidade = :unidade ";
+					+ "AND pe.local = :local " + "AND pe.unidade = :unidade "
+					+ "ORDER BY p.nome, b.idbam DESC, pe.idpedidomedico DESC";
 
 			try {
 				results = getEntityManager().createNativeQuery(sql).setParameter("local", local)
@@ -866,6 +871,7 @@ public class PedidoMedico2Repository implements PanacheRepository<PedidoMedico2>
 			// novos campos
 			dto.setNomeSetor((String) r[37]);
 			dto.setNomeLocal((String) r[38]);
+			dto.setTemPedidoLaboratorio((Boolean) r[39]);
 
 			lista.add(dto);
 		}
@@ -959,32 +965,22 @@ public class PedidoMedico2Repository implements PanacheRepository<PedidoMedico2>
 	}
 
 	public void atualizarAoMedicoRespostaExames(int bam, String resposta, String local) {
-		if(local.equals("MEDICACAO")) {
-			String sql = "UPDATE pedidomedico2 set efetuado=true,  obs2 = :resposta from bam where efetuado = false and bam = :bam and local = :local";
+		if(local.equals("MEDICACAO") || local.equals("MEDICAMENTO")) {
+			String sql = "UPDATE pedidomedico2 set efetuado=true, obs2 = :resposta "
+					+ "from bam where efetuado = false and bam = :bam "
+					+ "and local in ('MEDICACAO', 'MEDICAMENTO')";
 			entityManager.createNativeQuery(sql).setParameter("bam", bam).setParameter("resposta", resposta)
-					.setParameter("local", local).executeUpdate();
-			informarRegistroEfetuadoExameLocal(bam, local);
+					.executeUpdate();
+			informarRegistroEfetuadoExameLocal(bam, "MEDICACAO");
 			return;
 		}
-		if(local.equals("MEDICAMENTO")) {
-			String sql = "UPDATE pedidomedico2 set efetuado=true,  obs2 = :resposta from bam where efetuado = false and bam = :bam and local = :local";
+		if(local.equals("MEDICACAO2") || local.equals("MEDICAMENTO2")) {
+			String sql = "UPDATE pedidomedico2 set efetuado=true, obs2 = :resposta "
+					+ "from bam where efetuado = false and bam = :bam "
+					+ "and local in ('MEDICACAO2', 'MEDICAMENTO2')";
 			entityManager.createNativeQuery(sql).setParameter("bam", bam).setParameter("resposta", resposta)
-					.setParameter("local", local).executeUpdate();
-			informarRegistroEfetuadoExameLocal(bam, local);
-			return;
-		}
-		if(local.equals("MEDICACAO2")) {
-			String sql = "UPDATE pedidomedico2 set efetuado=true,  obs2 = :resposta from bam where efetuado = false and bam = :bam and local = :local";
-			entityManager.createNativeQuery(sql).setParameter("bam", bam).setParameter("resposta", resposta)
-					.setParameter("local", local).executeUpdate();
-			informarRegistroEfetuadoExameLocal(bam, local);
-			return;
-		}
-		if(local.equals("MEDICAMENTO2")) {
-			String sql = "UPDATE pedidomedico2 set efetuado=true,  obs2 = :resposta from bam where efetuado = false and bam = :bam and local = :local";
-			entityManager.createNativeQuery(sql).setParameter("bam", bam).setParameter("resposta", resposta)
-					.setParameter("local", local).executeUpdate();
-			informarRegistroEfetuadoExameLocal(bam, local);
+					.executeUpdate();
+			informarRegistroEfetuadoExameLocal(bam, "MEDICACAO2");
 			return;
 		}
 		

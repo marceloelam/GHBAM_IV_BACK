@@ -53,4 +53,5 @@ public class PedidoMedico2xDto implements Serializable {
 	// ✅ novos (joins)
 	private String nomeSetor;
 	private String nomeLocal;
+	private boolean temPedidoLaboratorio;
 }
