@@ -1,5 +1,6 @@
 package br.com.iv.service;
 
+import java.util.List;
 import java.util.Map;
 
 import br.com.iv.entity.Bam;
@@ -27,6 +28,31 @@ public class FhirResultadoLaboratorioExportService {
     FhirR4PayloadValidator payloadValidator;
 
     public Map<String, Object> exportar(Integer idbam, AuthenticatedUser usuario) {
+        Bam bam = bamAutorizado(idbam, usuario);
+        Map<String, Object> bundle = mapperService.montarBundle(idbam);
+        auditService.registrarConsulta(usuario, bam, "SUCESSO");
+        return bundle;
+    }
+
+    /**
+     * Retorna somente o checklist de homologacao, sem devolver dados clinicos.
+     * Avalia so o que entra na fila RNDS: laudo antigo (so PDF, descricao livre como
+     * "** Resultado liberado **") nao vai para a RNDS e gerava pendencias falsas.
+     */
+    public Map<String, Object> avaliarHomologacao(Integer idbam, AuthenticatedUser usuario) {
+        Bam bam = bamAutorizado(idbam, usuario);
+        Map<String, Object> bundle = mapperService.montarBundlePreparadoRnds(idbam);
+        auditService.registrarConsulta(usuario, bam, "SUCESSO");
+        var pendencias = bundle == null
+                ? List.of("Nenhum resultado preparado para RNDS")
+                : payloadValidator.avaliarResultadoLaboratorial(bundle);
+        return Map.of(
+                "pronto", pendencias.isEmpty(),
+                "pendencias", pendencias,
+                "tipo", "RESULTADO_EXAME_LABORATORIAL");
+    }
+
+    private Bam bamAutorizado(Integer idbam, AuthenticatedUser usuario) {
         Bam bam = idbam == null || idbam <= 0 ? null : Bam.<Bam>findById(idbam);
         if (bam == null) {
             auditService.registrarConsulta(usuario, null, "NAO_ENCONTRADO");
@@ -36,19 +62,7 @@ public class FhirResultadoLaboratorioExportService {
             auditService.registrarConsulta(usuario, bam, "NEGADO");
             throw new FhirResultadoLaboratorioAccessException("Usuario sem autorizacao para este BAM.", false);
         }
-        Map<String, Object> bundle = mapperService.montarBundle(idbam);
-        auditService.registrarConsulta(usuario, bam, "SUCESSO");
-        return bundle;
-    }
-
-    /** Retorna somente o checklist de homologacao, sem devolver dados clinicos. */
-    public Map<String, Object> avaliarHomologacao(Integer idbam, AuthenticatedUser usuario) {
-        Map<String, Object> bundle = exportar(idbam, usuario);
-        var pendencias = payloadValidator.avaliarResultadoLaboratorial(bundle);
-        return Map.of(
-                "pronto", pendencias.isEmpty(),
-                "pendencias", pendencias,
-                "tipo", "RESULTADO_EXAME_LABORATORIAL");
+        return bam;
     }
 
     public static class FhirResultadoLaboratorioAccessException extends RuntimeException {

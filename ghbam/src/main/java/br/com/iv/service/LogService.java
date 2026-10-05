@@ -20,6 +20,9 @@ import br.com.iv.entity.LocalCenso;
 import br.com.iv.entity.Log;
 import br.com.iv.repository.LogRepository;
 import br.com.iv.security.AuditPacienteResolver;
+import br.com.iv.security.AuthenticatedUser;
+import org.jboss.resteasy.reactive.server.core.CurrentRequestManager;
+import org.jboss.resteasy.reactive.server.core.ResteasyReactiveRequestContext;
 
 @ApplicationScoped
 public class LogService implements Serializable {
@@ -81,6 +84,7 @@ public class LogService implements Serializable {
 		if (dto == null) {
 			throw new IllegalArgumentException("LogDto não pode ser nulo");
 		}
+		anexarUsuario(dto);
 		Log log = new Log();
 		log.setData(dto.getData());
 		log.setHora(dto.getHora());
@@ -100,6 +104,8 @@ public class LogService implements Serializable {
 		if (dto == null) {
 			throw new IllegalArgumentException("LogDto não pode ser nulo");
 		}
+		// A requisicao so existe nesta thread; no executor ela ja se perdeu.
+		anexarUsuario(dto);
 		// build a Log object to return quickly (no id)
 		Log log = new Log();
 		log.setData(dto.getData());
@@ -130,6 +136,46 @@ public class LogService implements Serializable {
 		});
 
 		return log;
+	}
+
+	// Servicos que gravam log direto (farmacia, CDSS, RAG, cirurgia...) muitas vezes
+	// so poem a matricula ou nem isso. Quem fez a acao e o usuario autenticado da
+	// requisicao (JWT), entao ele e anexado como "usuario=... | matricula=...", o
+	// mesmo formato do POST /log. Sem requisicao (jobs) o evento fica como veio.
+	void anexarUsuario(LogDto dto) {
+		try {
+			AuthenticatedUser user = usuarioDaRequisicao();
+			if (user == null || user.matricula() == null || user.matricula().isBlank()) {
+				return;
+			}
+			String evento = dto.getEvento() == null ? "" : dto.getEvento();
+			String nome = user.nome() == null ? "" : user.nome().trim();
+			if (jaIdentificaUsuario(evento, nome)) {
+				return;
+			}
+			dto.setEvento(evento + " | usuario=" + (nome.isBlank() ? "Usuario autenticado" : nome)
+					+ " | matricula=" + user.matricula().trim());
+		} catch (Exception e) {
+			// identificar o autor nunca impede a gravacao do log
+		}
+	}
+
+	static boolean jaIdentificaUsuario(String evento, String nome) {
+		String texto = evento.toLowerCase(java.util.Locale.ROOT);
+		if (texto.matches("(?s)(^|.*\\|)\\s*usuario\\s*[=:].*")) {
+			return true;
+		}
+		return !nome.isBlank() && texto.contains(nome.toLowerCase(java.util.Locale.ROOT));
+	}
+
+	private static AuthenticatedUser usuarioDaRequisicao() {
+		try {
+			ResteasyReactiveRequestContext req = CurrentRequestManager.get();
+			Object u = req == null ? null : req.getContainerRequestContext().getProperty("ghbam.user");
+			return u instanceof AuthenticatedUser user ? user : null;
+		} catch (Exception e) {
+			return null;
+		}
 	}
 
 	// Falha na identificacao do paciente nunca impede a gravacao do log: fica ao

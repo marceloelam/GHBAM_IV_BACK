@@ -305,6 +305,13 @@ public class SecurityPermissionService {
         put(p, "pgedremover", s2 != null && Boolean.TRUE.equals(s2.getGedremover()));
         put(p, "pgedconsulta", s2 != null && Boolean.TRUE.equals(s2.getGedconsulta()));
         put(p, "pcautela", s2 != null && Boolean.TRUE.equals(s2.getCautela()));
+        put(p, "pfarmaciaprodutos", s2 != null && Boolean.TRUE.equals(s2.getFarmaciaprodutos()));
+        put(p, "pfarmaciaestoque", s2 != null && Boolean.TRUE.equals(s2.getFarmaciaestoque()));
+        put(p, "pfarmaciadispensacao", s2 != null && Boolean.TRUE.equals(s2.getFarmaciadispensacao()));
+        put(p, "pfarmaciapermutas", s2 != null && Boolean.TRUE.equals(s2.getFarmaciapermutas()));
+        put(p, "pfarmaciaoperacoes", s2 != null && Boolean.TRUE.equals(s2.getFarmaciaoperacoes()));
+        put(p, "pfarmaciaavaliacao", s2 != null && Boolean.TRUE.equals(s2.getFarmaciaavaliacao()));
+        put(p, "pfarmaciarelatorios", s2 != null && Boolean.TRUE.equals(s2.getFarmaciarelatorios()));
         put(p, "pnir", s2 != null && Boolean.TRUE.equals(s2.getNir()));
         put(p, "ppainelnir", s2 != null && Boolean.TRUE.equals(s2.getPainelnir()));
         put(p, "plocalcenso", s2 != null && Boolean.TRUE.equals(s2.getLocalcenso()));

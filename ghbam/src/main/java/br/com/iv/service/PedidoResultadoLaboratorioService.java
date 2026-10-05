@@ -120,7 +120,7 @@ public class PedidoResultadoLaboratorioService implements Serializable {
 		destino.setJustificativaAusenciaValor(limitar(dto.getJustificativaAusenciaValor(), 0));
 	}
 
-	private static boolean temDadosRnds(PedidoResultadoLaboratorio resultado) {
+	static boolean temDadosRnds(PedidoResultadoLaboratorio resultado) {
 		return resultado.getCodigoLoinc() != null
 				|| resultado.getValorEstruturado() != null
 				|| resultado.getJustificativaAusenciaValor() != null;

@@ -5,6 +5,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.container.ContainerRequestContext;
+import br.com.iv.service.PharmaciaRequestScope;
 import java.util.stream.Collectors;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
@@ -22,6 +25,8 @@ public class PharmaciaPermutaResource {
 
     @Inject
     PharmaciaPermutaService service;
+    @Inject PharmaciaRequestScope scope;
+    @Context ContainerRequestContext requestContext;
 
     @GET
     public List<PharmaciaPermuta> listAll(@QueryParam("status") String status, @QueryParam("unidadeId") String sigla) {
@@ -59,6 +64,8 @@ public class PharmaciaPermutaResource {
     @POST
     @Path("/solicitar")
     public Response solicitar(PharmaciaPermuta permuta) {
+        if (permuta == null) throw new BadRequestException("Permuta obrigatoria.");
+        permuta.setSolicitanteMatricula(scope.exigirArea(requestContext, permuta.getUnidadeOrigemSigla(), PharmaciaRequestScope.PERMUTAS).matricula());
         try {
             PharmaciaPermuta saved = service.solicitar(permuta);
             return Response.status(Response.Status.CREATED).entity(saved).build();
@@ -74,6 +81,7 @@ public class PharmaciaPermutaResource {
             @QueryParam("aprovador") String aprovadorMatricula,
             @QueryParam("unidadeExecutora") String unidadeExecutora,
             Map<String, Integer> quantidadesAprovadas) {
+        aprovadorMatricula = scope.exigirArea(requestContext, unidadeExecutora, PharmaciaRequestScope.PERMUTAS).matricula();
         try {
             PharmaciaPermuta permuta = service.aprovar(id, aprovadorMatricula, quantidadesAprovadas, unidadeExecutora);
             return Response.ok(permuta).build();
@@ -89,6 +97,7 @@ public class PharmaciaPermutaResource {
             @QueryParam("aprovador") String aprovadorMatricula,
             @QueryParam("motivo") String motivo,
             @QueryParam("unidadeExecutora") String unidadeExecutora) {
+        aprovadorMatricula = scope.exigirArea(requestContext, unidadeExecutora, PharmaciaRequestScope.PERMUTAS).matricula();
         try {
             PharmaciaPermuta permuta = service.recusar(id, motivo, aprovadorMatricula, unidadeExecutora);
             return Response.ok(permuta).build();
@@ -103,6 +112,7 @@ public class PharmaciaPermutaResource {
             @PathParam("id") Long id,
             @QueryParam("matricula") String transporteMatricula,
             @QueryParam("unidadeExecutora") String unidadeExecutora) {
+        transporteMatricula = scope.exigirArea(requestContext, unidadeExecutora, PharmaciaRequestScope.PERMUTAS).matricula();
         try {
             PharmaciaPermuta permuta = service.iniciarTransporte(id, transporteMatricula, unidadeExecutora);
             return Response.ok(permuta).build();
@@ -118,6 +128,7 @@ public class PharmaciaPermutaResource {
             @QueryParam("matricula") String recebedorMatricula,
             @QueryParam("unidadeExecutora") String unidadeExecutora,
             PharmaciaPermutaFinalizarRequest request) {
+        recebedorMatricula = scope.exigirArea(requestContext, unidadeExecutora, PharmaciaRequestScope.PERMUTAS).matricula();
         try {
             PharmaciaPermuta permuta = service.finalizar(id, recebedorMatricula, request, unidadeExecutora);
             return Response.ok(permuta).build();
@@ -129,6 +140,7 @@ public class PharmaciaPermutaResource {
     @DELETE
     @Path("/{id}")
     public Response delete(@PathParam("id") Long id, @QueryParam("unidadeExecutora") String unidadeExecutora) {
+        scope.exigirArea(requestContext, unidadeExecutora, PharmaciaRequestScope.PERMUTAS);
         try {
             service.delete(id, unidadeExecutora);
             return Response.noContent().build();
@@ -164,8 +176,10 @@ public class PharmaciaPermutaResource {
     @POST
     @Path("/{id}/mensagens")
     public Response enviarMensagem(@PathParam("id") Long id, PharmaciaPermutaMensagem mensagem) {
+        String unidade = mensagem == null ? null : mensagem.getUnidadeSigla();
+        String matricula = scope.exigirArea(requestContext, unidade, PharmaciaRequestScope.PERMUTAS).matricula();
         try {
-            PharmaciaPermutaMensagem salva = service.enviarMensagem(id, mensagem);
+            PharmaciaPermutaMensagem salva = service.enviarMensagem(id, mensagem, unidade, matricula);
             return Response.status(Response.Status.CREATED).entity(salva).build();
         } catch (IllegalStateException e) {
             return Response.status(Response.Status.CONFLICT).entity(e.getMessage()).build();

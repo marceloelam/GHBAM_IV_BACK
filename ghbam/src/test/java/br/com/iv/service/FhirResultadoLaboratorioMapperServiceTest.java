@@ -56,6 +56,23 @@ class FhirResultadoLaboratorioMapperServiceTest {
     }
 
     @Test
+    void laudoSoComPdfNaoEntraNaAvaliacaoRnds() {
+        FhirResultadoLaboratorioMapperService mapper = new FhirResultadoLaboratorioMapperService();
+        mapper.carregarItens = id -> List.of();
+        PedidoResultadoLaboratorio legado = resultado();
+        legado.setDescricao("** Resultado liberado **");
+        assertFalse(mapper.preparadoParaRnds(legado));
+        assertFalse(mapper.preparadoParaRnds(null));
+
+        PedidoResultadoLaboratorio comDados = resultado();
+        comDados.setCodigoLoinc("2345-7");
+        assertTrue(mapper.preparadoParaRnds(comDados));
+
+        mapper.carregarItens = id -> List.of(item("Glicose", "2345-7", "92", "mg/dL"));
+        assertTrue(mapper.preparadoParaRnds(legado));
+    }
+
+    @Test
     void montaBundleCollectionComPatientEncounterReportEObservation() {
         FhirResultadoLaboratorioMapperService mapper = new FhirResultadoLaboratorioMapperService();
         mapper.carregarItens = id -> List.of();

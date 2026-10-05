@@ -166,6 +166,13 @@ public class Servidor2Service implements Serializable {
 		Servidor2.setGedremover(dto.getGedremover() != null ? dto.getGedremover() : false);
 		Servidor2.setGedconsulta(dto.getGedconsulta() != null ? dto.getGedconsulta() : false);
 		Servidor2.setCautela(dto.getCautela() != null ? dto.getCautela() : false);
+		Servidor2.setFarmaciaprodutos(dto.getFarmaciaprodutos() != null ? dto.getFarmaciaprodutos() : false);
+		Servidor2.setFarmaciaestoque(dto.getFarmaciaestoque() != null ? dto.getFarmaciaestoque() : false);
+		Servidor2.setFarmaciadispensacao(dto.getFarmaciadispensacao() != null ? dto.getFarmaciadispensacao() : false);
+		Servidor2.setFarmaciapermutas(dto.getFarmaciapermutas() != null ? dto.getFarmaciapermutas() : false);
+		Servidor2.setFarmaciaoperacoes(dto.getFarmaciaoperacoes() != null ? dto.getFarmaciaoperacoes() : false);
+		Servidor2.setFarmaciaavaliacao(dto.getFarmaciaavaliacao() != null ? dto.getFarmaciaavaliacao() : false);
+		Servidor2.setFarmaciarelatorios(dto.getFarmaciarelatorios() != null ? dto.getFarmaciarelatorios() : false);
 		Servidor2.setNir(dto.getNir() != null ? dto.getNir() : false);
 		Servidor2.setPainelnir(dto.getPainelnir() != null ? dto.getPainelnir() : false);
 		Servidor2.setLocalcenso(dto.getLocalcenso() != null ? dto.getLocalcenso() : false);
@@ -327,6 +334,13 @@ public class Servidor2Service implements Serializable {
 		Servidor2.setGedremover(dto.getGedremover() != null ? dto.getGedremover() : Servidor2.getGedremover());
 		Servidor2.setGedconsulta(dto.getGedconsulta() != null ? dto.getGedconsulta() : Servidor2.getGedconsulta());
 		Servidor2.setCautela(dto.getCautela() != null ? dto.getCautela() : Servidor2.getCautela());
+		Servidor2.setFarmaciaprodutos(dto.getFarmaciaprodutos() != null ? dto.getFarmaciaprodutos() : Servidor2.getFarmaciaprodutos());
+		Servidor2.setFarmaciaestoque(dto.getFarmaciaestoque() != null ? dto.getFarmaciaestoque() : Servidor2.getFarmaciaestoque());
+		Servidor2.setFarmaciadispensacao(dto.getFarmaciadispensacao() != null ? dto.getFarmaciadispensacao() : Servidor2.getFarmaciadispensacao());
+		Servidor2.setFarmaciapermutas(dto.getFarmaciapermutas() != null ? dto.getFarmaciapermutas() : Servidor2.getFarmaciapermutas());
+		Servidor2.setFarmaciaoperacoes(dto.getFarmaciaoperacoes() != null ? dto.getFarmaciaoperacoes() : Servidor2.getFarmaciaoperacoes());
+		Servidor2.setFarmaciaavaliacao(dto.getFarmaciaavaliacao() != null ? dto.getFarmaciaavaliacao() : Servidor2.getFarmaciaavaliacao());
+		Servidor2.setFarmaciarelatorios(dto.getFarmaciarelatorios() != null ? dto.getFarmaciarelatorios() : Servidor2.getFarmaciarelatorios());
 		Servidor2.setNir(dto.getNir() != null ? dto.getNir() : Servidor2.getNir());
 		Servidor2.setPainelnir(dto.getPainelnir() != null ? dto.getPainelnir() : Servidor2.getPainelnir());
 		Servidor2.setLocalcenso(dto.getLocalcenso() != null ? dto.getLocalcenso() : Servidor2.getLocalcenso());

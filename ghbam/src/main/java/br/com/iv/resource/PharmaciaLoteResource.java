@@ -6,6 +6,7 @@ import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import br.com.iv.entity.PharmaciaLote;
+import br.com.iv.service.PharmaciaRequestScope;
 import br.com.iv.service.PharmaciaLoteService;
 
 @Path("/pharmacia/lotes")
@@ -15,6 +16,8 @@ public class PharmaciaLoteResource {
 
     @Inject
     PharmaciaLoteService service;
+    @Inject br.com.iv.service.PharmaciaRequestScope scope;
+    @jakarta.ws.rs.core.Context jakarta.ws.rs.container.ContainerRequestContext request;
 
     @GET
     public List<PharmaciaLote> listAll(@QueryParam("unidadeId") String unidadeParam) {
@@ -36,6 +39,8 @@ public class PharmaciaLoteResource {
 
     @POST
     public Response save(PharmaciaLote lote) {
+        if (lote == null || lote.getId() != null) throw new BadRequestException("Novo registro obrigatorio.");
+        scope.exigirArea(request, lote.getUnidadeSigla(), PharmaciaRequestScope.ESTOQUE);
         try {
             PharmaciaLote saved = service.save(lote);
             return Response.status(Response.Status.CREATED).entity(saved).build();
@@ -47,6 +52,11 @@ public class PharmaciaLoteResource {
     @PUT
     @Path("/{id}")
     public Response update(@PathParam("id") Long id, PharmaciaLote lote) {
+        PharmaciaLote original = service.findById(id);
+        if (original == null) throw new NotFoundException();
+        if (lote == null) throw new BadRequestException();
+        scope.exigirArea(request, original.getUnidadeSigla(), PharmaciaRequestScope.ESTOQUE);
+        scope.exigirArea(request, lote.getUnidadeSigla(), PharmaciaRequestScope.ESTOQUE);
         try {
             lote.setId(id);
             PharmaciaLote updated = service.save(lote);
@@ -59,6 +69,9 @@ public class PharmaciaLoteResource {
     @DELETE
     @Path("/{id}")
     public Response delete(@PathParam("id") Long id) {
+        PharmaciaLote original = service.findById(id);
+        if (original == null) throw new NotFoundException();
+        scope.exigirArea(request, original.getUnidadeSigla(), PharmaciaRequestScope.ESTOQUE);
         try {
             service.delete(id);
             return Response.noContent().build();

@@ -1422,7 +1422,7 @@ WHERE
 				<textElement>
 					<font size="7"/>
 				</textElement>
-				<textFieldExpression><![CDATA[$F{anamnese} + "\n\n# EXAMES SOLICITADOS:  " + $F{exames_solicitados} + " ( " + $F{medicoecrm} + " )" + "\n\n# PRESCRIÇÃO INICIAL:  " + $F{prescricao_inicial}]]></textFieldExpression>
+				<textFieldExpression><![CDATA[($F{anamnese} == null ? "" : $F{anamnese}) + "\n\n# EXAMES SOLICITADOS:  " + ($F{exames_solicitados} == null ? "" : $F{exames_solicitados}) + ($F{medicoecrm} == null || $F{medicoecrm}.trim().isEmpty() ? "" : " ( " + $F{medicoecrm} + " )") + "\n\n# PRESCRIÇÃO INICIAL:  " + ($F{prescricao_inicial} == null ? "" : $F{prescricao_inicial})]]></textFieldExpression>
 			</textField>
 			<textField>
 				<reportElement x="50" y="144" width="51" height="15" uuid="10534ece-d24b-4809-bff6-586cf9dae4b0"/>

@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
 
+import br.com.iv.aps.ApsValidacao;
 import br.com.iv.dto.AtendMedicoDTO;
 import br.com.iv.dto.MunicipioCountDTO;
 import br.com.iv.dto.PacienteDto;
@@ -20,6 +21,7 @@ import br.com.iv.repository.PacientesRepository;
 import br.com.iv.util.UnidadeUtil;
 import br.com.iv.util.DateUtils;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.event.Event;
 import jakarta.inject.Inject;
 import jakarta.persistence.LockTimeoutException;
 import jakarta.persistence.OptimisticLockException;
@@ -35,6 +37,10 @@ public class PacientesService implements Serializable {
 
 	@Inject
 	PacientesRepository pacientesRepository;
+
+	// Coordenada do endereco calculada depois do commit (ver GeocodificacaoPacienteService).
+	@Inject
+	Event<GeocodificacaoPacienteService.Pedido> geocodificarEndereco;
 
 	// Listar tudo
 	public List<Pacientes> listarPacientes() {
@@ -155,6 +161,13 @@ public class PacientesService implements Serializable {
 	// Salvar
 	@Transactional
 	public Pacientes salvarPaciente(PacientesDto dto) {
+		return salvarPaciente(dto, "");
+	}
+
+	/** {@code unidade}: sigla da sessao - municipio e coordenada padrao vem da unidade cadastrada. */
+	@Transactional
+	public Pacientes salvarPaciente(PacientesDto dto, String unidade) {
+		validarCnsInformado(dto == null ? null : dto.getCns());
 		validarDuplicidadeCadastro(dto);
 
 		Pacientes pacientes = new Pacientes();
@@ -190,7 +203,17 @@ public class PacientesService implements Serializable {
 		pacientes.setData(dto.getData());
 		pacientes.setHora(dto.getHora());
 		pacientes.setTempcod(dto.getTempcod());
+		GeocodificacaoPacienteService.PadraoUnidade padrao = GeocodificacaoPacienteService.padraoDaUnidade(unidade);
+		GeocodificacaoPacienteService.completarMunicipio(pacientes, padrao);
+		// Sem coordenada real vinda da tela: centro do bairro/municipio (tabela local, sem internet)
+		// ou, sem nada conhecido, o ponto da unidade.
+		if (GeocodificacaoPacienteService.semLocalizacaoPropria(pacientes, padrao)) {
+			GeocodificacaoPacienteService.aplicarCoordenadaLocal(pacientes, padrao);
+		}
 		pacientes.persist();
+		// Refinamento pela rua via Nominatim, se configurado (ghbam.geocodificacao.url).
+		geocodificarEndereco.fire(GeocodificacaoPacienteService.pedidoDe(pacientes,
+				!GeocodificacaoPacienteService.semLocalizacaoPropria(pacientes, padrao)));
 		return pacientes;
 	}
 
@@ -208,6 +231,25 @@ public class PacientesService implements Serializable {
 		if (porCns != null) {
 			throw conflitoPaciente("CNS", porCns);
 		}
+	}
+
+	/**
+	 * CNS e opcional (vazio passa), mas quando informado precisa ser valido:
+	 * barra zeros, texto ("NAO TROUXE", "NI") e digito verificador errado.
+	 */
+	private static void validarCnsInformado(String cns) {
+		if (cns == null || cns.isBlank() || ApsValidacao.cnsValido(cns)) {
+			return;
+		}
+		throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
+				.entity(Map.of(
+						"erro", "CNS invalido. Informe os 15 digitos do cartao ou deixe o campo em branco.",
+						"campo", "CNS"))
+				.build());
+	}
+
+	private static String textoCns(String valor) {
+		return valor == null ? "" : valor.trim().toUpperCase();
 	}
 
 	private WebApplicationException conflitoPaciente(String campo, Pacientes paciente) {
@@ -355,6 +397,12 @@ public class PacientesService implements Serializable {
 	@SuppressWarnings("static-access")
 	@Transactional
 	public void atualizarPaciente(int id, PacientesDto dto) {
+		atualizarPaciente(id, dto, "");
+	}
+
+	@SuppressWarnings("static-access")
+	@Transactional
+	public void atualizarPaciente(int id, PacientesDto dto, String unidade) {
 		Pacientes pacientes = new Pacientes();
 		Optional<Pacientes> pacientesOp = pacientes.findByIdOptional(id);
 		if (pacientesOp.isEmpty()) {
@@ -362,6 +410,11 @@ public class PacientesService implements Serializable {
 		}
 
 		pacientes = pacientesOp.get();
+		// Cadastro legado com CNS invalido nao trava outras edicoes: so valida quando o CNS muda.
+		if (!textoCns(pacientes.getCns()).equals(textoCns(dto.getCns()))) {
+			validarCnsInformado(dto.getCns());
+		}
+		String enderecoAntes = GeocodificacaoPacienteService.chaveEndereco(pacientes);
 		pacientes.setNome(dto.getNome());
 		pacientes.setEndereco(dto.getEndereco());
 		pacientes.setIdade(dto.getIdade());
@@ -392,7 +445,24 @@ public class PacientesService implements Serializable {
 		pacientes.setPacienteespecial(dto.getPacienteespecial());
 		pacientes.setSic(dto.isSic());
 		pacientes.setTempcod(dto.getTempcod());
+		GeocodificacaoPacienteService.PadraoUnidade padrao = GeocodificacaoPacienteService.padraoDaUnidade(unidade);
+		GeocodificacaoPacienteService.completarMunicipio(pacientes, padrao);
+		// Recalcula quando o endereco mudou ou quando ainda nao tem localizacao propria.
+		boolean enderecoMudou = !enderecoAntes.equals(GeocodificacaoPacienteService.chaveEndereco(pacientes));
+		boolean recalcular = enderecoMudou || GeocodificacaoPacienteService.semLocalizacaoPropria(pacientes, padrao);
+		if (recalcular) {
+			if (enderecoMudou) {
+				// A coordenada antiga era do endereco anterior: nao pode ser mantida como "real".
+				pacientes.setLatitude(GeocodificacaoPacienteService.LATITUDE_PADRAO);
+				pacientes.setLongitude(GeocodificacaoPacienteService.LONGITUDE_PADRAO);
+			}
+			GeocodificacaoPacienteService.aplicarCoordenadaLocal(pacientes, padrao);
+		}
 		pacientes.persist();
+		if (recalcular) {
+			geocodificarEndereco.fire(GeocodificacaoPacienteService.pedidoDe(pacientes,
+					!GeocodificacaoPacienteService.semLocalizacaoPropria(pacientes, padrao)));
+		}
 	}
 
 
