@@ -70,6 +70,31 @@ public class PharmaciaDispensacao extends PanacheEntityBase implements Serializa
         return lote != null ? lote.getId() : null;
     }
 
+    @Column(name = "prescricao_item_id") private Integer prescricaoItemId;
+    @Column(name = "bam_id") private Integer bamId;
+    @Column(name = "receita_referencia", length = 120) private String receitaReferencia;
+    @Column(name = "receita_data") private java.time.LocalDate receitaData;
+    @Column(name = "receita_validade") private java.time.LocalDate receitaValidade;
+    @Column(name = "receita_retida") private Boolean receitaRetida;
+    @Column(name = "conferida") private Boolean conferida;
+    @Column(name = "conferencia_justificativa", length = 1000) private String conferenciaJustificativa;
+    public Integer getPrescricaoItemId() { return prescricaoItemId; }
+    public void setPrescricaoItemId(Integer v) { prescricaoItemId = v; }
+    public Integer getBamId() { return bamId; }
+    public void setBamId(Integer v) { bamId = v; }
+    public String getReceitaReferencia() { return receitaReferencia; }
+    public void setReceitaReferencia(String v) { receitaReferencia = v; }
+    public java.time.LocalDate getReceitaData() { return receitaData; }
+    public void setReceitaData(java.time.LocalDate v) { receitaData = v; }
+    public java.time.LocalDate getReceitaValidade() { return receitaValidade; }
+    public void setReceitaValidade(java.time.LocalDate v) { receitaValidade = v; }
+    public Boolean getReceitaRetida() { return receitaRetida; }
+    public void setReceitaRetida(Boolean v) { receitaRetida = v; }
+    public Boolean getConferida() { return conferida; }
+    public void setConferida(Boolean v) { conferida = v; }
+    public String getConferenciaJustificativa() { return conferenciaJustificativa; }
+    public void setConferenciaJustificativa(String v) { conferenciaJustificativa = v; }
+
     // Getters and Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }

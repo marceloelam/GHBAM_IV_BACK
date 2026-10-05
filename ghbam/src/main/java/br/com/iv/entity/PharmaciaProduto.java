@@ -21,7 +21,9 @@ public class PharmaciaProduto extends PanacheEntityBase implements Serializable 
     @Column(nullable = false, length = 150)
     private String nomeGenerico;
 
-    @Column(unique = true, length = 50)
+    // Unico por unidade (V192): o catalogo e de cada unidade e a mesma caixa
+    // do fabricante pode estar cadastrada em varias.
+    @Column(length = 50)
     private String codigoBarras;
 
     @Column(nullable = false, length = 50)

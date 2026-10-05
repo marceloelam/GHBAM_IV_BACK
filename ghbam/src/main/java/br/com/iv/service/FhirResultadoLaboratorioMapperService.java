@@ -51,6 +51,25 @@ public class FhirResultadoLaboratorioMapperService {
         return montarBundle(idbam, bam, resultados);
     }
 
+    /**
+     * Só os resultados que vão para a fila RNDS (exames lidos do PDF ou dados RNDS),
+     * como no salvamento; laudo antigo só com PDF não entra. Null quando não há nenhum.
+     */
+    public Map<String, Object> montarBundlePreparadoRnds(int idbam) {
+        List<PedidoResultadoLaboratorio> preparados = laboratorioService
+                .filtrarBamPedidoResultadoLaboratorio(idbam).stream()
+                .filter(this::preparadoParaRnds)
+                .toList();
+        return preparados.isEmpty() ? null : montarBundle(idbam, Bam.<Bam>findById(idbam), preparados);
+    }
+
+    boolean preparadoParaRnds(PedidoResultadoLaboratorio resultado) {
+        if (resultado == null) return false;
+        if (PedidoResultadoLaboratorioService.temDadosRnds(resultado)) return true;
+        List<PedidoResultadoLaboratorioItem> itens = carregarItens.apply(resultado.getIdPedidoResultado());
+        return itens != null && !itens.isEmpty();
+    }
+
     /** Documento de um único resultado, para envio à RNDS sem reenviar os demais do BAM. */
     public Map<String, Object> montarBundleResultado(PedidoResultadoLaboratorio resultado) {
         Bam bam = Bam.<Bam>findById(resultado.getBam());

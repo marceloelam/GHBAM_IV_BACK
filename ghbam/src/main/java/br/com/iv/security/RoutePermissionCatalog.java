@@ -329,7 +329,7 @@ public class RoutePermissionCatalog {
             entry("faturamento/retornos/importar", "kfaturamento", "faturamentosusimportarretorno", "kadm"),
             entry("faturamento/retornos", "kfaturamento", "kadm"),
 
-            entry("pharmacia", "kfarmaciacentral", "kfarmhmsfx", "kremedios", "kadm"),
+            entry("pharmacia", "kfarmaciacentral", "kfarmhmsfx", "kremedios", "pfarmaciaprodutos", "pfarmaciaestoque", "pfarmaciadispensacao", "pfarmaciapermutas", "pfarmaciaoperacoes", "pfarmaciaavaliacao", "pfarmaciarelatorios", "kadm"),
 
             entry("estoquecentral", "kfarmaciacentral", "kremedios", "kadm"),
             entry("zamed", "kfarmaciacentral", "kremedios", "kadm"),

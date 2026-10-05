@@ -1,8 +1,12 @@
 package br.com.iv.service;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.LockModeType;
 import jakarta.transaction.Transactional;
 import br.com.iv.entity.PharmaciaEstoque;
 import br.com.iv.entity.PharmaciaLote;
@@ -10,103 +14,83 @@ import br.com.iv.entity.PharmaciaMovimentacao;
 
 @ApplicationScoped
 public class PharmaciaMovimentacaoService {
+    @Inject EntityManager em;
+    @Inject PharmaciaOperacaoService operacoes;
 
-    public List<PharmaciaMovimentacao> listAll() {
-        return PharmaciaMovimentacao.listAll();
+    public List<PharmaciaMovimentacao> listAll() { return PharmaciaMovimentacao.listAll(); }
+    public List<PharmaciaMovimentacao> findByUnidade(String unidade) {
+        return em.createQuery("from PharmaciaMovimentacao where unidadeOrigemSigla = :u or unidadeDestinoSigla = :u order by dataHora desc", PharmaciaMovimentacao.class).setParameter("u", unidade).getResultList();
     }
-
-    public PharmaciaMovimentacao findById(Long id) {
-        return PharmaciaMovimentacao.findById(id);
+    public List<PharmaciaMovimentacao> findByLoteEUnidade(Long lote, String unidade) {
+        return em.createQuery("from PharmaciaMovimentacao where lote.id = :l and (unidadeOrigemSigla = :u or unidadeDestinoSigla = :u) order by dataHora desc", PharmaciaMovimentacao.class).setParameter("l", lote).setParameter("u", unidade).getResultList();
     }
+    public PharmaciaMovimentacao findById(Long id) { return PharmaciaMovimentacao.findById(id); }
+    public List<PharmaciaMovimentacao> findByUnidadeDestinoSigla(String sigla) { return PharmaciaMovimentacao.list("unidadeDestinoSigla", sigla); }
+    public List<PharmaciaMovimentacao> findByUnidadeOrigemSigla(String sigla) { return PharmaciaMovimentacao.list("unidadeOrigemSigla", sigla); }
+    public List<PharmaciaMovimentacao> findByLote(Long id) { return PharmaciaMovimentacao.list("lote.id", id); }
 
-    public List<PharmaciaMovimentacao> findByUnidadeDestinoSigla(String sigla) {
-        return PharmaciaMovimentacao.list("unidadeDestinoSigla", sigla);
-    }
-
-    public List<PharmaciaMovimentacao> findByUnidadeOrigemSigla(String sigla) {
-        return PharmaciaMovimentacao.list("unidadeOrigemSigla", sigla);
-    }
-
-    public List<PharmaciaMovimentacao> findByLote(Long loteId) {
-        return PharmaciaMovimentacao.list("lote.id", loteId);
+    static void validarLoteDispensavel(PharmaciaLote lote) {
+        if (lote == null || !Boolean.TRUE.equals(lote.getAtivo()) || Boolean.TRUE.equals(lote.getBloqueado()) ||
+                lote.getDataValidade() == null || lote.getDataValidade().isBefore(LocalDate.now()) ||
+                lote.getProduto() == null || !Boolean.TRUE.equals(lote.getProduto().getAtivo())) {
+            throw new IllegalArgumentException("Lote vencido, bloqueado, inativo ou sem validade/produto valido.");
+        }
     }
 
     @Transactional
-    public PharmaciaMovimentacao save(PharmaciaMovimentacao movimentacao) {
-        if (movimentacao.getLote() != null && movimentacao.getLote().getId() != null) {
-            movimentacao.setLote(PharmaciaLote.findById(movimentacao.getLote().getId()));
+    public PharmaciaMovimentacao save(PharmaciaMovimentacao m) {
+        if (m == null || m.getId() != null) throw new IllegalArgumentException("Movimentacao registrada nao pode ser alterada; registre um ajuste justificado.");
+        if (m.getTipo() == null || m.getQuantidade() == null || m.getQuantidade() == 0 ||
+                (m.getTipo() != PharmaciaMovimentacao.TipoMovimentacao.AJUSTE && m.getQuantidade() < 0)) {
+            throw new IllegalArgumentException("Informe o tipo e uma quantidade positiva (ajustes aceitam negativos).");
         }
-        if (movimentacao.getId() == null) {
-            movimentacao.setDataHora(LocalDateTime.now());
-            PharmaciaLote lote = movimentacao.getLote();
-            if (lote != null && movimentacao.getTipo() != null) {
-                int delta = movimentacao.getQuantidade() != null ? movimentacao.getQuantidade() : 0;
-                switch (movimentacao.getTipo()) {
-                    case AJUSTE:
-                        lote.setQuantidadeAtual(lote.getQuantidadeAtual() + delta);
-                        sincronizarEstoque(lote, movimentacao.getUnidadeOrigemSigla(), delta);
-                        break;
-                    case DISPENSACAO:
-                    case SAIDA:
-                        if (lote.getQuantidadeAtual() - delta < 0) {
-                            throw new IllegalArgumentException(
-                                "Quantidade insuficiente no lote (disponivel: " + lote.getQuantidadeAtual() + ").");
-                        }
-                        lote.setQuantidadeAtual(lote.getQuantidadeAtual() - delta);
-                        sincronizarEstoque(lote, movimentacao.getUnidadeOrigemSigla(), -delta);
-                        break;
-                    case ENTRADA:
-                        lote.setQuantidadeAtual(lote.getQuantidadeAtual() + delta);
-                        sincronizarEstoque(lote, movimentacao.getUnidadeOrigemSigla(), delta);
-                        break;
-                    default:
-                        break;
-                }
-            }
-            movimentacao.persist();
-        } else {
-            PharmaciaMovimentacao existing = PharmaciaMovimentacao.findById(movimentacao.getId());
-            if (existing != null) {
-                existing.setTipo(movimentacao.getTipo());
-                existing.setLote(movimentacao.getLote());
-                existing.setUnidadeOrigemSigla(movimentacao.getUnidadeOrigemSigla());
-                existing.setUnidadeDestinoSigla(movimentacao.getUnidadeDestinoSigla());
-                existing.setQuantidade(movimentacao.getQuantidade());
-                existing.setJustificativa(movimentacao.getJustificativa());
-                existing.setPacienteNome(movimentacao.getPacienteNome());
-                existing.setPacienteCpf(movimentacao.getPacienteCpf());
-                existing.setUsuarioMatricula(movimentacao.getUsuarioMatricula());
-                existing.setAtivo(movimentacao.getAtivo());
-            }
+        if (m.getUnidadeOrigemSigla() == null || m.getUnidadeOrigemSigla().isBlank() ||
+                m.getUsuarioMatricula() == null || m.getUsuarioMatricula().isBlank() ||
+                m.getLote() == null || m.getLote().getId() == null) {
+            throw new IllegalArgumentException("Lote, unidade e profissional sao obrigatorios.");
         }
-        return movimentacao;
+        if (m.getTipo() == PharmaciaMovimentacao.TipoMovimentacao.TRANSFERENCIA) {
+            throw new IllegalArgumentException("Use o fluxo de permuta para transferir estoque.");
+        }
+        if (m.getTipo() == PharmaciaMovimentacao.TipoMovimentacao.AJUSTE &&
+                (m.getJustificativa() == null || m.getJustificativa().isBlank())) {
+            throw new IllegalArgumentException("Informe a justificativa do ajuste.");
+        }
+        if (m.getTipo() == PharmaciaMovimentacao.TipoMovimentacao.DISPENSACAO &&
+                (m.getPacienteNome() == null || m.getPacienteNome().isBlank())) {
+            throw new IllegalArgumentException("Informe o paciente.");
+        }
+        PharmaciaLote lote = em.find(PharmaciaLote.class, m.getLote().getId(), LockModeType.PESSIMISTIC_WRITE);
+        if (lote == null) throw new IllegalArgumentException("Lote nao encontrado.");
+        if (m.getTipo() == PharmaciaMovimentacao.TipoMovimentacao.DISPENSACAO) { validarLoteDispensavel(lote); operacoes.verificarDisponivel(lote.getId(), m.getUnidadeOrigemSigla()); }
+        PharmaciaEstoque estoque = em.createQuery("from PharmaciaEstoque where lote.id = :lote and unidadeSigla = :unidade", PharmaciaEstoque.class)
+                .setParameter("lote", lote.getId()).setParameter("unidade", m.getUnidadeOrigemSigla())
+                .setLockMode(LockModeType.PESSIMISTIC_WRITE).getResultStream().findFirst().orElse(null);
+        int delta = switch (m.getTipo()) {
+            case DISPENSACAO, SAIDA -> Math.negateExact(m.getQuantidade());
+            default -> m.getQuantidade();
+        };
+        if (estoque == null) {
+            if (delta < 0 || !m.getUnidadeOrigemSigla().equals(lote.getUnidadeSigla())) {
+                throw new IllegalArgumentException("Lote sem estoque na unidade informada.");
+            }
+            estoque = new PharmaciaEstoque();
+            estoque.setLote(lote); estoque.setUnidadeSigla(m.getUnidadeOrigemSigla()); estoque.setQuantidade(0);
+            em.persist(estoque);
+        }
+        if (!Boolean.TRUE.equals(estoque.getAtivo())) throw new IllegalArgumentException("Estoque inativo.");
+        int saldoLote = Math.addExact(lote.getQuantidadeAtual(), delta);
+        int saldoUnidade = Math.addExact(estoque.getQuantidade(), delta);
+        if (saldoLote < 0 || saldoUnidade < 0) throw new IllegalArgumentException("Estoque insuficiente no lote ou na unidade.");
+        lote.setQuantidadeAtual(saldoLote);
+        estoque.setQuantidade(saldoUnidade);
+        m.setLote(lote); m.setDataHora(LocalDateTime.now()); m.setAtivo(true);
+        em.persist(m);
+        return m;
     }
 
     @Transactional
     public void delete(Long id) {
-        PharmaciaMovimentacao.deleteById(id);
-    }
-
-    // PharmaciaLote.quantidadeAtual (acima) e PharmaciaEstoque.quantidade sao
-    // dois contadores separados no banco — Controle de Estoque/Atendimento a
-    // Paciente leem so o segundo. Sem isso, um Ajuste/Entrada/Saida corrige o
-    // lote mas "some" para quem consulta o estoque da unidade. Cria o registro
-    // de estoque na hora se ainda nao existir (lotes antigos, criados antes do
-    // auto-create em PharmaciaLoteService).
-    private void sincronizarEstoque(PharmaciaLote lote, String unidadeSigla, int delta) {
-        if (lote == null || unidadeSigla == null) return;
-        PharmaciaEstoque estoque = PharmaciaEstoque.find(
-                "lote.id = ?1 and unidadeSigla = ?2", lote.getId(), unidadeSigla
-        ).firstResult();
-        if (estoque == null) {
-            estoque = new PharmaciaEstoque();
-            estoque.setLote(lote);
-            estoque.setUnidadeSigla(unidadeSigla);
-            estoque.setQuantidade(0);
-            estoque.setEstoqueMinimo(0);
-            estoque.setAtivo(true);
-        }
-        estoque.setQuantidade(estoque.getQuantidade() + delta);
-        estoque.persist();
+        throw new IllegalArgumentException("Movimentacao registrada nao pode ser excluida; registre um ajuste justificado.");
     }
 }

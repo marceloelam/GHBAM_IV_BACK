@@ -1,16 +1,23 @@
 package br.com.iv.service;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.LockModeType;
 import br.com.iv.entity.*;
 import br.com.iv.dto.PharmaciaPermutaFinalizarRequest;
 
 @ApplicationScoped
 public class PharmaciaPermutaService {
+
+    @Inject EntityManager em;
+    @Inject PharmaciaOperacaoService operacoes;
 
     @Inject
     PharmaciaEstoqueService estoqueService;
@@ -66,32 +73,57 @@ public class PharmaciaPermutaService {
 
     @Transactional
     public PharmaciaPermuta solicitar(PharmaciaPermuta permuta) {
+        String origem = permuta.getUnidadeOrigemSigla() == null ? "" : permuta.getUnidadeOrigemSigla().trim();
+        String destino = permuta.getUnidadeDestinoSigla() == null ? "" : permuta.getUnidadeDestinoSigla().trim();
+        if (destino.isEmpty()) throw new IllegalArgumentException("Informe a unidade fornecedora.");
+        if (origem.equalsIgnoreCase(destino)) throw new IllegalArgumentException("A unidade nao pode solicitar permuta a si mesma.");
+        if (permuta.getItens() == null || permuta.getItens().isEmpty())
+            throw new IllegalArgumentException("Informe ao menos um item para a permuta.");
+        // Etapas seguintes sao registradas pelo servidor; o pedido nasce sem
+        // aprovacao, transporte ou recebimento, independente do que vier no corpo.
+        permuta.setId(null);
         permuta.setStatus(PharmaciaPermuta.StatusPermuta.PENDENTE);
         permuta.setDataSolicitacao(LocalDateTime.now());
-        if (permuta.getItens() != null) {
-            for (PharmaciaPermutaItem item : permuta.getItens()) {
-                item.setPermuta(permuta);
-                if (item.getLote() != null && item.getLote().getId() != null) {
-                    PharmaciaLote loteGerenciado = PharmaciaLote.findById(item.getLote().getId());
-                    if (loteGerenciado == null) {
-                        throw new IllegalArgumentException("Lote nao encontrado: id=" + item.getLote().getId());
-                    }
-                    item.setLote(loteGerenciado);
-                } else {
-                    throw new IllegalArgumentException("Item sem lote valido informado");
-                }
+        permuta.setDataAprovacao(null);
+        permuta.setDataTransporte(null);
+        permuta.setDataFinalizacao(null);
+        permuta.setAprovadorMatricula(null);
+        permuta.setTransporteMatricula(null);
+        permuta.setRecebedorMatricula(null);
+        permuta.setMotivoRecusa(null);
+        Set<Long> lotes = new HashSet<>();
+        for (PharmaciaPermutaItem item : permuta.getItens()) {
+            item.setId(null);
+            item.setPermuta(permuta);
+            if (item.getLote() == null || item.getLote().getId() == null)
+                throw new IllegalArgumentException("Item sem lote valido informado");
+            Integer qtd = item.getQuantidadeSolicitada();
+            if (qtd == null || qtd <= 0) throw new IllegalArgumentException("Quantidade solicitada deve ser um inteiro positivo.");
+            if (!lotes.add(item.getLote().getId()))
+                throw new IllegalArgumentException("O mesmo lote foi informado mais de uma vez; some as quantidades em um unico item.");
+            PharmaciaLote loteGerenciado = em.find(PharmaciaLote.class, item.getLote().getId());
+            if (loteGerenciado == null) {
+                throw new IllegalArgumentException("Lote nao encontrado: id=" + item.getLote().getId());
             }
+            // Nao se pede lote vencido, bloqueado ou de produto inativo: ele nao
+            // poderia ser enviado nem dispensado na unidade solicitante.
+            PharmaciaMovimentacaoService.validarLoteDispensavel(loteGerenciado);
+            item.setLote(loteGerenciado);
+            item.setQuantidadeAprovada(qtd);
+            item.setAtivo(true);
         }
-        permuta.persist();
+        em.persist(permuta);
         return permuta;
     }
 
     @Transactional
     public PharmaciaPermuta aprovar(Long permutaId, String aprovadorMatricula, Map<String, Integer> quantidadesAprovadas, String unidadeExecutora) {
-        PharmaciaPermuta permuta = PharmaciaPermuta.find(
-            "SELECT p FROM PharmaciaPermuta p LEFT JOIN FETCH p.itens i LEFT JOIN FETCH i.lote WHERE p.id = ?1", permutaId)
-            .firstResult();
+        PharmaciaPermuta permuta = em.find(PharmaciaPermuta.class, permutaId, LockModeType.PESSIMISTIC_WRITE);
         if (permuta == null) throw new RuntimeException("Permuta nao encontrada");
+        permuta.getItens().stream().map(i -> i.getLote().getId()).distinct().sorted().forEach(loteId -> {
+            PharmaciaLote lote = em.find(PharmaciaLote.class, loteId, LockModeType.PESSIMISTIC_WRITE);
+            em.refresh(lote, LockModeType.PESSIMISTIC_WRITE);
+        });
         if (permuta.getStatus() != PharmaciaPermuta.StatusPermuta.PENDENTE)
             throw new IllegalStateException("Apenas permutas PENDENTES podem ser aprovadas");
         exigirUnidade(permuta.getUnidadeDestinoSigla(), unidadeExecutora, "aprovar");
@@ -104,7 +136,7 @@ public class PharmaciaPermutaService {
                     if (qtd > item.getQuantidadeSolicitada()) throw new IllegalArgumentException(
                         "Quantidade aprovada (" + qtd + ") nao pode superar a solicitada (" + item.getQuantidadeSolicitada() + ")");
                     item.setQuantidadeAprovada(qtd);
-                    item.persist();
+                    em.persist(item);
                 }
             }
         }
@@ -115,10 +147,12 @@ public class PharmaciaPermutaService {
         for (PharmaciaPermutaItem item : permuta.getItens()) {
             int qtd = item.getQuantidadeAprovada() != null ? item.getQuantidadeAprovada() : item.getQuantidadeSolicitada();
             if (qtd <= 0) continue;
+            PharmaciaMovimentacaoService.validarLoteDispensavel(item.getLote());
+            operacoes.verificarDisponivel(item.getLote().getId(), permuta.getUnidadeDestinoSigla());
             PharmaciaEstoque estoqueFornecedor = estoqueService.findByLoteAndSigla(
                     item.getLote().getId(), permuta.getUnidadeDestinoSigla());
             int disponivel = estoqueFornecedor != null && estoqueFornecedor.getQuantidade() != null ? estoqueFornecedor.getQuantidade() : 0;
-            if (disponivel < qtd) {
+            if (estoqueFornecedor == null || !Boolean.TRUE.equals(estoqueFornecedor.getAtivo()) || disponivel < qtd || item.getLote().getQuantidadeAtual() < qtd) {
                 String nomeProduto = item.getLote().getProduto() != null
                         ? (item.getLote().getProduto().getNomeComercial() != null ? item.getLote().getProduto().getNomeComercial() : item.getLote().getProduto().getNomeGenerico())
                         : "item";
@@ -130,7 +164,7 @@ public class PharmaciaPermutaService {
         permuta.setStatus(PharmaciaPermuta.StatusPermuta.APROVADO);
         permuta.setDataAprovacao(LocalDateTime.now());
         permuta.setAprovadorMatricula(aprovadorMatricula);
-        permuta.persist();
+        em.persist(permuta);
 
         // Estoque e movimentacao sao registrados no transporte e no recebimento
         return permuta;
@@ -138,12 +172,17 @@ public class PharmaciaPermutaService {
 
     @Transactional
     public PharmaciaPermuta recusar(Long permutaId, String motivo, String aprovadorMatricula, String unidadeExecutora) {
-        PharmaciaPermuta permuta = PharmaciaPermuta.find(
-            "SELECT p FROM PharmaciaPermuta p LEFT JOIN FETCH p.itens i LEFT JOIN FETCH i.lote WHERE p.id = ?1", permutaId)
-            .firstResult();
+        PharmaciaPermuta permuta = em.find(PharmaciaPermuta.class, permutaId, LockModeType.PESSIMISTIC_WRITE);
         if (permuta == null) throw new RuntimeException("Permuta nao encontrada");
-        if (permuta.getStatus() != PharmaciaPermuta.StatusPermuta.PENDENTE)
-            throw new IllegalStateException("Apenas permutas PENDENTES podem ser recusadas");
+        permuta.getItens().stream().map(i -> i.getLote().getId()).distinct().sorted().forEach(loteId -> {
+            PharmaciaLote lote = em.find(PharmaciaLote.class, loteId, LockModeType.PESSIMISTIC_WRITE);
+            em.refresh(lote, LockModeType.PESSIMISTIC_WRITE);
+        });
+        // APROVADO ainda nao moveu estoque (a baixa ocorre no transporte); a
+        // fornecedora pode desistir do envio sem deixar o pedido parado.
+        if (permuta.getStatus() != PharmaciaPermuta.StatusPermuta.PENDENTE
+                && permuta.getStatus() != PharmaciaPermuta.StatusPermuta.APROVADO)
+            throw new IllegalStateException("Apenas permutas PENDENTES ou APROVADAS (antes do transporte) podem ser recusadas");
         exigirUnidade(permuta.getUnidadeDestinoSigla(), unidadeExecutora, "recusar");
         if (motivo == null || motivo.trim().isEmpty())
             throw new IllegalArgumentException("Informe o motivo da recusa");
@@ -151,17 +190,19 @@ public class PharmaciaPermutaService {
         permuta.setStatus(PharmaciaPermuta.StatusPermuta.RECUSADO);
         permuta.setMotivoRecusa(motivo);
         permuta.setAprovadorMatricula(aprovadorMatricula);
-        permuta.persist();
+        em.persist(permuta);
 
         return permuta;
     }
 
     @Transactional
     public PharmaciaPermuta iniciarTransporte(Long permutaId, String transporteMatricula, String unidadeExecutora) {
-        PharmaciaPermuta permuta = PharmaciaPermuta.find(
-            "SELECT p FROM PharmaciaPermuta p LEFT JOIN FETCH p.itens i LEFT JOIN FETCH i.lote WHERE p.id = ?1", permutaId)
-            .firstResult();
+        PharmaciaPermuta permuta = em.find(PharmaciaPermuta.class, permutaId, LockModeType.PESSIMISTIC_WRITE);
         if (permuta == null) throw new RuntimeException("Permuta nao encontrada");
+        permuta.getItens().stream().map(i -> i.getLote().getId()).distinct().sorted().forEach(loteId -> {
+            PharmaciaLote lote = em.find(PharmaciaLote.class, loteId, LockModeType.PESSIMISTIC_WRITE);
+            em.refresh(lote, LockModeType.PESSIMISTIC_WRITE);
+        });
         if (permuta.getStatus() != PharmaciaPermuta.StatusPermuta.APROVADO)
             throw new IllegalStateException("Apenas permutas APROVADAS podem ser colocadas em transporte");
         // Quem fisicamente envia (tem o estoque) e a unidadeDestinoSigla —
@@ -178,10 +219,12 @@ public class PharmaciaPermutaService {
         for (PharmaciaPermutaItem item : permuta.getItens()) {
             int qtd = item.getQuantidadeAprovada() != null ? item.getQuantidadeAprovada() : item.getQuantidadeSolicitada();
             if (qtd <= 0) continue;
+            PharmaciaMovimentacaoService.validarLoteDispensavel(item.getLote());
+            operacoes.verificarDisponivel(item.getLote().getId(), permuta.getUnidadeDestinoSigla());
             PharmaciaEstoque estoqueFornecedor = estoqueService.findByLoteAndSigla(
                     item.getLote().getId(), permuta.getUnidadeDestinoSigla());
             int disponivel = estoqueFornecedor != null && estoqueFornecedor.getQuantidade() != null ? estoqueFornecedor.getQuantidade() : 0;
-            if (disponivel < qtd) {
+            if (estoqueFornecedor == null || !Boolean.TRUE.equals(estoqueFornecedor.getAtivo()) || disponivel < qtd || item.getLote().getQuantidadeAtual() < qtd) {
                 String nomeProduto = item.getLote().getProduto() != null
                         ? (item.getLote().getProduto().getNomeComercial() != null ? item.getLote().getProduto().getNomeComercial() : item.getLote().getProduto().getNomeGenerico())
                         : "item";
@@ -190,19 +233,33 @@ public class PharmaciaPermutaService {
             }
         }
 
+        Map<Long, Integer> totais = new java.util.TreeMap<>();
+        for (PharmaciaPermutaItem item : permuta.getItens()) {
+            int qtd = item.getQuantidadeAprovada() != null ? item.getQuantidadeAprovada() : item.getQuantidadeSolicitada();
+            if (qtd > 0) totais.merge(item.getLote().getId(), qtd, Math::addExact);
+        }
+        for (Map.Entry<Long, Integer> total : totais.entrySet()) {
+            PharmaciaEstoque saldo = estoqueService.findByLoteAndSigla(total.getKey(), permuta.getUnidadeDestinoSigla());
+            PharmaciaLote lote = em.find(PharmaciaLote.class, total.getKey(), LockModeType.PESSIMISTIC_WRITE);
+            if (saldo == null || saldo.getQuantidade() < total.getValue() || lote.getQuantidadeAtual() < total.getValue()) {
+                throw new IllegalStateException("Saldo insuficiente para a soma dos itens do mesmo lote.");
+            }
+        }
+
         permuta.setStatus(PharmaciaPermuta.StatusPermuta.EM_TRANSPORTE);
         permuta.setTransporteMatricula(transporteMatricula != null && !transporteMatricula.isBlank() ? transporteMatricula : "sistema");
         permuta.setDataTransporte(LocalDateTime.now());
-        permuta.persist();
+        em.persist(permuta);
 
         for (PharmaciaPermutaItem item : permuta.getItens()) {
             int qtd = item.getQuantidadeAprovada() != null ? item.getQuantidadeAprovada() : item.getQuantidadeSolicitada();
             if (qtd <= 0) continue;
-
+            PharmaciaMovimentacaoService.validarLoteDispensavel(item.getLote());
+            operacoes.verificarDisponivel(item.getLote().getId(), permuta.getUnidadeDestinoSigla());
             PharmaciaEstoque estoqueFornecedor = estoqueService.findByLoteAndSigla(
                     item.getLote().getId(), permuta.getUnidadeDestinoSigla());
             estoqueFornecedor.setQuantidade(estoqueFornecedor.getQuantidade() - qtd);
-            estoqueFornecedor.persist();
+            em.persist(estoqueFornecedor);
 
             PharmaciaLote lote = item.getLote();
             lote.setQuantidadeAtual(lote.getQuantidadeAtual() - qtd);
@@ -219,7 +276,7 @@ public class PharmaciaPermutaService {
             mov.setJustificativa("Saida para permuta #" + permuta.getId() + " em transporte, iniciado por " + permuta.getTransporteMatricula());
             mov.setUsuarioMatricula(permuta.getTransporteMatricula() != null ? permuta.getTransporteMatricula() : "sistema");
             mov.setAtivo(true);
-            mov.persist();
+            em.persist(mov);
         }
 
         return permuta;
@@ -227,10 +284,12 @@ public class PharmaciaPermutaService {
 
     @Transactional
     public PharmaciaPermuta finalizar(Long permutaId, String recebedorMatricula, PharmaciaPermutaFinalizarRequest request, String unidadeExecutora) {
-        PharmaciaPermuta permuta = PharmaciaPermuta.find(
-            "SELECT p FROM PharmaciaPermuta p LEFT JOIN FETCH p.itens i LEFT JOIN FETCH i.lote WHERE p.id = ?1", permutaId)
-            .firstResult();
+        PharmaciaPermuta permuta = em.find(PharmaciaPermuta.class, permutaId, LockModeType.PESSIMISTIC_WRITE);
         if (permuta == null) throw new RuntimeException("Permuta nao encontrada");
+        permuta.getItens().stream().map(i -> i.getLote().getId()).distinct().sorted().forEach(loteId -> {
+            PharmaciaLote lote = em.find(PharmaciaLote.class, loteId, LockModeType.PESSIMISTIC_WRITE);
+            em.refresh(lote, LockModeType.PESSIMISTIC_WRITE);
+        });
         if (permuta.getStatus() != PharmaciaPermuta.StatusPermuta.EM_TRANSPORTE)
             throw new IllegalStateException("Apenas permutas EM_TRANSPORTE podem ser finalizadas");
         // Quem confirma o recebimento e quem SOLICITOU (unidadeOrigemSigla) —
@@ -288,7 +347,7 @@ public class PharmaciaPermutaService {
                 movPerda.setJustificativa(observacaoPadrao);
                 movPerda.setUsuarioMatricula(quemConfirmou);
                 movPerda.setAtivo(true);
-                movPerda.persist();
+                em.persist(movPerda);
                 continue;
             }
 
@@ -298,11 +357,11 @@ public class PharmaciaPermutaService {
                         || decisao.getDataValidade() == null) {
                     throw new IllegalArgumentException("Item " + item.getId() + ": informe produto, numero de lote e validade para cadastrar como novo lote.");
                 }
-                PharmaciaProduto produto = PharmaciaProduto.findById(decisao.getProdutoId());
+                PharmaciaProduto produto = em.find(PharmaciaProduto.class, decisao.getProdutoId());
                 if (produto == null) throw new IllegalArgumentException("Produto nao encontrado: id=" + decisao.getProdutoId());
 
                 String numeroLote = decisao.getNumeroLote().trim();
-                PharmaciaLote existente = PharmaciaLote.find("produto.id = ?1 and numeroLote = ?2", produto.getId(), numeroLote).firstResult();
+                PharmaciaLote existente = em.createQuery("from PharmaciaLote where produto.id = :p and numeroLote = :n", PharmaciaLote.class).setParameter("p", produto.getId()).setParameter("n", numeroLote).getResultStream().findFirst().orElse(null);
                 if (existente != null) {
                     throw new IllegalArgumentException("Ja existe um lote " + numeroLote + " cadastrado para este produto — use outro numero de lote.");
                 }
@@ -317,7 +376,7 @@ public class PharmaciaPermutaService {
                 novoLote.setBloqueado(false);
                 novoLote.setAtivo(true);
                 novoLote.setUnidadeSigla(permuta.getUnidadeOrigemSigla());
-                novoLote.persist();
+                em.persist(novoLote);
                 loteParaEstoque = novoLote;
 
                 PharmaciaEstoque estoqueNovo = new PharmaciaEstoque();
@@ -327,9 +386,10 @@ public class PharmaciaPermutaService {
                 estoqueNovo.setEstoqueMinimo(0);
                 estoqueNovo.setAtivo(true);
                 estoqueNovo.setObservacao(observacaoPadrao);
-                estoqueNovo.persist();
+                em.persist(estoqueNovo);
             } else {
                 loteParaEstoque = item.getLote();
+                loteParaEstoque.setQuantidadeAtual(Math.addExact(loteParaEstoque.getQuantidadeAtual(), qtd));
                 PharmaciaEstoque estoqueSolicitante = estoqueService.findByLoteAndSigla(
                         item.getLote().getId(), permuta.getUnidadeOrigemSigla());
                 if (estoqueSolicitante == null) {
@@ -340,11 +400,11 @@ public class PharmaciaPermutaService {
                     estoqueSolicitante.setEstoqueMinimo(0);
                     estoqueSolicitante.setAtivo(true);
                     estoqueSolicitante.setObservacao(observacaoPadrao);
-                    estoqueSolicitante.persist();
+                    em.persist(estoqueSolicitante);
                 } else {
                     estoqueSolicitante.setQuantidade(estoqueSolicitante.getQuantidade() + qtd);
                     estoqueSolicitante.setObservacao(observacaoPadrao);
-                    estoqueSolicitante.persist();
+                    em.persist(estoqueSolicitante);
                 }
             }
 
@@ -358,13 +418,13 @@ public class PharmaciaPermutaService {
             mov.setJustificativa(observacaoPadrao);
             mov.setUsuarioMatricula(quemConfirmou);
             mov.setAtivo(true);
-            mov.persist();
+            em.persist(mov);
         }
 
         permuta.setStatus(PharmaciaPermuta.StatusPermuta.FINALIZADO);
         permuta.setDataFinalizacao(LocalDateTime.now());
         permuta.setRecebedorMatricula(quemConfirmou);
-        permuta.persist();
+        em.persist(permuta);
 
         return permuta;
     }
@@ -373,6 +433,10 @@ public class PharmaciaPermutaService {
     public void delete(Long id, String unidadeExecutora) {
         PharmaciaPermuta permuta = PharmaciaPermuta.findById(id);
         if (permuta == null) throw new RuntimeException("Permuta nao encontrada");
+        permuta.getItens().stream().map(i -> i.getLote().getId()).distinct().sorted().forEach(loteId -> {
+            PharmaciaLote lote = em.find(PharmaciaLote.class, loteId, LockModeType.PESSIMISTIC_WRITE);
+            em.refresh(lote, LockModeType.PESSIMISTIC_WRITE);
+        });
         if (permuta.getStatus() != PharmaciaPermuta.StatusPermuta.PENDENTE)
             throw new IllegalStateException("So e possivel excluir permutas PENDENTES — permutas ja aprovadas, em transporte ou finalizadas precisam ficar no historico.");
         // So quem solicitou (unidadeOrigemSigla) pode cancelar o proprio pedido.
@@ -388,10 +452,22 @@ public class PharmaciaPermutaService {
     // recebedora encerrar o pedido (finalizar ou recusar) — depois disso a
     // conversa fica congelada, so leitura.
     @Transactional
-    public PharmaciaPermutaMensagem enviarMensagem(Long permutaId, PharmaciaPermutaMensagem mensagem) {
+    public PharmaciaPermutaMensagem enviarMensagem(Long permutaId, PharmaciaPermutaMensagem mensagem, String unidadeExecutora, String matricula) {
         PharmaciaPermuta permuta = PharmaciaPermuta.findById(permutaId);
         if (permuta == null) {
             throw new IllegalArgumentException("Permuta nao encontrada");
+        }
+        if (mensagem == null) throw new IllegalArgumentException("Mensagem vazia.");
+        // Autoria vem da sessao autenticada, e so as duas unidades da permuta conversam.
+        String unidade = unidadeExecutora == null ? "" : unidadeExecutora.trim();
+        if (!unidade.equalsIgnoreCase(permuta.getUnidadeOrigemSigla()) && !unidade.equalsIgnoreCase(permuta.getUnidadeDestinoSigla())) {
+            throw new IllegalArgumentException("Apenas as unidades envolvidas podem enviar mensagens nesta permuta.");
+        }
+        mensagem.setId(null);
+        mensagem.setUnidadeSigla(unidade);
+        mensagem.setAutorMatricula(matricula);
+        if (mensagem.getTexto() != null && mensagem.getTexto().length() > 1000) {
+            throw new IllegalArgumentException("Mensagem excede 1000 caracteres.");
         }
         if (permuta.getStatus() == PharmaciaPermuta.StatusPermuta.FINALIZADO
                 || permuta.getStatus() == PharmaciaPermuta.StatusPermuta.RECUSADO) {

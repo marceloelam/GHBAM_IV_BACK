@@ -29,6 +29,11 @@ import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.container.ContainerRequestContext;
+import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.QueryParam;
+import br.com.iv.security.SecurityPermissionService;
+import br.com.iv.service.GeocodificacaoPacienteService;
 
 @Path("pacientes")
 @Consumes(MediaType.APPLICATION_JSON)
@@ -37,6 +42,31 @@ public class PacientesController {
 
 	@Inject
 	PacientesService pacientesService;
+
+	@Inject
+	SecurityPermissionService securityPermissionService;
+
+	@Context
+	ContainerRequestContext requestContext;
+
+	/** Unidade da sessao (JWT) - base do municipio e da coordenada padrao do cadastro. */
+	private String unidadeDaSessao() {
+		return securityPermissionService.unidadeDaSessao(requestContext).split(":")[0].trim();
+	}
+
+	/** Municipios do estado para o select da recepcao (tabela local, sem internet). */
+	@GET
+	@Path("localidades/municipios")
+	public Response listarMunicipios(@QueryParam("uf") String uf) {
+		return Response.ok(GeocodificacaoPacienteService.listarMunicipios(uf)).build();
+	}
+
+	/** Bairros conhecidos do municipio; lista vazia = bairro digitado livremente. */
+	@GET
+	@Path("localidades/bairros")
+	public Response listarBairros(@QueryParam("uf") String uf, @QueryParam("municipio") String municipio) {
+		return Response.ok(GeocodificacaoPacienteService.listarBairros(uf, municipio)).build();
+	}
 
 	@GET
 	public Response listarPacientes() {
@@ -293,14 +323,14 @@ public class PacientesController {
 	
 	@POST
 	public Response salvarPacientes(PacientesDto dto) {
-		Pacientes pacientes = pacientesService.salvarPaciente(dto); 
+		Pacientes pacientes = pacientesService.salvarPaciente(dto, unidadeDaSessao());
 		return Response.ok(pacientes).status(201).build();
 	}
 
 	@PUT
 	@Path("{id}")
 	public Response atualizarPaciente(@PathParam("id") int id, PacientesDto dto) {
-		pacientesService.atualizarPaciente(id, dto);
+		pacientesService.atualizarPaciente(id, dto, unidadeDaSessao());
 		return Response.status(204).build();
 	}
 

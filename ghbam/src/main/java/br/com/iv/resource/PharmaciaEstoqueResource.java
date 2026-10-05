@@ -6,6 +6,7 @@ import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import br.com.iv.entity.PharmaciaEstoque;
+import br.com.iv.service.PharmaciaRequestScope;
 import br.com.iv.service.PharmaciaEstoqueService;
 
 @Path("/pharmacia/estoque")
@@ -15,6 +16,8 @@ public class PharmaciaEstoqueResource {
 
     @Inject
     PharmaciaEstoqueService service;
+    @Inject br.com.iv.service.PharmaciaRequestScope scope;
+    @jakarta.ws.rs.core.Context jakarta.ws.rs.container.ContainerRequestContext request;
 
     @GET
     public List<PharmaciaEstoque> listAll(@QueryParam("unidadeId") String unidadeParam) {
@@ -36,6 +39,8 @@ public class PharmaciaEstoqueResource {
 
     @POST
     public Response save(PharmaciaEstoque estoque) {
+        if (estoque == null || estoque.getId() != null) throw new BadRequestException("Novo registro obrigatorio.");
+        scope.exigirArea(request, estoque.getUnidadeSigla(), PharmaciaRequestScope.ESTOQUE);
         try {
             PharmaciaEstoque saved = service.save(estoque);
             return Response.status(Response.Status.CREATED).entity(saved).build();
@@ -47,6 +52,11 @@ public class PharmaciaEstoqueResource {
     @PUT
     @Path("/{id}")
     public Response update(@PathParam("id") Long id, PharmaciaEstoque estoque) {
+        PharmaciaEstoque original = service.findById(id);
+        if (original == null) throw new NotFoundException();
+        if (estoque == null) throw new BadRequestException();
+        scope.exigirArea(request, original.getUnidadeSigla(), PharmaciaRequestScope.ESTOQUE);
+        scope.exigirArea(request, estoque.getUnidadeSigla(), PharmaciaRequestScope.ESTOQUE);
         try {
             estoque.setId(id);
             PharmaciaEstoque updated = service.save(estoque);
@@ -59,6 +69,9 @@ public class PharmaciaEstoqueResource {
     @DELETE
     @Path("/{id}")
     public Response delete(@PathParam("id") Long id) {
+        PharmaciaEstoque original = service.findById(id);
+        if (original == null) throw new NotFoundException();
+        scope.exigirArea(request, original.getUnidadeSigla(), PharmaciaRequestScope.ESTOQUE);
         try {
             service.delete(id);
             return Response.noContent().build();

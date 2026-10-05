@@ -4,6 +4,9 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.container.ContainerRequestContext;
+import br.com.iv.service.PharmaciaRequestScope;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
@@ -18,17 +21,14 @@ public class PharmaciaMovimentacaoResource {
 
     @Inject
     PharmaciaMovimentacaoService service;
+    @Inject PharmaciaRequestScope scope;
+    @Context ContainerRequestContext request;
 
     @GET
     public List<PharmaciaMovimentacao> listAll(@QueryParam("unidadeId") String unidadeParam) {
-        if (unidadeParam != null && !unidadeParam.isEmpty()) {
-            List<PharmaciaMovimentacao> origem = service.findByUnidadeOrigemSigla(unidadeParam);
-            List<PharmaciaMovimentacao> destino = service.findByUnidadeDestinoSigla(unidadeParam);
-            Set<PharmaciaMovimentacao> combined = new HashSet<>(origem);
-            combined.addAll(destino);
-            return new ArrayList<>(combined);
-        }
-        return service.listAll();
+        String unidade = unidadeParam == null || unidadeParam.isBlank() ? scope.unidadeAtual(request) : unidadeParam;
+        scope.exigirUnidade(request, unidade);
+        return service.findByUnidade(unidade);
     }
 
     @GET
@@ -38,11 +38,18 @@ public class PharmaciaMovimentacaoResource {
         if (movimentacao == null) {
             return Response.status(Response.Status.NOT_FOUND).build();
         }
-        return Response.ok(movimentacao).build();
+        String unidade = scope.unidadeAtual(request);
+        if (!unidade.equals(movimentacao.getUnidadeOrigemSigla()) && !unidade.equals(movimentacao.getUnidadeDestinoSigla())) throw new ForbiddenException();
+        scope.exigirUnidade(request, unidade); return Response.ok(movimentacao).build();
     }
 
     @POST
     public Response save(PharmaciaMovimentacao movimentacao) {
+        if (movimentacao == null) throw new BadRequestException("Movimentacao obrigatoria.");
+        movimentacao.setUsuarioMatricula(scope.exigirArea(request, movimentacao.getUnidadeOrigemSigla(), PharmaciaRequestScope.ESTOQUE).matricula());
+        if (movimentacao.getTipo() == PharmaciaMovimentacao.TipoMovimentacao.DISPENSACAO) {
+            throw new BadRequestException("Use Atendimento a Paciente para dispensar com identificacao e validacao farmaceutica.");
+        }
         try {
             PharmaciaMovimentacao saved = service.save(movimentacao);
             return Response.status(Response.Status.CREATED).entity(saved).build();
@@ -77,18 +84,18 @@ public class PharmaciaMovimentacaoResource {
     @GET
     @Path("/unidade-origem/{sigla}")
     public List<PharmaciaMovimentacao> findByUnidadeOrigem(@PathParam("sigla") String sigla) {
-        return service.findByUnidadeOrigemSigla(sigla);
+        scope.exigirUnidade(request, sigla); return service.findByUnidadeOrigemSigla(sigla);
     }
 
     @GET
     @Path("/unidade-destino/{sigla}")
     public List<PharmaciaMovimentacao> findByUnidadeDestino(@PathParam("sigla") String sigla) {
-        return service.findByUnidadeDestinoSigla(sigla);
+        scope.exigirUnidade(request, sigla); return service.findByUnidadeDestinoSigla(sigla);
     }
 
     @GET
     @Path("/lote/{loteId}")
     public List<PharmaciaMovimentacao> findByLote(@PathParam("loteId") Long loteId) {
-        return service.findByLote(loteId);
+        String unidade = scope.unidadeAtual(request); scope.exigirUnidade(request, unidade); return service.findByLoteEUnidade(loteId, unidade);
     }
 }

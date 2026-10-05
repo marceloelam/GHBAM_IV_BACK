@@ -141,6 +141,20 @@ public class Servidor2Dto implements Serializable {
 	@Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
 	private Boolean cautela;
 	@Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+	private Boolean farmaciaprodutos;
+	@Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+	private Boolean farmaciaestoque;
+	@Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+	private Boolean farmaciadispensacao;
+	@Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+	private Boolean farmaciapermutas;
+	@Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+	private Boolean farmaciaoperacoes;
+	@Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+	private Boolean farmaciaavaliacao;
+	@Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+	private Boolean farmaciarelatorios;
+	@Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
 	private Boolean nir;
 	@Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
 	private Boolean painelnir;

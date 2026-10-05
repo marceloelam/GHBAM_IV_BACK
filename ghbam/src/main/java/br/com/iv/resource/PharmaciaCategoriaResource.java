@@ -7,6 +7,9 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import br.com.iv.entity.PharmaciaCategoria;
 import br.com.iv.service.PharmaciaCategoriaService;
+import br.com.iv.service.PharmaciaRequestScope;
+import jakarta.ws.rs.container.ContainerRequestContext;
+import jakarta.ws.rs.core.Context;
 
 @Path("/pharmacia/categorias")
 @Produces(MediaType.APPLICATION_JSON)
@@ -15,6 +18,13 @@ public class PharmaciaCategoriaResource {
 
     @Inject
     PharmaciaCategoriaService service;
+    @Inject PharmaciaRequestScope scope;
+    @Context ContainerRequestContext requestContext;
+
+    // Categorias sao cadastro da farmacia: gravar exige a area Produtos.
+    private void exigirProdutos() {
+        scope.exigirArea(requestContext, scope.unidadeAtual(requestContext), PharmaciaRequestScope.PRODUTOS);
+    }
 
     @GET
     public List<PharmaciaCategoria> listAll(@QueryParam("unidadeId") String unidadeParam) {
@@ -36,6 +46,7 @@ public class PharmaciaCategoriaResource {
 
     @POST
     public Response save(PharmaciaCategoria categoria) {
+        exigirProdutos();
         try {
             PharmaciaCategoria saved = service.save(categoria);
             return Response.status(Response.Status.CREATED).entity(saved).build();
@@ -47,6 +58,7 @@ public class PharmaciaCategoriaResource {
     @PUT
     @Path("/{id}")
     public Response update(@PathParam("id") Long id, PharmaciaCategoria categoria) {
+        exigirProdutos();
         try {
             categoria.setId(id);
             PharmaciaCategoria updated = service.save(categoria);
@@ -59,6 +71,7 @@ public class PharmaciaCategoriaResource {
     @PUT
     @Path("/{id}/desativar")
     public Response desativar(@PathParam("id") Long id) {
+        exigirProdutos();
         try {
             service.desativar(id);
             return Response.ok().build();
