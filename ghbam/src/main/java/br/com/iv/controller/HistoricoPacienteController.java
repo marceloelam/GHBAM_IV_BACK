@@ -124,6 +124,7 @@ public class HistoricoPacienteController {
             eventos.addAll(listarEvolucoesMedicas(idbam));
             eventos.addAll(listarEvolucoesEnfermagem(idbam));
             eventos.addAll(listarAnamneseInternacao(idbam));
+            eventos.addAll(listarPareceresRespondidos(idbam));
             eventos.addAll(listarInternacoes(idbam));
             eventos.addAll(listarNir(idbam));
             eventos.addAll(listarResumoAlta(idbam));
@@ -409,6 +410,23 @@ public class HistoricoPacienteController {
         return eventos(sql, bam, "ANAMNESE_INTERNACAO", "Anamnese de internacao", "idanamneseinternacao", "data", "hora", "medico", "local", "frente", "verso", "crm");
     }
 
+    List<Map<String, Object>> listarPareceresRespondidos(int bam) {
+        String sql = """
+                SELECT idparecerespecialista, dataresp, NULL AS hora, medicorecebedor,
+                       unidade AS local, desc1 AS solicitacao, desc2 AS resposta,
+                       crmrecebedor AS crm_especialista, medicorequisitante AS solicitante,
+                       crm AS crm_solicitante, especialidadeorigem AS especialidade_origem,
+                       especialidadedestino AS especialidade_destino, prontuario, data AS data_solicitacao
+                FROM parecerespecialista
+                WHERE nbam = :bam AND NULLIF(TRIM(desc2), '') IS NOT NULL
+                ORDER BY dataresp DESC NULLS LAST, idparecerespecialista DESC
+                """;
+        return eventos(sql, bam, "PARECER_ESPECIALISTA", "Resposta do especialista",
+                "idparecerespecialista", "dataresp", "hora", "medicorecebedor", "local",
+                "solicitacao", "resposta", "crm_especialista", "solicitante", "crm_solicitante",
+                "especialidade_origem", "especialidade_destino", "prontuario", "data_solicitacao");
+    }
+
     private List<Map<String, Object>> listarInternacoes(int bam) {
         String sql = "SELECT idninternado, datainternacao, NULL AS hora, medicoqueinternou, local, obs, cid, datasaida, motivodaalta, medicodeualta FROM internacao WHERE bam = CAST(:bam AS text) ORDER BY datainternacao DESC";
         return eventos(sql, bam, "INTERNACAO", "Internacao", "idninternado", "datainternacao", "hora", "medicoqueinternou", "local", "obs", "cid", "datasaida", "motivodaalta", "medicodeualta");
@@ -644,6 +662,15 @@ public class HistoricoPacienteController {
             case "duracao" -> "Duracao";
             case "status" -> "Status";
             case "motivo_suspensao" -> "Motivo da suspensao";
+            case "solicitacao" -> "Solicitacao";
+            case "resposta" -> "Resposta do especialista";
+            case "crm_especialista" -> "CRM do especialista";
+            case "solicitante" -> "Medico solicitante";
+            case "crm_solicitante" -> "CRM do solicitante";
+            case "especialidade_origem" -> "Especialidade de origem";
+            case "especialidade_destino" -> "Especialidade de destino";
+            case "prontuario" -> "Prontuario";
+            case "data_solicitacao" -> "Data da solicitacao";
             case "pedido" -> "Pedido";
             case "obs" -> "Observacao";
             case "grupopedidos" -> "Grupo de pedidos";
