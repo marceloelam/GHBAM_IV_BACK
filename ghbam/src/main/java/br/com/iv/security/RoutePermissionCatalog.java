@@ -34,6 +34,7 @@ public class RoutePermissionCatalog {
             entry("ad", "kadm", "ksubadm"),
             entry("admin/pool-status", "kadm"),
             entry("producao-medica", "pproducaomedica", "kadm"),
+            entry("producao-assistencial", "kadm"),
             entry("api/assinaturas-clinicas", "kmedico", "kdentista", "kenfermagem", "ktcenfermagem", "kconsultorio_medico", "kfisioterapia", "kassistencia", "knutricao", "kfonoaudiologia", "kpsicologia", "pevolucaomultidisciplinar", "pverificarassinatura", "kadm"),
             entry("api/odontologia", "kdentista"),
             // GHBAM APS (UBS/ESF - substituto do PEC e-SUS). Checagem fina por
