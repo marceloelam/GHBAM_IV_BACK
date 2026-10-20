@@ -59,6 +59,31 @@ public class RoutePermissionCatalog {
             // Conferencia da embalagem na checagem a beira-leito: quem administra e,
             // na maioria das vezes, o tecnico de enfermagem (so leitura do catalogo).
             entry("cdss/conferencia-medicamento", "kenfermagem", "ktcenfermagem", "kmedico", "kadm"),
+            // Painel do plantao: so leitura, internados da unidade da sessao.
+            entry("cdss/plantao", "kenfermagem", "ktcenfermagem", "kmedico", "pnir", "penfermariaseleitos", "kadm"),
+            // Dispositivos-dia (denominador de IRAS): enfermagem e CCIH.
+            entry("cdss/plantao/dispositivos/indicadores", "kenfermagem", "pccih", "kadm"),
+            // Indicadores de seguranca do paciente: NSP, CCIH e gestao.
+            entry("cdss/indicadores-seguranca", "pnsp", "pnspgestao", "pccih", "kadm"),
+            // Limites de dose: todos os clinicos consultam; so pregrasdose/kadm editam e validam.
+            entry("cdss/regras-dose/gestao", "kmedico", "kenfermagem", "ktcenfermagem", "kfisioterapia", "knutricao",
+                    "kfonoaudiologia", "kpsicologia", "kassistencia", "pevolucaomultidisciplinar", "kfarmaciacentral", "pfarmaciaavaliacao",
+                    "pregrasdose", "pnsp", "pccih", "kadm"),
+            entry("cdss/regras-dose/historico", "kmedico", "kenfermagem", "ktcenfermagem", "kfisioterapia", "knutricao",
+                    "kfonoaudiologia", "kpsicologia", "kassistencia", "pevolucaomultidisciplinar", "kfarmaciacentral", "pfarmaciaavaliacao",
+                    "pregrasdose", "pnsp", "pccih", "kadm"),
+            entry("cdss/regras-dose/editar", "pregrasdose", "kadm"),
+            entry("cdss/regras-dose/incluir", "pregrasdose", "kadm"),
+            entry("cdss/regras-dose/excluir", "pregrasdose", "kadm"),
+            entry("cdss/regras-dose/restaurar", "pregrasdose", "kadm"),
+            // Sugerir: qualquer clinico (medico, enfermagem, tecnico, multi, farmacia).
+            entry("cdss/regras-dose/sugerir", "kmedico", "kenfermagem", "ktcenfermagem", "kfisioterapia", "knutricao",
+                    "kfonoaudiologia", "kpsicologia", "kassistencia", "pevolucaomultidisciplinar", "kfarmaciacentral",
+                    "pfarmaciaavaliacao", "pregrasdose", "kadm"),
+            entry("cdss/regras-dose/sugestoes", "kmedico", "kenfermagem", "ktcenfermagem", "kfisioterapia", "knutricao",
+                    "kfonoaudiologia", "kpsicologia", "kassistencia", "pevolucaomultidisciplinar", "kfarmaciacentral",
+                    "pfarmaciaavaliacao", "pregrasdose", "pnsp", "pccih", "kadm"),
+            entry("cdss/regras-dose/sugestoes/decidir", "pregrasdose", "kadm"),
             entry("cdss", "kmedico", "kenfermagem", "ktriagem", "kfarmaciacentral", "kfarmcentral", "kfarmhmsfx",
                     "pauditoriaclinica", "presumopaciente", "pcomoestaopaciente", "pprontuariocompleto",
                     "penfermariaseleitos", "pnir", "pccih", "kadm"),

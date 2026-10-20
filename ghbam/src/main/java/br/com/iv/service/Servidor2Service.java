@@ -173,6 +173,7 @@ public class Servidor2Service implements Serializable {
 		Servidor2.setFarmaciaoperacoes(dto.getFarmaciaoperacoes() != null ? dto.getFarmaciaoperacoes() : false);
 		Servidor2.setFarmaciaavaliacao(dto.getFarmaciaavaliacao() != null ? dto.getFarmaciaavaliacao() : false);
 		Servidor2.setFarmaciarelatorios(dto.getFarmaciarelatorios() != null ? dto.getFarmaciarelatorios() : false);
+		Servidor2.setRegrasdose(dto.getRegrasdose() != null ? dto.getRegrasdose() : false);
 		Servidor2.setNirlaudointernacao(dto.getNirlaudointernacao() != null ? dto.getNirlaudointernacao() : false);
 		Servidor2.setNirenfermariaseleitos(dto.getNirenfermariaseleitos() != null ? dto.getNirenfermariaseleitos() : false);
 		Servidor2.setNirhistoricocompleto(dto.getNirhistoricocompleto() != null ? dto.getNirhistoricocompleto() : false);
@@ -343,6 +344,7 @@ public class Servidor2Service implements Serializable {
 		Servidor2.setFarmaciaoperacoes(dto.getFarmaciaoperacoes() != null ? dto.getFarmaciaoperacoes() : Servidor2.getFarmaciaoperacoes());
 		Servidor2.setFarmaciaavaliacao(dto.getFarmaciaavaliacao() != null ? dto.getFarmaciaavaliacao() : Servidor2.getFarmaciaavaliacao());
 		Servidor2.setFarmaciarelatorios(dto.getFarmaciarelatorios() != null ? dto.getFarmaciarelatorios() : Servidor2.getFarmaciarelatorios());
+		Servidor2.setRegrasdose(dto.getRegrasdose() != null ? dto.getRegrasdose() : Servidor2.getRegrasdose());
 		Servidor2.setNirlaudointernacao(dto.getNirlaudointernacao() != null ? dto.getNirlaudointernacao() : Servidor2.getNirlaudointernacao());
 		Servidor2.setNirenfermariaseleitos(dto.getNirenfermariaseleitos() != null ? dto.getNirenfermariaseleitos() : Servidor2.getNirenfermariaseleitos());
 		Servidor2.setNirhistoricocompleto(dto.getNirhistoricocompleto() != null ? dto.getNirhistoricocompleto() : Servidor2.getNirhistoricocompleto());

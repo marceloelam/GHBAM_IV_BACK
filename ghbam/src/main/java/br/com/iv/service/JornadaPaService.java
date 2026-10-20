@@ -67,6 +67,12 @@ public class JornadaPaService implements Serializable {
     @Inject
     ConformidadePendenciaBaixaService conformidadePendenciaBaixaService;
 
+    @Inject
+    br.com.iv.cdss.service.ResultadoCriticoService resultadoCriticoService;
+
+    @Inject
+    br.com.iv.cdss.service.ReconciliacaoMedicamentosService reconciliacaoService;
+
     public Map<String, Object> montarPorBam(int idbam) {
         Bam bam = bamService.filtarPorUnicoBam(idbam);
         if (bam == null || bam.getIdbam() <= 0) {
@@ -265,6 +271,9 @@ public class JornadaPaService implements Serializable {
         response.put("pendencias", pendenciasOperacionaisAtivas);
         response.put("pendenciasAssinatura", pendenciasAssinaturaAtivas);
         response.put("pendenciasTratadas", pendenciasTratadas);
+        // Informativo: nao entra no score/status (a fila calcula por outro caminho
+        // e ficaria divergente). Resolve-se no atendimento, nao por "dar baixa".
+        response.put("pendenciasSeguranca", pendenciasSegurancaPaciente(bam));
         response.put("resumoOperacional", resumo);
         response.put("conformidadeAssinatura", conformidade);
         response.put("totalEventos", timeline.size());
@@ -276,6 +285,44 @@ public class JornadaPaService implements Serializable {
                 Map.of("label", "Ciclo de medicacao", "to", "/base2/ciclo-medicacao?bam=" + idbam)
         ));
         return response;
+    }
+
+    /**
+     * Valor critico de exame sem ciencia e medicamento de uso continuo sem decisao
+     * de reconciliacao. Falha aqui nunca derruba a conformidade.
+     */
+    List<Map<String, Object>> pendenciasSegurancaPaciente(Bam bam) {
+        List<Map<String, Object>> lista = new ArrayList<>();
+        if (bam == null) return lista;
+        try {
+            if (resultadoCriticoService != null) {
+                resultadoCriticoService.listarPorBam(bam.getIdbam()).stream()
+                        .filter(c -> !c.ciente())
+                        .forEach(c -> lista.add(pendenciaSeguranca(
+                                "Valor critico sem ciencia: " + c.exame() + " " + c.valor()
+                                        + (c.unidadeMedida() == null ? "" : " " + c.unidadeMedida()),
+                                "Registrar ciencia e conduta pelo selo de valor critico no atendimento.")));
+            }
+            Integer idpaciente = bam.getPaciente() == null ? null : bam.getPaciente().getIdpaciente();
+            if (reconciliacaoService != null && idpaciente != null && idpaciente > 0) {
+                reconciliacaoService.listar(bam.getIdbam(), idpaciente).stream()
+                        .filter(r -> r.get("decisao") == null)
+                        .forEach(r -> lista.add(pendenciaSeguranca(
+                                "Reconciliacao pendente: " + r.get("medicamento"),
+                                "Decidir manter, suspender ou substituir na prescricao estruturada.")));
+            }
+        } catch (RuntimeException e) {
+            LOG.warnf("Nao foi possivel montar pendencias de seguranca do BAM %d: %s", bam.getIdbam(), e.getMessage());
+        }
+        return lista;
+    }
+
+    private Map<String, Object> pendenciaSeguranca(String titulo, String orientacao) {
+        Map<String, Object> item = new LinkedHashMap<>();
+        item.put("titulo", titulo);
+        item.put("tipoPendencia", "Seguranca do paciente");
+        item.put("orientacao", orientacao);
+        return item;
     }
 
     @SuppressWarnings("unchecked")
