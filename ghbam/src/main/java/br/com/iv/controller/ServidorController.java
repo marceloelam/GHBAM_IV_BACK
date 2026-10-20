@@ -50,6 +50,30 @@ public class ServidorController {
 	@Inject
 	ServidorUnidadeRepository servidorUnidadeRepository;
 
+	@Inject
+	br.com.iv.service.ServidorMatriculaService servidorMatriculaService;
+
+	@Inject
+	br.com.iv.service.IdentificacaoFacialService identificacaoFacialService;
+
+	@PATCH
+	@Path("/{idservidor}/matricula")
+	public Response alterarMatricula(@PathParam("idservidor") int idservidor,
+			AlterarMatriculaRequest request, @Context ContainerRequestContext context) {
+		AuthenticatedUser usuario = (AuthenticatedUser) context.getProperty("ghbam.user");
+		if (usuario == null) usuario = securityPermissionService.resolve(context);
+		return Response.ok(servidorMatriculaService.alterar(idservidor,
+				request == null ? null : request.matriculaAnterior,
+				request == null ? null : request.novaMatricula,
+				request == null ? null : request.motivo, usuario)).build();
+	}
+
+	public static class AlterarMatriculaRequest {
+		public String matriculaAnterior;
+		public String novaMatricula;
+		public String motivo;
+	}
+
 	@GET
 	public Response listarServidor() {
 		List<Servidor> servidor = servidorService.listarTodosOsServidores();
@@ -83,6 +107,19 @@ public class ServidorController {
 		servidorService.alterarSenha(matricula, pwd);
 		loginRateLimitService.registrarSucessoMatricula(matricula);
 		return Response.status(204).build();
+	}
+
+	@PATCH
+	@Path("/{matricula}/senha")
+	public Response atualizarSenhaNoCorpo(@PathParam("matricula") String matricula, Map<String, String> dados) {
+		String senha = dados == null ? null : dados.get("senha");
+		if (matricula == null || matricula.isBlank() || senha == null || !senha.matches("^[1-9][0-9]{5}$")) {
+			return Response.status(Response.Status.BAD_REQUEST)
+					.entity(Map.of("erro", "A senha deve conter seis digitos e nao pode comecar com zero.")).build();
+		}
+		servidorService.alterarSenha(matricula, senha);
+		loginRateLimitService.registrarSucessoMatricula(matricula);
+		return Response.noContent().build();
 	}
 	
 	@GET
@@ -392,15 +429,49 @@ public class ServidorController {
 				.build();
 		}
 
-		Servidor servidor = servidorService.identificarPorFoto(dto.imagem);
-
-		if (servidor == null) {
-			return Response.status(Response.Status.NOT_FOUND)
-				.entity("{\"erro\":\"Servidor não encontrado\"}")
+		// Identificacao 1:N no CompreFace da VPS (servico Recognition).
+		br.com.iv.service.IdentificacaoFacialService.ResultadoIdentificacao resultado = identificacaoFacialService.identificar(dto.imagem);
+		if (resultado.erro() != null) {
+			return Response.status(Response.Status.SERVICE_UNAVAILABLE)
+				.entity(Map.of("erro", resultado.erro()))
 				.build();
 		}
 
-		return Response.ok(new ServidorDTO(servidor.getNome(), servidor.getMatricula(), Long.valueOf(servidor.getIdservidor()), servidor.getCargo(), servidor.getEspecialidade(), servidor.getUnidade())).build();
+		Map<String, Object> corpo = new java.util.HashMap<>();
+		corpo.put("identificado", resultado.identificado());
+		corpo.put("rostoDetectado", resultado.rostoDetectado());
+		corpo.put("similaridade", resultado.similaridade());
+		Servidor servidor = resultado.servidor();
+		if (servidor != null) {
+			ServidorDTO info = new ServidorDTO(servidor.getNome(), servidor.getMatricula(), Long.valueOf(servidor.getIdservidor()), servidor.getCargo(), servidor.getEspecialidade(), servidor.getUnidade());
+			String foto = servidor.getFoto();
+			if (foto != null && !foto.isBlank()) {
+				int virgula = foto.indexOf(',');
+				info.foto = "data:image/jpeg;base64," + (virgula >= 0 ? foto.substring(virgula + 1).trim() : foto.trim());
+			}
+			corpo.put("servidor", info);
+		}
+		return Response.ok(corpo).build();
+	}
+
+	@GET
+	@Path("/identificacao-facial/status")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response statusIdentificacaoFacial() {
+		return Response.ok(identificacaoFacialService.getStatus()).build();
+	}
+
+	@POST
+	@Path("/identificacao-facial/sincronizar")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response sincronizarIdentificacaoFacial() {
+		if (!identificacaoFacialService.configurado()) {
+			return Response.status(Response.Status.SERVICE_UNAVAILABLE)
+				.entity(Map.of("erro", "Identificacao facial nao configurada no servidor."))
+				.build();
+		}
+		boolean iniciada = identificacaoFacialService.iniciarSincronizacao();
+		return Response.ok(Map.of("iniciada", iniciada, "status", identificacaoFacialService.getStatus())).build();
 	}
 
 	public static class ImagemDTO {
@@ -448,7 +519,8 @@ public class ServidorController {
 		public String cargo;
 		public String unidade;
 		public String especialidade;
-		
+		public String foto;
+
 		public ServidorDTO(String nome, String matricula, Long id, String cargo, String especialidade, String unidade) {
 			this.nome = nome;
 			this.matricula = matricula;

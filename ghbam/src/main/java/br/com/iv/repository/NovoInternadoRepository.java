@@ -38,20 +38,44 @@ public class NovoInternadoRepository implements PanacheRepository<NovoInternado>
 	public void alterarAltaDoPaciente(int idbam, LocalDate acao, boolean alta, String quem, String motivo, int idnovo) {
 		String sql = "";
 		quem = quem.replace(":", "-");
-		if (motivo.equals("ALTA ADM"))
-			// sql = "insert into novointernadoadm (alta, datadaacao, quemdeualta,
-			// motivosaida, nbam) values(:alta, :acao, :quem, :motivo, :idbam)";
-			sql = "	INSERT INTO novointernadoadm (idninternadoadm, agente, alta, datadaacao, datainsercaoser, diagnostico, diainternacao, especialidade, internado, "
-					+ "leitoocupado, motivosaida, nbam, pendencia, prontuario, quemalocou, quemdeualta, quemexcluiu, quemleitoalterou, tempoDias, tipo, tipo_alocacao, "
-					+ "unidade, bam_idbam, local_idsetorlocalcenso, pacientes_idpaciente, setor_idsetorcenso) "
-					+ " SELECT idninternado, agente, :alta, :acao, datainsercaoser, diagnostico, diainternacao, especialidade, internado, leitoocupado, :motivo, :idbam, pendencia, prontuario, :quem, quemdeualta, quemexcluiu, quemleitoalterou, tempoDias, tipo, tipo_alocacao, unidade, :idbam, local_idsetorlocalcenso, pacientes_idpaciente, setor_idsetorcenso "
-					+ " FROM novointernado 	WHERE novointernado.idninternado = :idnovo";
-		else
+		if (motivo.equals("ALTA ADM")) {
+			// Cada alta ADM é um registro próprio (uma por data). Antes o id era o do leito:
+			// a segunda alta dava 500 e, depois, sobrescrevia a primeira.
+			// Mesma data no mesmo leito (ex.: clique duplo) só atualiza.
+			int atualizadas = entityManager.createNativeQuery(
+					"UPDATE novointernadoadm SET quemalocou = :quem WHERE nbam = :idbam "
+							+ "AND motivosaida = 'ALTA ADM' AND cast(datadaacao as date) = :acao")
+					.setParameter("quem", quem).setParameter("idbam", idbam).setParameter("acao", acao)
+					.executeUpdate();
+			if (atualizadas == 0) {
+				// A coluna não tem sequência: serializa a geração do id dentro da transação.
+				entityManager.createNativeQuery("SELECT 1 FROM (SELECT pg_advisory_xact_lock(hashtext('novointernadoadm'))) trava").getSingleResult();
+				sql = "	INSERT INTO novointernadoadm (idninternadoadm, agente, alta, datadaacao, datainsercaoser, diagnostico, diainternacao, especialidade, internado, "
+						+ "leitoocupado, motivosaida, nbam, pendencia, prontuario, quemalocou, quemdeualta, quemexcluiu, quemleitoalterou, tempoDias, tipo, tipo_alocacao, "
+						+ "unidade, bam_idbam, local_idsetorlocalcenso, pacientes_idpaciente, setor_idsetorcenso) "
+						+ " SELECT (SELECT coalesce(max(idninternadoadm), 0) + 1 FROM novointernadoadm), agente, :alta, :acao, datainsercaoser, diagnostico, diainternacao, especialidade, internado, leitoocupado, :motivo, :idbam, pendencia, prontuario, :quem, quemdeualta, quemexcluiu, quemleitoalterou, tempoDias, tipo, tipo_alocacao, unidade, :idbam, local_idsetorlocalcenso, pacientes_idpaciente, setor_idsetorcenso "
+						+ " FROM novointernado 	WHERE novointernado.idninternado = :idnovo";
+				entityManager.createNativeQuery(sql).setParameter("idbam", idbam).setParameter("alta", alta)
+						.setParameter("acao", acao).setParameter("quem", quem).setParameter("motivo", motivo)
+						.setParameter("idnovo", idnovo).executeUpdate();
+			}
+		} else {
 			sql = "UPDATE novointernado set nbam = :idbam, alta = :alta, datadaacao = :acao, quemdeualta= :quem, motivosaida = :motivo where idninternado = :idnovo";
+			entityManager.createNativeQuery(sql).setParameter("idbam", idbam).setParameter("alta", alta)
+					.setParameter("acao", acao).setParameter("quem", quem).setParameter("motivo", motivo)
+					.setParameter("idnovo", idnovo).executeUpdate();
+		}
 
-		entityManager.createNativeQuery(sql).setParameter("idbam", idbam).setParameter("alta", alta)
-				.setParameter("acao", acao).setParameter("quem", quem).setParameter("motivo", motivo)
-				.setParameter("idnovo", idnovo).executeUpdate();
+		// Alta final do leito fecha também a internação aberta do mesmo BAM (antes ficava aberta:
+		// ~3.400 casos, inclusive óbitos). ALTA ADM não fecha: o paciente segue internado.
+		if (alta && !motivo.equals("ALTA ADM") && !motivo.equals("-")) {
+			entityManager.createNativeQuery(
+					"UPDATE internacao SET datasaida = :acao, motivodaalta = :motivo, medicodeualta = :quem "
+							+ "WHERE bam = :bam AND datasaida IS NULL AND motivodaalta = '-'")
+					.setParameter("acao", acao).setParameter("motivo", motivo).setParameter("quem", quem)
+					.setParameter("bam", String.valueOf(idbam))
+					.executeUpdate();
+		}
 
 		if (motivo.equals("ALTA ADM")) {
 			AltaadmnirService altaadmnirService = new AltaadmnirService();
@@ -60,6 +84,31 @@ public class NovoInternadoRepository implements PanacheRepository<NovoInternado>
 
 		}
 
+	}
+
+	// Alta de todas as internações ativas de um leito que foi bloqueado ou excluído.
+	public long contarAtivosPorLeito(int idleito) {
+		Number total = (Number) entityManager.createNativeQuery(
+				"SELECT COUNT(*) FROM novointernado WHERE local_idsetorlocalcenso = :idleito AND alta = false")
+				.setParameter("idleito", idleito).getSingleResult();
+		return total == null ? 0 : total.longValue();
+	}
+
+	// Devolve os BAMs que receberam alta, para o log de auditoria.
+	@SuppressWarnings("unchecked")
+	public List<Integer> darAltaPorLeito(int idleito, LocalDate acao, String quem, String motivo) {
+		List<Number> bams = entityManager.createNativeQuery(
+				"SELECT nbam FROM novointernado WHERE local_idsetorlocalcenso = :idleito AND alta = false")
+				.setParameter("idleito", idleito).getResultList();
+		if (bams.isEmpty()) {
+			return List.of();
+		}
+		String sql = "UPDATE novointernado SET alta = true, datadaacao = :acao, quemdeualta = :quem, motivosaida = :motivo "
+				+ "WHERE local_idsetorlocalcenso = :idleito AND alta = false";
+		entityManager.createNativeQuery(sql).setParameter("acao", acao)
+				.setParameter("quem", quem.replace(":", "-")).setParameter("motivo", motivo)
+				.setParameter("idleito", idleito).executeUpdate();
+		return bams.stream().map(Number::intValue).toList();
 	}
 
 	public void deletarAlocacao(int idbam) {

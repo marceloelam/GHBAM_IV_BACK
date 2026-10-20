@@ -95,11 +95,17 @@ public class ConfiguracaoUnidadeService implements Serializable {
 	    configuracaoUnidade.setBrasaoprefeitura(dto.getBrasaoprefeitura());
 		configuracaoUnidade.setUrlconexaolaudopacs(dto.getUrlconexaolaudopacs());
 		configuracaoUnidade.setUrlconexaoimagempacs(dto.getUrlconexaoimagempacs());
-		configuracaoUnidade.setTokenlaudopacs(dto.getTokenlaudopacs());
-		configuracaoUnidade.setTokenimagempacs(dto.getTokenimagempacs());
+		if (dto.getTokenlaudopacs() != null && !dto.getTokenlaudopacs().isBlank()) {
+			configuracaoUnidade.setTokenlaudopacs(dto.getTokenlaudopacs());
+		}
+		if (dto.getTokenimagempacs() != null && !dto.getTokenimagempacs().isBlank()) {
+			configuracaoUnidade.setTokenimagempacs(dto.getTokenimagempacs());
+		}
 		configuracaoUnidade.setUrlConexao(dto.getUrlConexao());
 		configuracaoUnidade.setUserConexao(dto.getUserConexao());
-		configuracaoUnidade.setPwdConexao(dto.getPwdConexao());
+		if (dto.getPwdConexao() != null && !dto.getPwdConexao().isBlank()) {
+			configuracaoUnidade.setPwdConexao(dto.getPwdConexao());
+		}
 		configuracaoUnidade.setLinkvideopainel(dto.getLinkvideopainel());
 
 		configuracaoUnidade.persist();
@@ -140,11 +146,17 @@ public class ConfiguracaoUnidadeService implements Serializable {
 		configuracaoUnidade.setBrasaoprefeitura(dto.getBrasaoprefeitura());
 		configuracaoUnidade.setUrlconexaolaudopacs(dto.getUrlconexaolaudopacs());
 		configuracaoUnidade.setUrlconexaoimagempacs(dto.getUrlconexaoimagempacs());
-		configuracaoUnidade.setTokenlaudopacs(dto.getTokenlaudopacs());
-		configuracaoUnidade.setTokenimagempacs(dto.getTokenimagempacs());
+		if (dto.getTokenlaudopacs() != null && !dto.getTokenlaudopacs().isBlank()) {
+			configuracaoUnidade.setTokenlaudopacs(dto.getTokenlaudopacs());
+		}
+		if (dto.getTokenimagempacs() != null && !dto.getTokenimagempacs().isBlank()) {
+			configuracaoUnidade.setTokenimagempacs(dto.getTokenimagempacs());
+		}
 		configuracaoUnidade.setUrlConexao(dto.getUrlConexao());
 		configuracaoUnidade.setUserConexao(dto.getUserConexao());
-		configuracaoUnidade.setPwdConexao(dto.getPwdConexao());
+		if (dto.getPwdConexao() != null && !dto.getPwdConexao().isBlank()) {
+			configuracaoUnidade.setPwdConexao(dto.getPwdConexao());
+		}
 		configuracaoUnidade.setLinkvideopainel(dto.getLinkvideopainel());
 
 		// Persiste as alterações

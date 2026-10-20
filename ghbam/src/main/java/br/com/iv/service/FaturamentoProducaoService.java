@@ -9,6 +9,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.event.Event;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import io.quarkus.narayana.jta.QuarkusTransaction;
@@ -61,6 +62,9 @@ public class FaturamentoProducaoService {
 
     @Inject
     FaturamentoProducaoRepository producaoRepository;
+
+    @Inject
+    Event<Afaturar> faturamentoPersistido;
 
     @Inject
     FaturamentoCompetenciaRepository competenciaRepository;
@@ -617,7 +621,9 @@ public class FaturamentoProducaoService {
         if (novo) {
             producao.persist();
         }
-        return reprocessarInterno(producao, user);
+        Afaturar processada = reprocessarInterno(producao, user);
+        faturamentoPersistido.fire(processada);
+        return processada;
     }
 
     private Afaturar reprocessarInterno(Afaturar producao, AuthenticatedUser user) {

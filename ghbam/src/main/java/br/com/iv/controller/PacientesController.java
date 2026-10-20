@@ -528,5 +528,29 @@ public class PacientesController {
 		 pacientesService.opcao7(bamorigem);
 		 return Response.status(204).build();
 	}
+
+	// Devolver paciente a fila da triagem
+	@POST
+	@Path("correcao-bam/opcao8/bamorigem/{bamorigem}/unidade/{unidade}")
+	public Response corrigirBamOpcao8(@PathParam("bamorigem") int bamorigem, @PathParam("unidade") String unidade) {
+		 pacientesService.opcao8(bamorigem, unidade);
+		 return Response.status(204).build();
+	}
+
+	// Devolver paciente a fila do medico
+	@POST
+	@Path("correcao-bam/opcao9/bamorigem/{bamorigem}/unidade/{unidade}")
+	public Response corrigirBamOpcao9(@PathParam("bamorigem") int bamorigem, @PathParam("unidade") String unidade) {
+		 pacientesService.opcao9(bamorigem, unidade);
+		 return Response.status(204).build();
+	}
+
+	// Devolver exames de laboratorio a coleta
+	@POST
+	@Path("correcao-bam/opcao10/bamorigem/{bamorigem}/unidade/{unidade}")
+	public Response corrigirBamOpcao10(@PathParam("bamorigem") int bamorigem, @PathParam("unidade") String unidade) {
+		 int alterados = pacientesService.opcao10(bamorigem, unidade);
+		 return Response.ok(java.util.Map.of("exames", alterados)).build();
+	}
 	
 }

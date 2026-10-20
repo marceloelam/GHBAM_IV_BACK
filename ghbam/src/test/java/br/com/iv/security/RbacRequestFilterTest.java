@@ -365,6 +365,12 @@ class RbacRequestFilterTest {
         assertFalse(RbacRequestFilter.isPublicKioskRequest("/chamada/unidade/HMSFX/tv/1", "DELETE"));
         assertFalse(RbacRequestFilter.isPublicKioskRequest("/chamada/abc/tv/1", "PATCH"));
         assertFalse(RbacRequestFilter.isPublicKioskRequest("/localcenso/sigla/HMSFX", "POST"));
+
+        assertTrue(RbacRequestFilter.isPublicKioskRequest("/painelVoz/status/HMSFX", "GET"));
+        assertTrue(RbacRequestFilter.isPublicKioskRequest("/painelVoz/chamada/HMSFX/1/123", "GET"));
+        assertFalse(RbacRequestFilter.isPublicKioskRequest("/painelVoz/chamada/HMSFX/1/abc", "GET"));
+        assertFalse(RbacRequestFilter.isPublicKioskRequest("/painelVoz/chamada/HMSFX/1/123", "POST"));
+        assertFalse(RbacRequestFilter.isPublicKioskRequest("/painelVoz/texto/qualquer", "GET"));
     }
 
     private static final Pattern CLASS_PATH_PATTERN = Pattern.compile("@Path\\(\\s*\"([^\"]+)\"\\s*\\)");

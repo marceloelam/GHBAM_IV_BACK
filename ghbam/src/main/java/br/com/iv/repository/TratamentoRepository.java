@@ -31,7 +31,6 @@ public class TratamentoRepository implements PanacheRepository<Tratamento> {
 	public void finalizarBam(int idtratamento) {
 		String sql = "UPDATE tratamento set tratado = 1 where idtratamento = :idtratamento";
 		entityManager.createNativeQuery(sql).setParameter("idtratamento", idtratamento).executeUpdate();
-		System.out.println(sql);
 	}
 
 	@Transactional
@@ -81,7 +80,6 @@ public class TratamentoRepository implements PanacheRepository<Tratamento> {
 	public void atualizarTipoAlta(int idtratamento) {
 		String sql = "UPDATE tratamento set tipo_alta = 'internacao' where idtratamento = :idtratamento";
 		entityManager.createNativeQuery(sql).setParameter("idtratamento", idtratamento).executeUpdate();
-		System.out.println(sql);
 	}
 
 	@Transactional
@@ -92,7 +90,6 @@ public class TratamentoRepository implements PanacheRepository<Tratamento> {
 		
 		
 		entityManager.createNativeQuery(sql).setParameter("idtratamentoidpaciente", idtratamentoidpaciente).executeUpdate();
-		System.out.println(sql);
 		
 	}
 

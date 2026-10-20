@@ -49,7 +49,6 @@ public class ProcedimentosRXRepository implements PanacheRepository<Procedimento
 		entityManager.createNativeQuery(sql).setParameter("descricao", descricao)
 				.setParameter("codprocedimento", codprocedimento).setParameter("modo", modo)
 				.setParameter("modo2", modo2).executeUpdate();
-		System.out.println(sql);
 	}
 
 }

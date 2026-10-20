@@ -1,13 +1,5 @@
 package br.com.iv.controller;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
 import java.time.LocalDate;
 import java.util.Collections;
 import java.util.List;
@@ -57,187 +49,29 @@ public class BamController {
 	public Response filtarMapaGrafico(@PathParam("d1") LocalDate d1,
 	                                  @PathParam("d2") LocalDate d2,
 	                                  @PathParam("unidade") String unidade) {
-	    List<Bam> bam = bamService.filtarMapaGrafico(d1, d2, unidade);
-
-	    try {
-	        // Identificar se é Windows ou Linux
-	        String osName = System.getProperty("os.name").toLowerCase();
-	        String baseDir;
-
-	        if (osName.contains("win")) {
-	            baseDir = "C:\\nginx\\html\\ghbam";
-	        } else {
-	            baseDir = "/var/www/html";
-	        }
-
-	        System.out.println("Sistema operacional detectado: " + osName);
-	        System.out.println("Usando diretório: " + baseDir);
-
-	        File directory = new File(baseDir);
-
-	        // DEBUG: Verificar se o diretório existe e permissões
-	        System.out.println("Diretório existe: " + directory.exists());
-	        System.out.println("Caminho absoluto: " + directory.getAbsolutePath());
-	        System.out.println("Pode ler: " + directory.canRead());
-	        System.out.println("Pode escrever: " + directory.canWrite());
-	        System.out.println("Pode executar: " + directory.canExecute());
-
-	        if (!directory.exists()) {
-	            System.out.println("❌ Diretório não existe: " + baseDir);
-	            System.out.println("Tentando criar diretório...");
-	            boolean criado = directory.mkdirs();
-	            if (criado) {
-	                System.out.println("✅ Diretório criado com sucesso!");
-	                if (!osName.contains("win")) {
-	                    try {
-	                        Process process = Runtime.getRuntime().exec(new String[]{"chmod", "777", baseDir});
-	                        int exitCode = process.waitFor();
-	                        if (exitCode == 0) {
-	                            System.out.println("✅ Permissões concedidas ao diretório");
-	                        } else {
-	                            System.out.println("❌ Falha ao definir permissões. Código: " + exitCode);
-	                        }
-	                    } catch (Exception e) {
-	                        System.out.println("❌ Erro ao alterar permissões: " + e.getMessage());
-	                    }
-	                }
-	            } else {
-	                System.out.println("❌ Falha ao criar diretório. Usando fallback...");
-	                baseDir = System.getProperty("user.dir") + File.separator + "webapp";
-	                directory = new File(baseDir);
-	                if (directory.mkdirs()) {
-	                    System.out.println("📁 Usando diretório alternativo: " + baseDir);
-	                }
-	            }
-	        }
-
-	        if (!directory.canWrite()) {
-	            System.out.println("⚠️  AVISO: Sem permissão de escrita no diretório!");
-	            if (!osName.contains("win")) {
-	                try {
-	                    Process process = Runtime.getRuntime().exec(new String[]{"chmod", "777", baseDir});
-	                    int exitCode = process.waitFor();
-	                    if (exitCode == 0) {
-	                        System.out.println("✅ Permissões corrigidas");
-	                    } else {
-	                        System.out.println("❌ Não foi possível corrigir permissões");
-	                    }
-	                } catch (Exception e) {
-	                    System.out.println("❌ Erro ao corrigir permissões: " + e.getMessage());
-	                }
-	            }
-	        }
-
-	        // Caminho do arquivo
-	        String arquivo = baseDir + File.separator + "marcas.xml";
-	        File arquivoFile = new File(arquivo);
-
-	        System.out.println("📄 Arquivo será criado em: " + arquivoFile.getAbsolutePath());
-
-	        if (arquivoFile.exists()) {
-	            System.out.println("📄 Arquivo anterior existe, apagando...");
-	            boolean deletado = arquivoFile.delete();
-	            if (deletado) {
-	                System.out.println("✅ Arquivo anterior apagado");
-	            } else {
-	                System.out.println("❌ Não foi possível apagar o arquivo existente");
-	                try {
-	                    Thread.sleep(100);
-	                    deletado = arquivoFile.delete();
-	                    if (deletado) {
-	                        System.out.println("✅ Arquivo apagado na segunda tentativa");
-	                    }
-	                } catch (InterruptedException ie) {
-	                    Thread.currentThread().interrupt();
-	                }
-	            }
-	        }
-
-	        // Criar o arquivo XML
-	        System.out.println("🛠️  Criando novo XML...");
-	        try (FileOutputStream fos = new FileOutputStream(arquivoFile);
-	             OutputStreamWriter osw = new OutputStreamWriter(fos, "UTF-8");
-	             BufferedWriter out = new BufferedWriter(osw)) {
-
-	            out.write("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
-	            out.write("<markers>\n");
-	            for (Bam baml : bam) {
-	                out.write("<marker name=\"" + baml.getPaciente().getNome() + "\" address=\""
-	                        + baml.getPaciente().getEndereco() + ", " + baml.getPaciente().getNumero() + " - "
-	                        + baml.getPaciente().getBairro() + ", " + baml.getPaciente().getMunicipio() + ", "
-	                        + baml.getPaciente().getEstado() + "\" lat=\"" + baml.getPaciente().getLatitude()
-	                        + "\" lng=\"" + baml.getPaciente().getLongitude() + "\" type=\""
-	                        + baml.getRegistro().getSetor() + "\" />\n");
-	            }
-	            out.write("</markers>");
-	            out.flush();
-
-	            System.out.println("✅ Conteúdo XML escrito com sucesso");
-	        }
-
-	        if (!osName.contains("win")) {
-	            try {
-	                Process process = Runtime.getRuntime().exec(new String[]{"chmod", "777", arquivo});
-	                int exitCode = process.waitFor();
-	                if (exitCode == 0) {
-	                    System.out.println("✅ Permissões 777 definidas para o arquivo");
-	                } else {
-	                    System.out.println("❌ Falha ao definir permissões do arquivo");
-	                }
-	            } catch (Exception e) {
-	                System.out.println("❌ Erro ao definir permissões: " + e.getMessage());
-	            }
-	        }
-
-	        if (arquivoFile.exists()) {
-	            System.out.println("🎉 XML criado com sucesso!");
-	            System.out.println("📍 Local: " + arquivoFile.getAbsolutePath());
-	            System.out.println("📏 Tamanho: " + arquivoFile.length() + " bytes");
-	            System.out.println("👁️  Pode ler: " + arquivoFile.canRead());
-	            System.out.println("✏️  Pode escrever: " + arquivoFile.canWrite());
-
-	            if (!osName.contains("win")) {
-	                try {
-	                    Process process = Runtime.getRuntime().exec(new String[]{"ls", "-l", arquivo});
-	                    BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-	                    String line;
-	                    while ((line = reader.readLine()) != null) {
-	                        System.out.println("🔍 Permissões do arquivo: " + line);
-	                    }
-	                    process.waitFor();
-	                } catch (Exception e) {
-	                    System.out.println("❌ Não foi possível verificar permissões detalhadas");
-	                }
-	            }
-	        } else {
-	            System.out.println("❌ ERRO: Arquivo não foi criado!");
-	            return Response.serverError().entity("Erro: arquivo não foi criado!").build();
-	        }
-
-	        // ✅ Sucesso → retorna 200
-	        return Response.ok("Arquivo marcas.xml gerado com sucesso!").build();
-
-	    } catch (Exception e) {
-	        e.printStackTrace();
-	        return Response.serverError()
-	                       .entity("💥 Erro crítico ao gerar XML: " + e.getMessage())
-	                       .build();
-	    }
+		List<Bam> bams = bamService.filtarMapaGrafico(d1, d2, unidade);
+		List<Map<String, Object>> marcadores = new java.util.ArrayList<>();
+		for (Bam item : bams) {
+			if (item.getPaciente() == null || item.getRegistro() == null) continue;
+			Map<String, Object> paciente = new java.util.LinkedHashMap<>();
+			paciente.put("nome", item.getPaciente().getNome());
+			paciente.put("endereco", item.getPaciente().getEndereco());
+			paciente.put("numero", item.getPaciente().getNumero());
+			paciente.put("bairro", item.getPaciente().getBairro());
+			paciente.put("municipio", item.getPaciente().getMunicipio());
+			paciente.put("estado", item.getPaciente().getEstado());
+			paciente.put("latitude", item.getPaciente().getLatitude());
+			paciente.put("longitude", item.getPaciente().getLongitude());
+			Map<String, Object> registro = Map.of("setor", String.valueOf(item.getRegistro().getSetor() == null ? "" : item.getRegistro().getSetor()));
+			Map<String, Object> marcador = new java.util.LinkedHashMap<>();
+			marcador.put("paciente", paciente);
+			marcador.put("registro", registro);
+			marcadores.add(marcador);
+		}
+		return Response.ok(marcadores).header("Cache-Control", "no-store, private").build();
 	}
 
-	// Método auxiliar para escape de XML (opcional, mas recomendado)
-	private String escapeXml(String input) {
-	    if (input == null) return "";
-	    return input.replace("&", "&amp;")
-	                .replace("<", "&lt;")
-	                .replace(">", "&gt;")
-	                .replace("\"", "&quot;")
-	                .replace("'", "&apos;");
-	}
-	
-	
-	
-	
+
 	@GET
 	@Path("/numerobam/{numero}/unidade/{unidade}")
 	public Response xlistarUnidades(@PathParam("numero") int numero, @PathParam("unidade") String unidade) {

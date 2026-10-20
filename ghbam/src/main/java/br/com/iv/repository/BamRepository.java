@@ -63,7 +63,6 @@ public class BamRepository implements PanacheRepository<Bam> {
 			sql = "UPDATE bam set cor = :cor where idbam = :idbam";
 
 		entityManager.createNativeQuery(sql).setParameter("cor", cor).setParameter("idbam", idbam).executeUpdate();
-		System.out.println(sql);
 		// .setParameter("idservidor", idservidor)
 	}
 
@@ -72,7 +71,6 @@ public class BamRepository implements PanacheRepository<Bam> {
 		String sql = "UPDATE bam set ematendimento = :ematendimento where idbam = :idbam";
 		entityManager.createNativeQuery(sql).setParameter("ematendimento", ematendimento).setParameter("idbam", idbam)
 				.executeUpdate();
-		System.out.println(sql);
 	}
 
 	public void atualizarOrigemDestinoTransferencia(int idbam, String origem, String destino) {
@@ -89,7 +87,6 @@ public class BamRepository implements PanacheRepository<Bam> {
 		String sql = "UPDATE avaliacao set unidade = :destino where idavaliacao in (select avaliacao_idavaliacao from bam where idbam = :idbam )";
 		entityManager.createNativeQuery(sql).setParameter("destino", destino).setParameter("idbam", idbam)
 				.executeUpdate();
-		System.out.println(sql);
 	}
 
 	/**
@@ -111,10 +108,17 @@ public class BamRepository implements PanacheRepository<Bam> {
 	
 	@SuppressWarnings("unchecked")
 	public List<Bam> filtarMapaGrafico(LocalDate d1, LocalDate d2, String unidade) {
-		String sql = "SELECT DISTINCT (p.nome), b.* FROM bam b inner join  pacientes p on b.paciente_idpaciente = p.idpaciente inner join avaliacao a on b.avaliacao_idavaliacao = a.idavaliacao inner join  registro r on   "
-				+ "  b.registro_idregistro=r.idregistro WHERE to_date(a.data, 'YYYY/MM/DD') BETWEEN  cast('" + d1 + "' as date) and cast('"
-				+ d2 + "' as date) and b.unidade ='" + unidade + "'";
-		return getEntityManager().createNativeQuery(sql, Bam.class).getResultList();
+		String sql = "SELECT DISTINCT (p.nome), b.* FROM bam b "
+				+ "INNER JOIN pacientes p ON b.paciente_idpaciente = p.idpaciente "
+				+ "INNER JOIN avaliacao a ON b.avaliacao_idavaliacao = a.idavaliacao "
+				+ "INNER JOIN registro r ON b.registro_idregistro = r.idregistro "
+				+ "WHERE to_date(a.data, 'YYYY/MM/DD') BETWEEN :dataInicio AND :dataFim "
+				+ "AND b.unidade = :unidade";
+		return getEntityManager().createNativeQuery(sql, Bam.class)
+				.setParameter("dataInicio", d1)
+				.setParameter("dataFim", d2)
+				.setParameter("unidade", unidade)
+				.getResultList();
 
 		// return find("replace(nome, ' ', '') like ?1", n_nome +
 		// "%").page(Page.ofSize(10)).list();

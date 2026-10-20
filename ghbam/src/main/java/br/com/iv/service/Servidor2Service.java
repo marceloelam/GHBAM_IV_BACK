@@ -173,6 +173,9 @@ public class Servidor2Service implements Serializable {
 		Servidor2.setFarmaciaoperacoes(dto.getFarmaciaoperacoes() != null ? dto.getFarmaciaoperacoes() : false);
 		Servidor2.setFarmaciaavaliacao(dto.getFarmaciaavaliacao() != null ? dto.getFarmaciaavaliacao() : false);
 		Servidor2.setFarmaciarelatorios(dto.getFarmaciarelatorios() != null ? dto.getFarmaciarelatorios() : false);
+		Servidor2.setNirlaudointernacao(dto.getNirlaudointernacao() != null ? dto.getNirlaudointernacao() : false);
+		Servidor2.setNirenfermariaseleitos(dto.getNirenfermariaseleitos() != null ? dto.getNirenfermariaseleitos() : false);
+		Servidor2.setNirhistoricocompleto(dto.getNirhistoricocompleto() != null ? dto.getNirhistoricocompleto() : false);
 		Servidor2.setNir(dto.getNir() != null ? dto.getNir() : false);
 		Servidor2.setPainelnir(dto.getPainelnir() != null ? dto.getPainelnir() : false);
 		Servidor2.setLocalcenso(dto.getLocalcenso() != null ? dto.getLocalcenso() : false);
@@ -251,19 +254,18 @@ public class Servidor2Service implements Serializable {
 		aplicarEstadoSuperusuario(Servidor2, false);
 		Servidor2.persist();
 		securityPermissionService.invalidateUserCache(Servidor2.getMatricula());
-		System.out.println(Servidor2);
 		return Servidor2;
 	}
 
 	// Alterar
 	@Transactional
 	public void atualizarServidor2(int id, Servidor2Dto dto) {
-		Optional<Servidor2> Servidor2Op = Servidor2.findByIdOptional(id);
+		Optional<Servidor2> Servidor2Op = Servidor2.findByIdOptional(id, jakarta.persistence.LockModeType.PESSIMISTIC_WRITE);
 		Servidor2 Servidor2 = Servidor2Op
 				.orElseThrow(() -> new NullPointerException("O Servidor2 nÃ£o foi encontrado..."));
 		boolean eraSuperusuario = Boolean.TRUE.equals(Servidor2.getSuperusuario());
 
-		Servidor2.setMatricula(dto.getMatricula());
+		ServidorMatriculaService.validarMatriculaCadastro(Servidor2.getMatricula(), dto.getMatricula());
 		Servidor2.setNome(dto.getNome());
 		Servidor2.setTel(dto.getTel());
 		Servidor2.setEmail(dto.getEmail());
@@ -341,6 +343,9 @@ public class Servidor2Service implements Serializable {
 		Servidor2.setFarmaciaoperacoes(dto.getFarmaciaoperacoes() != null ? dto.getFarmaciaoperacoes() : Servidor2.getFarmaciaoperacoes());
 		Servidor2.setFarmaciaavaliacao(dto.getFarmaciaavaliacao() != null ? dto.getFarmaciaavaliacao() : Servidor2.getFarmaciaavaliacao());
 		Servidor2.setFarmaciarelatorios(dto.getFarmaciarelatorios() != null ? dto.getFarmaciarelatorios() : Servidor2.getFarmaciarelatorios());
+		Servidor2.setNirlaudointernacao(dto.getNirlaudointernacao() != null ? dto.getNirlaudointernacao() : Servidor2.getNirlaudointernacao());
+		Servidor2.setNirenfermariaseleitos(dto.getNirenfermariaseleitos() != null ? dto.getNirenfermariaseleitos() : Servidor2.getNirenfermariaseleitos());
+		Servidor2.setNirhistoricocompleto(dto.getNirhistoricocompleto() != null ? dto.getNirhistoricocompleto() : Servidor2.getNirhistoricocompleto());
 		Servidor2.setNir(dto.getNir() != null ? dto.getNir() : Servidor2.getNir());
 		Servidor2.setPainelnir(dto.getPainelnir() != null ? dto.getPainelnir() : Servidor2.getPainelnir());
 		Servidor2.setLocalcenso(dto.getLocalcenso() != null ? dto.getLocalcenso() : Servidor2.getLocalcenso());
@@ -414,7 +419,6 @@ public class Servidor2Service implements Serializable {
 		Servidor2.setGpecconfiguracao(dto.getGpecconfiguracao() != null ? dto.getGpecconfiguracao() : Servidor2.getGpecconfiguracao());
 		Servidor2.setGpecappacs(dto.getGpecappacs() != null ? dto.getGpecappacs() : Servidor2.getGpecappacs());
 		aplicarEstadoSuperusuario(Servidor2, eraSuperusuario);
-		System.out.println(Servidor2);
 		Servidor2.persist();
 		securityPermissionService.invalidateUserCache(Servidor2.getMatricula());
 
@@ -476,7 +480,6 @@ public class Servidor2Service implements Serializable {
 		Servidor2.setEscalaenfermagem(dto.getEscalaenfermagem());
 		Servidor2.setEvolucaomultidisciplinar(dto.getEvolucaomultidisciplinar());
 		Servidor2.setPedidosexame(dto.getPedidosexame());
-		System.out.println(Servidor2);
 		return Servidor2;
 
 	}
@@ -489,7 +492,6 @@ public class Servidor2Service implements Serializable {
 			return null;
 		}
 		// Os campos jÃ¡ estÃ£o preenchidos pelo prÃ³prio objeto recuperado do banco
-		System.out.println(servidor2);
 		return servidor2;
 	}
 
@@ -530,7 +532,6 @@ public class Servidor2Service implements Serializable {
 		Servidor2.setEscalaenfermagem(dto.getEscalaenfermagem());
 		Servidor2.setEvolucaomultidisciplinar(dto.getEvolucaomultidisciplinar());
 		Servidor2.setPedidosexame(dto.getPedidosexame());
-		System.out.println(Servidor2);
 		return Servidor2;
 
 	}

@@ -142,7 +142,6 @@ public class LocalCensoRepository implements PanacheRepository<LocalCenso> {
 	public void alterarExclusao(int id, boolean excluido) {
 		String sql = "UPDATE LocalCenso set excluido = :excluir where idlocalcenso = :id";
 		entityManager.createNativeQuery(sql).setParameter("id", id).setParameter("excluir", excluido).executeUpdate();
-		System.out.println(sql);
 	}
 
 	@Transactional

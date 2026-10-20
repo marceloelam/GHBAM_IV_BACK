@@ -1,18 +1,41 @@
 package br.com.iv.util;
 
+import java.io.InputStream;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.security.KeyStore;
+import java.security.cert.CertStore;
+import java.security.cert.Certificate;
+import java.security.cert.CertificateFactory;
+import java.security.cert.CollectionCertStoreParameters;
+import java.security.cert.PKIXBuilderParameters;
+import java.security.cert.TrustAnchor;
+import java.security.cert.X509CertSelector;
+import java.security.cert.X509Certificate;
 import java.time.Duration;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import javax.net.ssl.CertPathTrustManagerParameters;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.TrustManagerFactory;
+import javax.net.ssl.X509TrustManager;
+
+import org.jboss.logging.Logger;
+
 import br.com.iv.entity.ConfiguracaoUnidade;
 import br.com.iv.repository.ConfiguracaoUnidadeRepository;
+import io.quarkus.runtime.StartupEvent;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.event.Observes;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
@@ -25,17 +48,18 @@ import jakarta.ws.rs.core.Response;
 @ApplicationScoped
 public class PacsProxyResource {
 
+    private static final Logger LOG = Logger.getLogger(PacsProxyResource.class);
+    private static final String INTERMEDIARIOS_PEM = "/certs/letsencrypt-intermediarios.pem";
     private static final int MAX_REDIRECTS = 5;
+    private static final Set<String> HOSTS_PACS_PADRAO = Set.of("ris.itaguai.rj.gov.br", "pacs.itaguai.rj.gov.br");
     @Inject
     ConfiguracaoUnidadeRepository configuracaoUnidadeRepository;
 
-    private final HttpClient httpClient = HttpClient.newBuilder()
-            .connectTimeout(Duration.ofSeconds(30))
-            .followRedirects(HttpClient.Redirect.NEVER)
-            .build();
+    private final HttpClient httpClient = criarHttpClient();
 
-    private static final Pattern ACCESSION_PATTERN = Pattern.compile("\"accession_number\"\\s*:\\s*\"([^\"]+)\"");
-    private static final Pattern TIPO_ACESSO_PATTERN = Pattern.compile("\"tipo_acesso\"\\s*:\\s*\"([^\"]+)\"");
+    // O PACS devolve accession_number e tipo_acesso como número ("accession_number":147779), não como texto.
+    private static final Pattern ACCESSION_PATTERN = Pattern.compile("\"accession_number\"\\s*:\\s*\"?([^\",}\\s]+)\"?");
+    private static final Pattern TIPO_ACESSO_PATTERN = Pattern.compile("\"tipo_acesso\"\\s*:\\s*\"?([^\",}\\s]+)\"?");
     private static final Pattern TOKEN_ACESSO_PATTERN = Pattern.compile("\"token_acesso\"\\s*:\\s*\"([^\"]+)\"");
 
     @GET
@@ -51,14 +75,24 @@ public class PacsProxyResource {
         }
 
         try {
-            String tokenPacs = buscarTokenPacs(unidade, tipo);
+            ConfiguracaoUnidade config = buscarConfiguracaoUnidade(unidade);
+            String tokenPacs = buscarTokenPacs(config, tipo);
             List<String> acceptHeaders = headers.getRequestHeader("Accept");
             List<String> originHeaders = headers.getRequestHeader("Origin");
 
-            URI targetUri = URI.create(url);
+            URI targetUri = URI.create(normalizarUrlPacs(url));
+            Set<String> hostsPermitidos = hostsPacsPermitidos(config);
             int redirectCount = 0;
 
             while (redirectCount <= MAX_REDIRECTS) {
+                // O proxy envia o token do PACS/RIS: só pode chamar os hosts configurados.
+                if (!hostPermitido(targetUri, hostsPermitidos)) {
+                    return Response.status(Response.Status.FORBIDDEN)
+                            .entity("{\"erro\":\"Destino nao permitido para o proxy PACS\"}")
+                            .header("Content-Type", "application/json")
+                            .build();
+                }
+
                 var requestBuilder = HttpRequest.newBuilder()
                         .uri(targetUri)
                         .timeout(Duration.ofSeconds(60))
@@ -122,8 +156,8 @@ public class PacsProxyResource {
         }
 
         String json = "{"
-                + "\"urlconexaoimagempacs\":\"" + escapeJson(config.getUrlconexaoimagempacs()) + "\","
-                + "\"urlconexaolaudopacs\":\"" + escapeJson(config.getUrlconexaolaudopacs()) + "\""
+                + "\"urlconexaoimagempacs\":\"" + escapeJson(normalizarUrlPacs(config.getUrlconexaoimagempacs())) + "\","
+                + "\"urlconexaolaudopacs\":\"" + escapeJson(normalizarUrlPacs(config.getUrlconexaolaudopacs())) + "\""
                 + "}";
 
         return Response.ok(json)
@@ -145,7 +179,7 @@ public class PacsProxyResource {
             return jsonOk("{\"disponivel\":false,\"erro\":\"Configuracao PACS da unidade nao encontrada\"}");
         }
 
-        String baseImagem = config.getUrlconexaoimagempacs();
+        String baseImagem = normalizarUrlPacs(config.getUrlconexaoimagempacs());
         if (baseImagem == null || baseImagem.isBlank()) {
             return jsonOk("{\"disponivel\":false,\"erro\":\"URL de imagem PACS nao configurada\"}");
         }
@@ -186,8 +220,90 @@ public class PacsProxyResource {
         }
     }
 
-    private String buscarTokenPacs(String unidade, String tipo) {
-        ConfiguracaoUnidade config = buscarConfiguracaoUnidade(unidade);
+    // O PACS/RIS de Itaguaí saiu da porta 9596 e passou a responder só em HTTPS (443).
+    // Normaliza as URLs antigas gravadas na configuração das unidades.
+    // 10.200.200.43:9596 (configurado em unidades antigas) responde "Unknown method" para laudopdf.
+    static String normalizarUrlPacs(String url) {
+        if (url == null || url.isBlank()) return url;
+        return url.trim()
+                .replaceFirst("(?i)^https?://((?:ris|pacs)\\.itaguai\\.rj\\.gov\\.br):9596(?=/|$)", "https://$1")
+                .replaceFirst("(?i)^https?://10\\.200\\.200\\.43:9596(?=/api/laudopdf)", "https://ris.itaguai.rj.gov.br");
+    }
+
+    // O servidor do RIS/PACS (revproxy90) não envia o certificado intermediário da Let's Encrypt.
+    // Com AIA ligado, o Java busca o intermediário pela URL do próprio certificado, sem desligar a validação.
+    // Precisa valer antes da primeira conexão TLS; só tem efeito após reiniciar a JVM.
+    void habilitarAiaCertificados(@Observes StartupEvent ev) {
+        System.setProperty("com.sun.security.enableAIAcaIssuers", "true");
+    }
+
+    // O AIA sozinho falha quando o servidor não alcança *.i.lencr.org (cadeia: folha -> YE1 -> Root YE -> ISRG Root X2).
+    // Os intermediários Let's Encrypt (geração Y) vão embutidos só para montar a cadeia;
+    // as âncoras de confiança continuam sendo as do JDK e a validação segue ligada.
+    private static HttpClient criarHttpClient() {
+        var builder = HttpClient.newBuilder()
+                .connectTimeout(Duration.ofSeconds(30))
+                .followRedirects(HttpClient.Redirect.NEVER);
+        try {
+            builder.sslContext(sslContextComIntermediarios());
+        } catch (Exception e) {
+            LOG.warnf("Proxy PACS sem intermediarios embutidos, usando TLS padrao: %s", e.getMessage());
+        }
+        return builder.build();
+    }
+
+    static SSLContext sslContextComIntermediarios() throws Exception {
+        Collection<? extends Certificate> intermediarios;
+        try (InputStream in = PacsProxyResource.class.getResourceAsStream(INTERMEDIARIOS_PEM)) {
+            if (in == null) throw new IllegalStateException("recurso " + INTERMEDIARIOS_PEM + " ausente");
+            intermediarios = CertificateFactory.getInstance("X.509").generateCertificates(in);
+        }
+
+        TrustManagerFactory padrao = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+        padrao.init((KeyStore) null);
+        Set<TrustAnchor> ancoras = new HashSet<>();
+        for (TrustManager tm : padrao.getTrustManagers()) {
+            if (tm instanceof X509TrustManager x509) {
+                for (X509Certificate ca : x509.getAcceptedIssuers()) ancoras.add(new TrustAnchor(ca, null));
+            }
+        }
+
+        PKIXBuilderParameters params = new PKIXBuilderParameters(ancoras, new X509CertSelector());
+        params.addCertStore(CertStore.getInstance("Collection", new CollectionCertStoreParameters(intermediarios)));
+        params.setRevocationEnabled(false);
+
+        TrustManagerFactory pkix = TrustManagerFactory.getInstance("PKIX");
+        pkix.init(new CertPathTrustManagerParameters(params));
+        SSLContext ctx = SSLContext.getInstance("TLS");
+        ctx.init(null, pkix.getTrustManagers(), null);
+        return ctx;
+    }
+
+    private Set<String> hostsPacsPermitidos(ConfiguracaoUnidade config) {
+        Set<String> hosts = new HashSet<>(HOSTS_PACS_PADRAO);
+        if (config != null) {
+            adicionarHost(hosts, config.getUrlconexaoimagempacs());
+            adicionarHost(hosts, config.getUrlconexaolaudopacs());
+        }
+        return hosts;
+    }
+
+    private void adicionarHost(Set<String> hosts, String url) {
+        try {
+            String host = URI.create(normalizarUrlPacs(url)).getHost();
+            if (host != null) hosts.add(host.toLowerCase());
+        } catch (Exception ignored) {
+            // URL de configuração inválida: não libera host algum
+        }
+    }
+
+    private boolean hostPermitido(URI uri, Set<String> hosts) {
+        String scheme = uri.getScheme() == null ? "" : uri.getScheme().toLowerCase();
+        String host = uri.getHost() == null ? "" : uri.getHost().toLowerCase();
+        return ("http".equals(scheme) || "https".equals(scheme)) && hosts.contains(host);
+    }
+
+    private String buscarTokenPacs(ConfiguracaoUnidade config, String tipo) {
         if (config == null) return "";
 
         String tipoNormalizado = tipo == null ? "" : tipo.trim().toLowerCase();

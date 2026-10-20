@@ -52,18 +52,21 @@ public class ResetSenhaService {
     ReconhecimentoFacialService reconhecimentoFacialService;
 
     @Inject
+    ProvaVidaFacialService provaVidaFacialService;
+
+    @Inject
     LogService logService;
 
     @Inject
     SessaoAtivaService sessaoAtivaService;
 
     @Transactional
-    public void redefinirSenhaPadraoPorValidacaoFacial(String matricula, String imagemBase64, String ip,
-        String computador) {
+    public void redefinirSenhaPadraoPorValidacaoFacial(String matricula, String desafioId, List<String> imagens,
+        String ip, String computador) {
         matricula = matricula == null ? "" : matricula.trim();
 
-        if (matricula.isBlank() || imagemBase64 == null || imagemBase64.isBlank()) {
-            throw new IllegalArgumentException("Matricula e foto sao obrigatorias.");
+        if (matricula.isBlank() || imagens == null || imagens.isEmpty()) {
+            throw new IllegalArgumentException("Matricula e fotos sao obrigatorias.");
         }
 
         if (!reconhecimentoFacialService.configurado()) {
@@ -91,8 +94,13 @@ public class ResetSenhaService {
             throw new IllegalArgumentException("Servidor sem foto cadastrada para validacao facial.");
         }
 
-        ReconhecimentoFacialService.ResultadoValidacao resultado =
-            reconhecimentoFacialService.validar(servidor.getFoto(), imagemBase64);
+        ReconhecimentoFacialService.ResultadoValidacao resultado;
+        try {
+            resultado = provaVidaFacialService.validar(desafioId, matricula, imagens, servidor.getFoto());
+        } catch (IllegalArgumentException e) {
+            salvarLog("RESET_SENHA_FACIAL_PROVA_VIDA_REPROVADA", matricula);
+            throw e;
+        }
         if (!resultado.isAprovado()) {
             salvarLog("RESET_SENHA_FACIAL_NAO_RECONHECIDA", matricula);
             throw new ValidacaoFacialException(

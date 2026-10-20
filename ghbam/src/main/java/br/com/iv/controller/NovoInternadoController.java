@@ -11,12 +11,14 @@ import jakarta.ws.rs.PATCH;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
 import br.com.iv.dto.NovoInternadoDto;
 import br.com.iv.entity.NovoInternado;
+import br.com.iv.service.BamRecenteGuard;
 import br.com.iv.service.NovoInternadoService;
 
 @Path("novointernado")
@@ -26,6 +28,9 @@ public class NovoInternadoController {
 
 	@Inject
 	NovoInternadoService novointernadoService;
+
+	@Inject
+	BamRecenteGuard bamRecenteGuard;
 
 	@GET
 	public Response listarRegistro() {
@@ -94,7 +99,8 @@ public class NovoInternadoController {
 	}
 
 	@POST
-	public Response salvarNovoInternado(NovoInternadoDto dto) {
+	public Response salvarNovoInternado(NovoInternadoDto dto, @QueryParam("confirmarBamAntigo") boolean confirmarBamAntigo) {
+		bamRecenteGuard.exigirConfirmacao(dto == null ? null : dto.getNbam(), confirmarBamAntigo, "Alocacao no censo");
 		NovoInternado novointernado = null;
 		novointernado = novointernadoService.salvarNovoInternado(dto);
 		return Response.ok(novointernado).status(201).build();

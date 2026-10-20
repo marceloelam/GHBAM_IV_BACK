@@ -85,6 +85,7 @@ public class ApsCidadaoService {
     }
 
     public Map<String, Object> obter(Long id) {
+        completarDoHospitalSemFalhar(id);
         Map<String, Object> c = db.one("""
                 SELECT c.*, e.nome AS equipe_nome, e.ine, e.cnes AS equipe_cnes,
                        d.id AS id_domicilio, d.logradouro, d.numero, d.bairro, d.complemento, d.cep
@@ -99,7 +100,82 @@ public class ApsCidadaoService {
             c.put("idade_anos", ApsValidacao.idadeAnos(n, null));
             c.put("idade_meses", ApsValidacao.idadeMeses(n, null));
         }
+        if (c != null) {
+            c.put("cadastro_desatualizado", cadastroDesatualizado(c));
+        }
         return c;
+    }
+
+    /**
+     * Completa CPF/CNS/nascimento VAZIOS do cidadao a partir do cadastro do hospital (mesmo paciente,
+     * via id_paciente). Nunca sobrescreve; so aceita CPF/CNS validos e que nao sejam de outro cidadao.
+     * Nao gera ficha: o e-SUS recebe o dado quando o Cadastro Individual for revisado e salvo
+     * (ver cadastroDesatualizado). atualizado_por = SYNC-HOSPITAL deixa a origem rastreavel.
+     */
+    void completarDoHospitalSemFalhar(Long id) {
+        try {
+            completarDoHospital(id);
+        } catch (RuntimeException e) {
+            // Complemento e oportunista: nunca impede abrir o cidadao.
+            org.jboss.logging.Logger.getLogger(ApsCidadaoService.class)
+                    .warnf("APS: falha ao completar cidadao %d pelo hospital: %s", id, e.getMessage());
+        }
+    }
+
+    void completarDoHospital(Long id) {
+        Map<String, Object> c = db.one("""
+                SELECT id, id_paciente, cpf, cns, data_nascimento FROM aps_cidadao
+                WHERE id = :id AND id_paciente IS NOT NULL AND (cpf IS NULL OR cns IS NULL OR data_nascimento IS NULL)
+                """, p("id", id));
+        if (c == null) {
+            return;
+        }
+        Map<String, Object> pac = db.one("SELECT cpf, cns, nascimento FROM pacientes WHERE idpaciente = :p",
+                p("p", c.get("id_paciente")));
+        if (pac == null) {
+            return;
+        }
+        String cpf = c.get("cpf") == null ? ApsValidacao.digitos((String) pac.get("cpf")) : null;
+        String cns = c.get("cns") == null ? ApsValidacao.digitos((String) pac.get("cns")) : null;
+        cpf = ApsValidacao.cpfValido(cpf) && duplicado(cpf, null, id) == null ? cpf : null;
+        cns = ApsValidacao.cnsValido(cns) && duplicado(null, cns, id) == null ? cns : null;
+        String nasc = c.get("data_nascimento") == null ? dataPaciente((String) pac.get("nascimento")) : null;
+        if (nasc != null && LocalDate.parse(nasc).isAfter(LocalDate.now())) {
+            nasc = null;
+        }
+        if (cpf == null && cns == null && nasc == null) {
+            return;
+        }
+        db.exec("""
+                UPDATE aps_cidadao SET cpf = COALESCE(cpf, :cpf), cns = COALESCE(cns, :cns),
+                       data_nascimento = COALESCE(data_nascimento, CAST(:nasc AS date)),
+                       atualizado_em = CURRENT_TIMESTAMP, atualizado_por = 'SYNC-HOSPITAL'
+                WHERE id = :id
+                """, p("id", id, "cpf", cpf, "cns", cns, "nasc", nasc));
+    }
+
+    /**
+     * Ficha de Cadastro Individual salva sem um dado que o cidadao ja tem (ex.: completado pelo
+     * hospital): o e-SUS esta com o cadastro antigo ate alguem revisar e salvar o Cadastro Individual.
+     * Calculado, nao gravado em `dados` - `dados` e a FCI que vai para o LEDI/app do ACS.
+     */
+    @SuppressWarnings("unchecked")
+    static boolean cadastroDesatualizado(Map<String, Object> c) {
+        if (!(c.get("dados") instanceof Map<?, ?> d) || !(d.get("identificacaoUsuarioCidadao") instanceof Map<?, ?> i)) {
+            return false;
+        }
+        Map<String, Object> ident = (Map<String, Object>) i;
+        String fichaCpf = ApsValidacao.digitos(str(ident.get("cpfCidadao")));
+        String fichaCns = ApsValidacao.digitos(str(ident.get("cnsCidadao")));
+        boolean semCpfNaFicha = fichaCpf == null || fichaCpf.isEmpty();
+        if (c.get("cpf") != null && semCpfNaFicha) {
+            return true;
+        }
+        // A FCI leva so o CPF quando ha CPF; CNS so falta de fato quando a ficha nao tem nenhum dos dois.
+        if (c.get("cns") != null && semCpfNaFicha && (fichaCns == null || fichaCns.isEmpty())) {
+            return true;
+        }
+        return c.get("data_nascimento") != null && str(ident.get("dataNascimentoCidadao")) == null;
     }
 
     /** Traz para a APS um paciente ja cadastrado no hospital (sem gerar ficha: o cadastro individual e feito depois). */
@@ -130,9 +206,26 @@ public class ApsCidadaoService {
                 RETURNING id
                 """, p("idp", idPaciente, "cpf", cpf != null && cpf.length() == 11 ? cpf : null,
                 "cns", cns != null && cns.length() == 15 ? cns : null, "nome", pac.get("nome"), "nasc", nasc,
-                "sexo", sexoLedi((String) pac.get("sexo")), "mae", pac.get("mae"), "tel", pac.get("telefone"),
+                "sexo", sexoLedi((String) pac.get("sexo")), "mae", pac.get("mae"), "tel", telefoneImportado((String) pac.get("telefone")),
                 "unidade", unidade, "m", matricula));
         return obter(id);
+    }
+
+    /**
+     * O telefone do cadastro do hospital e texto livre (mascara, dois numeros "x / y", observacoes) e
+     * estourava aps_cidadao.telefone VARCHAR(20). Fica so o primeiro numero, em digitos.
+     */
+    static String telefoneImportado(String bruto) {
+        if (bruto == null) {
+            return null;
+        }
+        for (String parte : bruto.split("[/;,|]|\\s+(?i:e|ou)\\s+")) {
+            String d = ApsValidacao.digitos(parte);
+            if (d != null && !d.isEmpty()) {
+                return d.length() > 20 ? d.substring(0, 20) : d;
+            }
+        }
+        return null;
     }
 
     /**

@@ -1,6 +1,7 @@
 package br.com.iv.entity;
 
 import java.io.Serializable;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -65,14 +66,17 @@ public class ConfiguracaoUnidade  extends PanacheEntityBase implements Serializa
 	@Column(length = 60)
 	private String urlconexaolaudopacs;
 	@Column(length = 500)
+		@JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
 	private String tokenimagempacs;
 	@Column(length = 500)
+		@JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
 	private String tokenlaudopacs;
 	@Column(length = 60)
 	private String urlConexao;
 	@Column(length = 30)
 	private String userConexao;
 	@Column(length = 15)
+		@JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
 	private String pwdConexao;
 	@Column(columnDefinition = "TEXT")
 	private String logoprefeitura;
@@ -109,8 +113,8 @@ public class ConfiguracaoUnidade  extends PanacheEntityBase implements Serializa
 		this.cep = "23815310";
 		this.logoprefeitura = "logoPrefeiturait.gif";
 		//this.brasaoprefeitura = "brasaoit.jpg";
-		this.urlconexaolaudopacs = "http://ris.itaguai.rj.gov.br:9596/api/laudopdf/";
-		this.urlconexaoimagempacs = "http://pacs.itaguai.rj.gov.br:9596/viewer_ext/estudo/";
+		this.urlconexaolaudopacs = "https://ris.itaguai.rj.gov.br/api/laudopdf/";
+		this.urlconexaoimagempacs = "https://pacs.itaguai.rj.gov.br/viewer_ext/estudo/";
 		this.tokenimagempacs = "";
 		this.tokenlaudopacs = "";
 		this.urlConexao = "jdbc:postgresql://127.0.0.1:5432/hospitalit";

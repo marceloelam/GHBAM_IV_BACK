@@ -25,7 +25,6 @@ public class BalancoHidricoEntradaRepository implements PanacheRepository<Balanc
 	    ).list();
 
 	    if (resultados.isEmpty()) {
-	        System.out.println("Nenhum balanço hídrico de entrada encontrado para BAM " + bam + " na data " + data);
 	    }
 	    return resultados;
 	}

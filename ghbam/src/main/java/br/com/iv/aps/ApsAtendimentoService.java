@@ -59,6 +59,9 @@ public class ApsAtendimentoService {
     @Inject
     ApsReferenciaService referencias;
 
+    @Inject
+    ApsCidadaoService cidadaos;
+
     // ------------------------------------------------------------------ Lista de atendimentos
 
     public List<Map<String, Object>> lista(String unidade, LocalDate data, String status, String matriculaDestino) {
@@ -257,7 +260,11 @@ public class ApsAtendimentoService {
         if (a == null) {
             return null;
         }
-        a.put("cidadao", cidadao(((Number) a.get("id_cidadao")).longValue()));
+        Long idCidadao = ((Number) a.get("id_cidadao")).longValue();
+        cidadaos.completarDoHospitalSemFalhar(idCidadao);
+        Map<String, Object> c = cidadao(idCidadao);
+        c.put("cadastro_desatualizado", ApsCidadaoService.cadastroDesatualizado(c));
+        a.put("cidadao", c);
         if (a.get("id_lista") != null) {
             a.put("lista", db.one("SELECT * FROM aps_lista_atendimento WHERE id = :id", p("id", a.get("id_lista"))));
         }

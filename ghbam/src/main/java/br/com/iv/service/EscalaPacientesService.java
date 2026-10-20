@@ -17,6 +17,14 @@ public class EscalaPacientesService implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
+    public static class HorarioOcupadoException extends IllegalArgumentException {
+        private static final long serialVersionUID = 1L;
+
+        public HorarioOcupadoException() {
+            super("Este horário já está ocupado para o profissional selecionado");
+        }
+    }
+
     @Inject
     EscalaPacientesRepository escalaPacientesRepository;
 
@@ -75,9 +83,33 @@ public class EscalaPacientesService implements Serializable {
 
     @Transactional
     public EscalaPaciente salvarEscalaPaciente2(SalvarEscalaPaciente2Dto dto) {
-        // Validação básica
+        if (dto == null) {
+            throw new IllegalArgumentException("Dados do agendamento são obrigatórios");
+        }
         if (dto.getPaciente() == null) {
             throw new IllegalArgumentException("Paciente não pode ser nulo");
+        }
+        if (dto.getPaciente().getIdpaciente() <= 0) {
+            throw new IllegalArgumentException("Paciente inválido");
+        }
+        if (dto.getInicioagenda() == null || dto.getUnidade() == null || dto.getUnidade().isBlank()
+                || dto.getSetor() == null || dto.getSetor().isBlank()
+                || dto.getMedico() == null || dto.getMedico().isBlank()
+                || dto.getHoramarcada() == null || dto.getHoramarcada().isBlank()) {
+            throw new IllegalArgumentException("Data, unidade, setor, profissional e horário são obrigatórios");
+        }
+        if (!dto.getHoramarcada().matches("^([01]\\d|2[0-3]):[0-5]\\d$")) {
+            throw new IllegalArgumentException("Horário inválido; use HH:mm");
+        }
+        String unidade = dto.getUnidade().trim();
+        String setor = dto.getSetor().trim();
+        String medico = dto.getMedico().trim();
+        String horario = dto.getHoramarcada().trim();
+        escalaPacientesRepository.bloquearHorarioAgendado(
+                dto.getInicioagenda(), unidade, setor, medico, horario);
+        if (escalaPacientesRepository.existeHorarioAgendado(
+                dto.getInicioagenda(), unidade, setor, medico, horario)) {
+            throw new HorarioOcupadoException();
         }
 
         EscalaPaciente novoPaciente = new EscalaPaciente();
@@ -85,13 +117,13 @@ public class EscalaPacientesService implements Serializable {
         novoPaciente.setInicioagenda(dto.getInicioagenda());
         novoPaciente.setFimagenda(dto.getFimagenda());
         novoPaciente.setDt_nasc(dto.getDt_nasc());
-        novoPaciente.setHoramarcada(dto.getHoramarcada());
+        novoPaciente.setHoramarcada(horario);
         novoPaciente.setHorasaida(dto.getHorasaida());
-        novoPaciente.setSetor(dto.getSetor());
+        novoPaciente.setSetor(setor);
         novoPaciente.setPaciente(dto.getPaciente());
-        novoPaciente.setMedico(dto.getMedico());
+        novoPaciente.setMedico(medico);
         novoPaciente.setCadastrou(dto.getCadastrou());
-        novoPaciente.setUnidade(dto.getUnidade());
+        novoPaciente.setUnidade(unidade);
         novoPaciente.setObs(dto.getObs());
         novoPaciente.setObs2(dto.getObs2());
         novoPaciente.setStatusevento(dto.isStatusevento());

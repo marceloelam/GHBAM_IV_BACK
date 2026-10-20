@@ -9,6 +9,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.jboss.logging.Logger;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
@@ -42,7 +43,6 @@ public class requisitarCapturaDoBackPrincipal {
 
     private static final Logger LOG = Logger.getLogger(requisitarCapturaDoBackPrincipal.class);
     private static final Set<String> connectedClients = ConcurrentHashMap.newKeySet();
-    private static final Map<String, ServidorBioDto> verificationResults = new ConcurrentHashMap<>();
     private static final long VERIFICATION_TIMEOUT = 30000; // 30 segundos
     private static final Client sharedClient = ClientBuilder.newClient();
     private static final int DEFAULT_CLIENT_SERVICE_PORT = 9000; // fallback quando porta nÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â£o ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â© fornecida
@@ -62,23 +62,34 @@ public class requisitarCapturaDoBackPrincipal {
     @Inject
     SessaoAtivaService sessaoAtivaService;
 
+    @Inject
+    SourceAfisFingerprintService sourceAfis;
+
+    // Limiar da identificacao 1:N no servidor. Calibrar em homologacao com digitais
+    // reais do leitor (o score de cada tentativa aparece no log).
+    @ConfigProperty(name = "ghbam.biometria.sourceafis.limiar", defaultValue = "60")
+    double limiarSourceafis;
+
     // ===== CAPTURA =====
     @POST
     @Path("/capture")
     public Response requestFingerprintCapture(@Context RoutingContext context) {
         String clientIP = getClientIP(context);
+        if (!redeInterna(clientIP)) {
+            // Fora da rede interna a estacao nao e alcancavel e o endereco nao e confiavel.
+            return Response.status(Response.Status.FORBIDDEN)
+                    .entity("Captura pelo servidor disponivel apenas na rede interna.").build();
+        }
         registrarIP(clientIP);
         LOG.infof("ÃƒÆ’Ã‚Â°Ãƒâ€¦Ã‚Â¸ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œÃƒâ€šÃ‚Â¡ Solicitando captura do cliente: %s", clientIP);
         Response clientResponse = forwardGet(clientIP, "/api/public/v1/captura/Capturar/1", MediaType.WILDCARD);
         if (clientResponse.getStatus() == Response.Status.OK.getStatusCode()) {
             String fir = clientResponse.readEntity(String.class);
             clientResponse.close(); // Fecha explicitamente apÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³s ler a entidade
-            LOG.infof("ÃƒÆ’Ã‚Â°Ãƒâ€¦Ã‚Â¸ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œÃƒâ€šÃ‚Â¥ Biometria recebida (Tamanho: %d)", fir.length());
             return Response.ok(fir).build();
         } else {
             String errorMsg = clientResponse.readEntity(String.class);
             clientResponse.close(); // Fecha explicitamente apÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³s ler a entidade
-            LOG.errorf("ÃƒÆ’Ã‚Â¢Ãƒâ€šÃ‚ÂÃƒâ€¦Ã¢â‚¬â„¢ Erro no cliente durante captura: %s", errorMsg);
             return Response.status(clientResponse.getStatus()).entity(errorMsg).build();
         }
     }
@@ -87,7 +98,6 @@ public class requisitarCapturaDoBackPrincipal {
     @POST
     @Path("/store")
     public Response storeFingerprint(String fir) {
-        LOG.infof("ÃƒÆ’Ã‚Â°Ãƒâ€¦Ã‚Â¸ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œÃƒâ€šÃ‚Â¥ FIR recebida no backend principal: %s", fir);
         return Response.ok().build();
     }
 
@@ -108,19 +118,47 @@ public class requisitarCapturaDoBackPrincipal {
                 LOG.warnf("ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã‚Â¡Ãƒâ€šÃ‚Â ÃƒÆ’Ã‚Â¯Ãƒâ€šÃ‚Â¸Ãƒâ€šÃ‚Â NÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â£o foi possÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â­vel carregar DLLs nativas: %s", ex.getMessage());
             }
 
+            // 1) Comparacao no proprio servidor (SourceAFIS) a partir da imagem enviada
+            // pelo agente atualizado. Funciona de qualquer rede e as digitais
+            // cadastradas nunca saem do servidor.
+            String modeloCapturado = gerarModeloDaImagem(payloadRecebido);
+            if (modeloCapturado != null) {
+                List<Servidor> comModelo = servidorRepository.findAllComSourceafis();
+                if (!comModelo.isEmpty()) {
+                    SourceAfisFingerprintService.MatchResult resultado =
+                            sourceAfis.identifyServidores(modeloCapturado, comModelo, limiarSourceafis);
+                    LOG.infof("Biometria SourceAFIS: score=%.1f limiar=%.1f identificado=%s modelos=%d",
+                            resultado.similarity(), resultado.threshold(), resultado.matched(), comModelo.size());
+                    if (resultado.matched()) {
+                        return Response.ok(emitirLoginBiometrico(resultado.servidor(), clientIP)).build();
+                    }
+                }
+            }
+
+            // 2) Fluxo legado (comparacao pelo SDK Nitgen na estacao do cliente): so na
+            // rede interna. Fora dela a estacao nao e alcancavel, e aceitar a matricula
+            // devolvida por um endereco externo permitiria forjar a identificacao.
+            if (!redeInterna(clientIP)) {
+                if (modeloCapturado == null) {
+                    return Response.status(422)
+                            .entity("Atualize o Agente GHBAM de biometria nesta maquina para entrar por biometria fora da rede interna.")
+                            .build();
+                }
+                return Response.status(Response.Status.FORBIDDEN)
+                        .entity("Digital nao identificada. Fora da rede interna, a digital precisa ter sido recadastrada ou usada uma vez na rede interna.")
+                        .build();
+            }
+
             String firCapturado = extrairFirRecebido(payloadRecebido);
             if (firCapturado == null || firCapturado.isBlank()) {
                 // Compatibilidade com clientes antigos: se nao veio FIR no POST,
                 // tenta capturar pela estacao cliente como era feito antes.
                 Response captureResponse = forwardGet(clientIP, "/api/public/v1/captura/Capturar/1", MediaType.WILDCARD);
                 if (captureResponse.getStatus() != Response.Status.OK.getStatusCode()) {
-                    return handleClientError(captureResponse, "captura de FIR");
+                    return handleClientError(captureResponse);
                 }
                 firCapturado = captureResponse.readEntity(String.class);
                 captureResponse.close();
-                LOG.infof("FIR capturada no cliente (tamanho: %d)", firCapturado.length());
-            } else {
-                LOG.infof("FIR recebida do login biometrico (tamanho: %d)", firCapturado.length());
             }
 
             // Busca templates no banco
@@ -158,19 +196,17 @@ public class requisitarCapturaDoBackPrincipal {
                     return Response.status(Response.Status.NOT_FOUND).entity("Biometria não identificada").build();
                 }
                 if (compareResponse.getStatus() != Response.Status.OK.getStatusCode()) {
-                    return handleClientError(compareResponse, "comparaÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â§ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â£o biomÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©trica");
+                    return handleClientError(compareResponse);
                 }
 
                 matriculaEncontrada = compareResponse.readEntity(String.class);
                 compareResponse.close();
                 confirmadoPeloAgenteNitgen = matriculaEncontrada != null && !matriculaEncontrada.isBlank();
-                LOG.infof("ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ Biometria identificada pelo cliente: matrÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â­cula=%s", matriculaEncontrada);
             }
 
             // Buscar servidor pelo resultado
             Servidor servidor = servidorRepository.localizarMatricula(matriculaEncontrada);
             if (servidor == null) {
-                LOG.errorf("ÃƒÆ’Ã‚Â¢Ãƒâ€šÃ‚ÂÃƒâ€¦Ã¢â‚¬â„¢ Servidor nÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â£o encontrado para matrÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â­cula: %s", matriculaEncontrada);
                 return Response.status(Response.Status.NOT_FOUND)
                         .entity("Servidor não encontrado para a matrícula: " + matriculaEncontrada).build();
             }
@@ -185,27 +221,35 @@ public class requisitarCapturaDoBackPrincipal {
                         biometricConfirmed = BiometricMatcher.matchTwoFirStrings(firCapturado, firServidor);
                     }
                 } catch (Throwable ex) {
-                    LOG.warnf("Erro durante verificacao biometrica final para matricula=%s: %s", servidor.getMatricula(), ex.getMessage());
                     biometricConfirmed = false;
                 }
             }
 
             if (!biometricConfirmed) {
-                LOG.warnf("ÃƒÆ’Ã‚Â¢Ãƒâ€šÃ‚ÂÃƒâ€¦Ã¢â‚¬â„¢ Biometria capturada NÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢O confere com o cadastro para matrÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â­cula=%s", servidor.getMatricula());
                 return Response.status(Response.Status.FORBIDDEN)
                         .entity("Biometria não confere com o cadastro para a matrícula informada").build();
+            }
+
+            // Migracao automatica: a digital acabou de ser confirmada pelo Nitgen, entao
+            // guarda o modelo SourceAFIS para os proximos acessos (inclusive externos).
+            if (modeloCapturado != null && confirmadoPeloAgenteNitgen) {
+                try {
+                    if (servidorRepository.salvarSourceafisSeAusente(servidor.getMatricula(), modeloCapturado) > 0) {
+                        LOG.info("Biometria: modelo SourceAFIS gravado por migracao automatica");
+                    }
+                } catch (RuntimeException ex) {
+                    LOG.warnf("Biometria: falha ao gravar modelo SourceAFIS: %s", ex.getClass().getSimpleName());
+                }
             }
 
             // A digital ja confirma a identidade: nao ha por que devolver a
             // senha (hoje um hash bcrypt) pro frontend reenviar em /auth/login
             // como se fosse texto puro - isso nunca autentica. Em vez disso o
             // proprio /verify emite o token de sessao, igual ao GerarToken.login.
-            LOG.infof("Verificacao biometrica concluida: matricula=%s, nome=%s",
-                    servidor.getMatricula(), servidor.getNome());
             return Response.ok(emitirLoginBiometrico(servidor, clientIP)).build();
 
         } catch (Exception e) {
-            return handleCommunicationError(getClientIP(context), e);
+            return handleCommunicationError(e);
         }
     }
 
@@ -270,9 +314,6 @@ public class requisitarCapturaDoBackPrincipal {
                         .entity("Campo 'pwd' ausente ou vazio").build();
             }
 
-            verificationResults.put(clientIP, servidor);
-            LOG.infof("ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ Resultado processado: Matricula=%s | Nome=%s", 
-                     servidor.getMatricula(), servidor.getNome());
 
             Map<String, String> response = new HashMap<>();
             response.put("status", "success");
@@ -281,9 +322,9 @@ public class requisitarCapturaDoBackPrincipal {
             return Response.ok(response).build();
 
         } catch (Exception e) {
-            LOG.errorf("ÃƒÆ’Ã‚Â¢Ãƒâ€šÃ‚ÂÃƒâ€¦Ã¢â‚¬â„¢ Erro ao processar JSON do verify-response: %s", e.getMessage());
+            LOG.warnf("Invalid JSON in verify-response: %s", e.getClass().getSimpleName());
             return Response.status(Response.Status.BAD_REQUEST)
-                    .entity("Erro ao processar JSON: " + e.getMessage()).build();
+                    .entity("Erro ao processar JSON").build();
         }
     }
 
@@ -301,6 +342,56 @@ public class requisitarCapturaDoBackPrincipal {
         if (fir != null && !fir.isBlank()) return fir.trim();
         String biometria = servidor.getBiometria();
         return biometria != null ? biometria.trim() : null;
+    }
+
+    private String gerarModeloDaImagem(Map<String, Object> payload) {
+        if (payload == null) return null;
+        Object imagem = payload.get("imagem");
+        if (imagem == null || String.valueOf(imagem).isBlank()) return null;
+        Double dpi = null;
+        Object dpiRecebido = payload.get("dpi");
+        if (dpiRecebido instanceof Number n) {
+            dpi = n.doubleValue();
+        }
+        try {
+            return sourceAfis.createTemplateFromImage(String.valueOf(imagem), dpi);
+        } catch (RuntimeException ex) {
+            LOG.warnf("Biometria: imagem recebida invalida (%s)", ex.getClass().getSimpleName());
+            return null;
+        }
+    }
+
+    // A chamada de volta para a estacao (porta do agente) so e permitida para IP
+    // privado/loopback. Aceita apenas IP literal, sem resolver DNS.
+    static boolean redeInterna(String hostPort) {
+        String host = extrairHost(hostPort);
+        if (host == null || host.isEmpty()) return false;
+        boolean literal = host.matches("\\d{1,3}(\\.\\d{1,3}){3}") || host.contains(":");
+        if (!literal) return false;
+        try {
+            java.net.InetAddress endereco = java.net.InetAddress.getByName(host);
+            if (endereco.isLoopbackAddress() || endereco.isSiteLocalAddress() || endereco.isLinkLocalAddress()) {
+                return true;
+            }
+            byte[] b = endereco.getAddress();
+            return b.length == 16 && (b[0] & 0xFE) == 0xFC; // IPv6 ULA fc00::/7
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private static String extrairHost(String hostPort) {
+        if (hostPort == null) return null;
+        String valor = hostPort.trim();
+        if (valor.startsWith("[")) {
+            int fim = valor.indexOf(']');
+            return fim > 0 ? valor.substring(1, fim) : null;
+        }
+        int doisPontos = valor.indexOf(':');
+        if (doisPontos > 0 && valor.indexOf(':', doisPontos + 1) < 0) {
+            return valor.substring(0, doisPontos);
+        }
+        return valor;
     }
 
     private String extrairFirRecebido(Map<String, Object> payload) {
@@ -328,10 +419,19 @@ public class requisitarCapturaDoBackPrincipal {
             // Optional header clients can send to tell backend which service port they serve on
             xClientServicePort = context.request().getHeader("X-Client-Service-Port");
 
-            if (xForwardedFor != null && !xForwardedFor.isEmpty()) {
-                // X-Forwarded-For can contain multiple IPs, take the first
+            // So confia no X-Forwarded-For quando a conexao vem do proxy (Nginx) na rede
+            // interna. O primeiro item pode ser forjado pelo cliente; percorre da direita
+            // (item gravado pelo proxy) e para no primeiro IP publico. Uma sequencia de IPs
+            // internos (cliente atras de proxy corporativo) resolve para o mais a esquerda.
+            String remoto = context.request().remoteAddress() != null ? context.request().remoteAddress().host() : null;
+            if (xForwardedFor != null && !xForwardedFor.isEmpty() && redeInterna(remoto)) {
                 String[] parts = xForwardedFor.split(",");
-                host = parts[0].trim();
+                for (int i = parts.length - 1; i >= 0; i--) {
+                    String candidato = parts[i].trim();
+                    if (candidato.isEmpty()) continue;
+                    host = candidato;
+                    if (!redeInterna(candidato)) break;
+                }
             }
         }
 
@@ -399,7 +499,7 @@ public class requisitarCapturaDoBackPrincipal {
                     .request(MediaType.WILDCARD)  // aceita qualquer tipo que o serviÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â§o biomÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©trico retorne
                     .post(Entity.entity(entity, MediaType.APPLICATION_JSON));
         } catch (Exception e) {
-            LOG.errorf("Erro ao encaminhar requisiÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â§ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â£o para %s: %s", clientIP, e.getMessage());
+            LOG.errorf("Biometric client request failed: %s", e.getClass().getSimpleName());
             throw new WebApplicationException("Erro na comunicaÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â§ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â£o com o cliente", Response.Status.INTERNAL_SERVER_ERROR);
         }
     }
@@ -414,25 +514,24 @@ public class requisitarCapturaDoBackPrincipal {
                     .request(acceptMediaType)
                     .get();
         } catch (Exception e) {
-            LOG.errorf("Erro ao encaminhar requisiÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â§ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â£o GET para %s: %s", clientIP, e.getMessage());
+            LOG.errorf("Biometric client request failed: %s", e.getClass().getSimpleName());
             throw new WebApplicationException("Erro na comunicaÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â§ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â£o com o cliente", Response.Status.INTERNAL_SERVER_ERROR);
         }
     }
 
-    private Response handleClientError(Response clientResponse, String operation) {
+    private Response handleClientError(Response clientResponse) {
         try {
             String errorMsg = clientResponse.readEntity(String.class);
-            LOG.errorf("ÃƒÆ’Ã‚Â¢Ãƒâ€šÃ‚ÂÃƒâ€¦Ã¢â‚¬â„¢ Erro no cliente durante %s: %s", operation, errorMsg);
             return Response.status(clientResponse.getStatus()).entity(errorMsg).build();
         } finally {
             clientResponse.close();
         }
     }
 
-    private Response handleCommunicationError(String clientIP, Exception e) {
-        LOG.errorf("ÃƒÆ’Ã‚Â¢Ãƒâ€šÃ‚ÂÃƒâ€¦Ã¢â‚¬â„¢ Erro na comunicaÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â§ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â£o com o cliente [%s]: %s", clientIP, e.getMessage());
+    private Response handleCommunicationError(Exception e) {
+        LOG.errorf("Biometric client request failed: %s", e.getClass().getSimpleName());
         return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                .entity("Erro na comunicação com o cliente: " + e.getMessage()).build();
+                .entity("Erro de comunicacao com o cliente").build();
     }
 }
 

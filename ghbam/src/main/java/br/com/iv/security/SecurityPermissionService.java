@@ -317,6 +317,9 @@ public class SecurityPermissionService {
         put(p, "plocalcenso", s2 != null && Boolean.TRUE.equals(s2.getLocalcenso()));
         put(p, "ppesquisanir", s2 != null && Boolean.TRUE.equals(s2.getPesquisanir()));
         put(p, "pnirrelatorio", s2 != null && Boolean.TRUE.equals(s2.getNirrelatorio()));
+        put(p, "pnirlaudointernacao", s2 != null && Boolean.TRUE.equals(s2.getNirlaudointernacao()));
+        put(p, "pnirenfermariaseleitos", s2 != null && Boolean.TRUE.equals(s2.getNirenfermariaseleitos()));
+        put(p, "pnirhistoricocompleto", s2 != null && Boolean.TRUE.equals(s2.getNirhistoricocompleto()));
         put(p, "psetorcenso", s2 != null && Boolean.TRUE.equals(s2.getSetorcenso()));
         put(p, "pinternadosvisitaimp", s2 != null && Boolean.TRUE.equals(s2.getInternadosvisitaimp()));
         put(p, "pcadunidades", s2 != null && Boolean.TRUE.equals(s2.getCadunidades()));
@@ -337,7 +340,8 @@ public class SecurityPermissionService {
         put(p, "pbiometria", s2 != null && Boolean.TRUE.equals(s2.getBiometria()));
         put(p, "pcomunicacaoespecialistas", s2 != null && Boolean.TRUE.equals(s2.getComunicacaoespecialistas()));
         put(p, "pcorrecaobam", s2 != null && Boolean.TRUE.equals(s2.getCorrecaobam()));
-        put(p, "penfermariaseleitos", s2 != null && Boolean.TRUE.equals(s2.getEnfermariaseleitos()));
+        // Item "Enfermarias e Leitos" do menu NIR usa as mesmas APIs da tela original.
+        put(p, "penfermariaseleitos", s2 != null && (Boolean.TRUE.equals(s2.getEnfermariaseleitos()) || Boolean.TRUE.equals(s2.getNirenfermariaseleitos())));
         put(p, "pimprimirbam", s2 != null && Boolean.TRUE.equals(s2.getImprimirbam()));
         put(p, "plimparpainel", s2 != null && Boolean.TRUE.equals(s2.getLimparpainel()));
         put(p, "ppacientesematendimento", s2 != null && Boolean.TRUE.equals(s2.getPacientesematendimento()));
@@ -377,7 +381,8 @@ public class SecurityPermissionService {
         put(p, "pavaliacaopacienteia", s2 != null && Boolean.TRUE.equals(s2.getAvaliacaopacienteia()));
         put(p, "pbulario", s2 != null && Boolean.TRUE.equals(s2.getBulario()));
         put(p, "pciclomedicacao", s2 != null && Boolean.TRUE.equals(s2.getCiclomedicacao()));
-        put(p, "phistoricocompleto", s2 != null && Boolean.TRUE.equals(s2.getHistoricocompleto()));
+        // Item "Histórico completo" do menu NIR usa as mesmas APIs da tela original.
+        put(p, "phistoricocompleto", s2 != null && (Boolean.TRUE.equals(s2.getHistoricocompleto()) || Boolean.TRUE.equals(s2.getNirhistoricocompleto())));
         put(p, "psaeenfermagem", s2 != null && Boolean.TRUE.equals(s2.getSaeenfermagem()));
         put(p, "pclassificacaoghbam", s2 != null && Boolean.TRUE.equals(s2.getClassificacaoghbam()));
         put(p, "pclassificacaoghbam_revisar", s2 != null && Boolean.TRUE.equals(s2.getClassificacaoghbam_revisar()));

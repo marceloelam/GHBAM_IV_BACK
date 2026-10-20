@@ -1,11 +1,15 @@
 package br.com.iv.service;
 
 import java.io.Serializable;
+import java.time.LocalDate;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -38,12 +42,13 @@ public class LogService implements Serializable {
 	AuditPacienteResolver auditPacienteResolver;
 
 	private ExecutorService logExecutor;
+	private final AtomicLong deadLetterSequence = new AtomicLong();
 
 	@PostConstruct
 	public void init() {
-		// executor with a small pool to serialize log inserts and avoid DB connection
-		// spikes
-		this.logExecutor = Executors.newFixedThreadPool(4);
+		// Limit queued audit events so a database outage cannot grow memory without bound.
+		this.logExecutor = new ThreadPoolExecutor(4, 4, 0L, TimeUnit.MILLISECONDS,
+				new ArrayBlockingQueue<>(2000), new ThreadPoolExecutor.CallerRunsPolicy());
 	}
 
 	@Transactional
@@ -57,7 +62,7 @@ public class LogService implements Serializable {
 	}
 
 	@Transactional
-	public List<Log> filtarPorLogData(String data, String unidade) {
+	public List<Log> filtarPorLogData(LocalDate data, String unidade) {
 
 		List<Log> localCensoOp = logRepository.filtarPorData(data, unidade);
 		if (localCensoOp.isEmpty()) {
@@ -70,6 +75,11 @@ public class LogService implements Serializable {
 	public void shutdown() {
 		if (this.logExecutor != null) {
 			this.logExecutor.shutdown();
+			try {
+				this.logExecutor.awaitTermination(5, TimeUnit.SECONDS);
+			} catch (InterruptedException e) {
+				Thread.currentThread().interrupt();
+			}
 		}
 	}
 
@@ -119,14 +129,14 @@ public class LogService implements Serializable {
 			try {
 				logAsyncProcessor.persistLog(dto);
 			} catch (Exception e) {
-				// Write to a dead-letter file so logs are not lost
+				// Keep only operational metadata here; event text may contain patient PHI.
 				try {
 					Path dir = Paths.get("logs");
 					if (!Files.exists(dir)) {
 						Files.createDirectories(dir);
 					}
-					String line = String.format("data=%s;hora=%s;evento=%s;unidade=%s;error=%s%n", dto.getData(),
-							dto.getHora(), dto.getEvento(), dto.getUnidade(), e.getMessage());
+					String line = String.format("falha=%d;tipo=%s;data=%s%n", deadLetterSequence.incrementAndGet(),
+							e.getClass().getSimpleName(), dto.getData());
 					Files.writeString(dir.resolve("deadletter-logs.txt"), line, StandardOpenOption.CREATE,
 							StandardOpenOption.APPEND);
 				} catch (Exception ex) {

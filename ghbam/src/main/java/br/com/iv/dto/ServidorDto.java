@@ -81,6 +81,9 @@ public class ServidorDto implements Serializable {
 	private String biometria;
 	@Column(columnDefinition = "TEXT")
 	private String fir;
+	// Imagens (PNG base64) das leituras do cadastro; viram modelos SourceAFIS no servidor.
+	private java.util.List<String> biometriaImagens;
+	private Double biometriaDpi;
 	private String usuarioad;
 	private String certificadoPfxBase64;
 	private String certificadoPfxSenha;

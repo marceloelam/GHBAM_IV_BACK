@@ -51,6 +51,9 @@ public class RbacRequestFilter implements ContainerRequestFilter {
     // pelo catalogo normal.
     private static final Set<String> AUTHENTICATED_ONLY_POST_PATHS = Set.of(
             "ocorrencia-sistema",
+            // Os modulos enviam eventos de auditoria para /log; a leitura e
+            // restrita pelo catalogo RBAC a kadm/plogs.
+            "log",
             // Reconfirma a senha do proprio usuario antes de operacoes sensiveis;
             // a matricula e a senha continuam sendo validadas no controller.
             "servidor/validar-credencial");
@@ -142,7 +145,6 @@ public class RbacRequestFilter implements ContainerRequestFilter {
             // Log de auditoria de acoes do usuario ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â o frontend envia via
             // LEGACY_AUTH_ONLY sem Bearer, entao o resolve() retorna empty.
             // Endpoint apenas registra eventos, nao expoe dados sensiveis.
-            "log",
             // Fluxo de pareamento de celular / recuperacao de senha via push,
             // acessado direto do navegador do celular sem sessao GHBAM (o
             // token opaco de curta duracao e' quem protege o endpoint).
@@ -182,7 +184,7 @@ public class RbacRequestFilter implements ContainerRequestFilter {
                 || "OPTIONS".equalsIgnoreCase(requestContext.getMethod())) {
             return;
         }
-        // Endpoint de troca da propria senha (servidor/{matricula}/senha/{pwd}):
+        // Endpoint de troca da propria senha (servidor/{matricula}/senha, senha no corpo):
         // tem regra propria (dono da matricula OU kadm), nao o generico "servidor"
         // do catalogo (que exige kadm/plistausuarios). Sem isso, um usuario comum
         // nunca consegue trocar a propria senha inicial via RBAC ligado.
@@ -622,7 +624,19 @@ public class RbacRequestFilter implements ContainerRequestFilter {
                     && "localcenso".equals(parts[0])
                     && "sigla".equals(parts[1])
                     && !parts[2].isBlank();
-            return chamadaPainel || siglaUnidade;
+            // Voz do painel: status por sigla e áudio de uma chamada recente da
+            // unidade/TV (o serviço recusa qualquer outra; não aceita texto livre).
+            boolean vozStatus = parts.length == 3
+                    && "painelvoz".equals(parts[0])
+                    && "status".equals(parts[1])
+                    && !parts[2].isBlank();
+            boolean vozChamada = parts.length == 5
+                    && "painelvoz".equals(parts[0])
+                    && "chamada".equals(parts[1])
+                    && !parts[2].isBlank()
+                    && parts[3].matches("\\d{1,2}")
+                    && parts[4].matches("\\d+");
+            return chamadaPainel || siglaUnidade || vozStatus || vozChamada;
         }
 
         return "PATCH".equalsIgnoreCase(method)
@@ -633,7 +647,7 @@ public class RbacRequestFilter implements ContainerRequestFilter {
                 && !parts[3].isBlank();
     }
 
-    // servidor/{matricula}/senha/{pwd} ou api/servidor/{matricula}/senha/{pwd}
+    // servidor/{matricula}/senha ou servidor/{matricula}/senha/{pwd} (com ou sem prefixo api)
     // -> matricula; null se o path nao for esse endpoint.
     private String matriculaDoPathTrocaSenha(String path) {
         String[] partes = path.split("/");

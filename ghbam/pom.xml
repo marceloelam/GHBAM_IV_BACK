@@ -9,7 +9,7 @@
     <version>4.0.0</version>
 
     <properties>
-        <maven.compiler.release>18</maven.compiler.release>
+        <maven.compiler.release>21</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <quarkus.platform.version>3.31.2</quarkus.platform.version>
@@ -75,6 +75,12 @@
         <groupId>nl.martijndwars</groupId>
         <artifactId>web-push</artifactId>
         <version>5.1.2</version>
+        <exclusions>
+            <exclusion>
+                <groupId>commons-logging</groupId>
+                <artifactId>commons-logging</artifactId>
+            </exclusion>
+        </exclusions>
     </dependency>
     <dependency>
         <groupId>org.bouncycastle</groupId>
@@ -359,6 +365,18 @@
     </build>
 
     <profiles>
+        <profile>
+            <id>local-jdk21</id>
+            <activation>
+                <file>
+                    <exists>C:/Program Files/Java/jdk-21/bin/javac.exe</exists>
+                </file>
+            </activation>
+            <properties>
+                <maven.compiler.fork>true</maven.compiler.fork>
+                <maven.compiler.executable>C:/Program Files/Java/jdk-21/bin/javac.exe</maven.compiler.executable>
+            </properties>
+        </profile>
         <profile>
             <id>native</id>
             <activation>

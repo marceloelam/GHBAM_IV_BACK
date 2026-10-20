@@ -127,6 +127,9 @@ public class Servidor extends PanacheEntityBase implements Serializable {
 	private String biometria;
 	@Column(columnDefinition = "TEXT")
 	private String fir;
+	// Modelo(s) SourceAFIS ("SOURCEAFIS_V1:..." separados por ';') para comparar no servidor.
+	@Column(name = "biometria_sourceafis", columnDefinition = "TEXT")
+	private String biometriaSourceafis;
 	@Column(length = 30)
 	private String usuarioad;
 	@Column(columnDefinition = "TEXT")

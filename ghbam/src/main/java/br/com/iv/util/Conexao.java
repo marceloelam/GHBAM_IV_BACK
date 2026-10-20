@@ -5,6 +5,9 @@ import org.jboss.logging.Logger;
 import javax.sql.DataSource;
 import java.io.Closeable;
 import java.io.Serializable;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -83,7 +86,7 @@ public class Conexao implements Serializable, Closeable {
                 throw new SQLException("Limite máximo de conexões simultâneas atingido");
             }
             
-            String cacheKey = generateCacheKey(xurlconexao, xusuarioconexao);
+            String cacheKey = generateCacheKey(xurlconexao, xusuarioconexao, xsenhaconexao);
             
             // Obtém ou cria DataSource do cache
             DataSource dataSource = getOrCreateDataSource(cacheKey, xurlconexao, xusuarioconexao, xsenhaconexao);
@@ -249,8 +252,16 @@ public class Conexao implements Serializable, Closeable {
     }
     
     // Métodos de utilidade
-    private static String generateCacheKey(String url, String user) {
-        return url + "||" + user;
+    private static String generateCacheKey(String url, String user, String password) {
+        try {
+            byte[] digest = MessageDigest.getInstance("SHA-256")
+                    .digest((password == null ? "" : password).getBytes(StandardCharsets.UTF_8));
+            StringBuilder fingerprint = new StringBuilder(digest.length * 2);
+            for (byte value : digest) fingerprint.append(String.format("%02x", value));
+            return url + "||" + user + "||" + fingerprint;
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 indisponível para identificar o pool", e);
+        }
     }
     
     private static String getDatabaseName(String url) {

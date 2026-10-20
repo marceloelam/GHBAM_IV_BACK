@@ -38,6 +38,15 @@ class CdssServiceTest {
         assertFalse(response.getAlertas().stream().anyMatch(a -> "CDSS_PESO_OBRIGATORIO".equals(a.getCodigo())));
     }
 
+    @Test
+    void tfgCkdEpi2021() {
+        org.junit.jupiter.api.Assertions.assertEquals(64.5, CdssService.ckdEpi2021(1.0, 60, true), 0.5);
+        org.junit.jupiter.api.Assertions.assertEquals(91.7, CdssService.ckdEpi2021(1.0, 50, false), 0.5);
+        org.junit.jupiter.api.Assertions.assertNull(CdssService.ckdEpi2021(1.0, 12, false));
+        org.junit.jupiter.api.Assertions.assertNull(CdssService.feminino("ignorado"));
+        org.junit.jupiter.api.Assertions.assertEquals(Boolean.TRUE, CdssService.feminino("Feminino"));
+    }
+
     static class BamRepositoryStub extends BamRepository {
         private final Bam bam;
 

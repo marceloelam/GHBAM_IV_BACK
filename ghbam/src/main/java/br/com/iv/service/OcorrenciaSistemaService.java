@@ -59,11 +59,9 @@ public class OcorrenciaSistemaService implements Serializable {
             OcorrenciaSistema ocorrencia = automaticaAberta.get();
             aplicar(ocorrencia, dto);
             ocorrencia.setAtualizadoEm(LocalDateTime.now());
-            registrarHistorico(
+            registrarHistoricoAgrupamentoAutomatico(
                     ocorrencia,
-                    "atualizada",
-                    textoOuPadrao(dto.get("criadoPor"), "Sistema"),
-                    "Ocorrencia automatica agrupada para evitar duplicidade.");
+                    textoOuPadrao(dto.get("criadoPor"), "Sistema"));
             return toMap(ocorrencia);
         }
 
@@ -209,6 +207,16 @@ public class OcorrenciaSistemaService implements Serializable {
 
         String unidade = unidadeNormalizada(texto(dto == null ? null : dto.get("unidade")));
         String titulo = textoOuPadrao(dto == null ? null : dto.get("titulo"), "Ocorrencia sem titulo");
+        if ("epidemiologia".equals(tipo)) {
+            return OcorrenciaSistema.<OcorrenciaSistema>find(
+                    "upper(unidade) = upper(?1) and lower(tipo) = ?2 and lower(titulo) = lower(?3) "
+                            + "and lower(modulo) = lower(?4) and status <> 'resolvida' and lower(origem) = 'automatica' order by criadoEm desc",
+                    unidade,
+                    tipo,
+                    titulo,
+                    textoOuPadrao(dto == null ? null : dto.get("modulo"), "Vigilancia epidemiologica"))
+                    .firstResultOptional();
+        }
         if ("backend".equals(tipo)) {
             return OcorrenciaSistema.<OcorrenciaSistema>find(
                     "upper(unidade) = upper(?1) and lower(tipo) = ?2 and lower(titulo) = lower(?3) "
@@ -375,7 +383,7 @@ public class OcorrenciaSistemaService implements Serializable {
 
     private String tipoNormalizado(String value) {
         String normalized = textoOuPadrao(value, "operacional").toLowerCase();
-        return List.of("conformidade", "sessao", "backend", "impressao", "carregamento", "operacional").contains(normalized)
+        return List.of("conformidade", "sessao", "backend", "impressao", "carregamento", "operacional", "epidemiologia").contains(normalized)
                 ? normalized
                 : "operacional";
     }
@@ -416,6 +424,26 @@ public class OcorrenciaSistemaService implements Serializable {
         }
     }
 
+    private void registrarHistoricoAgrupamentoAutomatico(OcorrenciaSistema item, String usuario) {
+        List<Map<String, Object>> historico = historico(item);
+        if (!historico.isEmpty()) {
+            Map<String, Object> ultimo = historico.get(0);
+            String observacao = texto(ultimo.get("observacao"));
+            String dataHora = texto(ultimo.get("dataHora"));
+            if ("Ocorrencia automatica agrupada para evitar duplicidade.".equals(observacao)) {
+                try {
+                    LocalDateTime ultimaAtualizacao = LocalDateTime.parse(dataHora);
+                    if (ultimaAtualizacao.isAfter(LocalDateTime.now().minusHours(1))) {
+                        return;
+                    }
+                } catch (Exception ignored) {
+                    // Historico legado/invalido: registra novo evento para preservar rastreabilidade.
+                }
+            }
+        }
+        registrarHistorico(item, "atualizada", usuario,
+                "Ocorrencia automatica agrupada para evitar duplicidade.");
+    }
     private void registrarHistorico(OcorrenciaSistema item, String acao, String usuario, String observacao) {
         List<Map<String, Object>> historico = historico(item);
         Map<String, Object> evento = new LinkedHashMap<>();

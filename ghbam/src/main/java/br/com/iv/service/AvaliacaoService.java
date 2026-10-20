@@ -47,8 +47,8 @@ public class AvaliacaoService implements Serializable {
 	}
 
 	@Transactional
-	public void atualizarAnamnese(int idavaliacao, String texto) {
-		avaliacaoRepository.atualizarAnamnese(idavaliacao, texto);
+	public int atualizarAnamnese(int idavaliacao, String texto) {
+		return avaliacaoRepository.atualizarAnamnese(idavaliacao, texto);
 	}
 
 	@Transactional

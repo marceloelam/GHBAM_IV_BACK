@@ -2,6 +2,7 @@ package br.com.iv.controller;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import jakarta.inject.Inject;
 import jakarta.ws.rs.Consumes;
@@ -43,6 +44,23 @@ public class RegistroController {
 					.build();
 		}
 		return Response.ok(registro).build();
+	}
+
+	@PATCH
+	@Path("/id/{id}/responsavel-observacao")
+	public Response atualizarResponsavelObservacao(@PathParam("id") int id, Map<String, String> dados) {
+		String responsavel = dados == null ? null : dados.get("responsavel");
+		String observacao = dados == null ? null : dados.get("observacao");
+		if (id <= 0 || responsavel == null || observacao == null || responsavel.length() > 10
+				|| observacao.length() > 350) {
+			return Response.status(Response.Status.BAD_REQUEST)
+					.entity(Map.of("erro", "Responsavel ou observacao ausente ou acima do limite permitido.")).build();
+		}
+		if (registroService.atualizarRegistroResponsavelObservacao(id, responsavel, observacao) == 0) {
+			return Response.status(Response.Status.NOT_FOUND)
+					.entity(Map.of("erro", "Registro nao localizado.")).build();
+		}
+		return Response.noContent().build();
 	}
 
 	@GET
@@ -111,9 +129,13 @@ public class RegistroController {
 
 	@GET
 	@Path("/ativossemana/{servidor}/unidade/{unidade}/quando/{quando}")
-	public long contarAtendimentosNaSemana(@PathParam("unidade") String unidade, @PathParam("servidor") String servidor,
+	public Response contarAtendimentosNaSemana(@PathParam("unidade") String unidade, @PathParam("servidor") String servidor,
 			@PathParam("quando") String quando) {
-		return registroService.contarAtendimentosNaSemana(servidor, unidade, quando);
+		if (quando == null || !Set.of("dia", "semana", "mes", "ano").contains(quando)) {
+			return Response.status(Response.Status.BAD_REQUEST)
+					.entity(Map.of("erro", "Informe dia, semana, mes ou ano.")).build();
+		}
+		return Response.ok(registroService.contarAtendimentosNaSemana(servidor, unidade, quando)).build();
 	}
 
 	@POST

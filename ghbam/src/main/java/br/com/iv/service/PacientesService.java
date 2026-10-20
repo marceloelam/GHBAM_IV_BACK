@@ -38,6 +38,9 @@ public class PacientesService implements Serializable {
 	@Inject
 	PacientesRepository pacientesRepository;
 
+	@Inject
+	ProntuarioDefinitivoService prontuarioDefinitivoService;
+
 	// Coordenada do endereco calculada depois do commit (ver GeocodificacaoPacienteService).
 	@Inject
 	Event<GeocodificacaoPacienteService.Pedido> geocodificarEndereco;
@@ -234,6 +237,33 @@ public class PacientesService implements Serializable {
 	}
 
 	/**
+	 * Edicao: cadastrar sem documento e incluir depois o CPF/CNS de outro paciente
+	 * gerava cadastro duplicado. So confere quando o campo muda, para nao travar
+	 * edicoes de cadastros legados que ja estao duplicados.
+	 */
+	private void validarDuplicidadeNaEdicao(Pacientes atual, PacientesDto dto) {
+		if (dto == null) {
+			return;
+		}
+		if (!digitos(atual.getCpf()).equals(digitos(dto.getCpf()))) {
+			Pacientes porCpf = pacientesRepository.buscarPorCpfNormalizado(dto.getCpf());
+			if (porCpf != null && porCpf.getIdpaciente() != atual.getIdpaciente()) {
+				throw conflitoPaciente("CPF", porCpf);
+			}
+		}
+		if (!digitos(atual.getCns()).equals(digitos(dto.getCns()))) {
+			Pacientes porCns = pacientesRepository.buscarPorCnsNormalizado(dto.getCns());
+			if (porCns != null && porCns.getIdpaciente() != atual.getIdpaciente()) {
+				throw conflitoPaciente("CNS", porCns);
+			}
+		}
+	}
+
+	private static String digitos(String valor) {
+		return valor == null ? "" : valor.replaceAll("\\D", "");
+	}
+
+	/**
 	 * CNS e opcional (vazio passa), mas quando informado precisa ser valido:
 	 * barra zeros, texto ("NAO TROUXE", "NI") e digito verificador errado.
 	 */
@@ -414,6 +444,7 @@ public class PacientesService implements Serializable {
 		if (!textoCns(pacientes.getCns()).equals(textoCns(dto.getCns()))) {
 			validarCnsInformado(dto.getCns());
 		}
+		validarDuplicidadeNaEdicao(pacientes, dto);
 		String enderecoAntes = GeocodificacaoPacienteService.chaveEndereco(pacientes);
 		pacientes.setNome(dto.getNome());
 		pacientes.setEndereco(dto.getEndereco());
@@ -557,6 +588,10 @@ public class PacientesService implements Serializable {
 	@Transactional
 	public void alterarProntuario(int id, String prontuario) {
 		pacientesRepository.alterarProntuario(id, prontuario);
+		// "Gerar prontuario" do NIR: internacao e leito abertos passam a usar o numero novo.
+		if (!ProntuarioDefinitivoService.pendente(prontuario)) {
+			prontuarioDefinitivoService.propagar(id, prontuario.trim());
+		}
 	}
 	
 	@Transactional
@@ -627,6 +662,21 @@ public class PacientesService implements Serializable {
 	@Transactional
 	public void opcao7( int bamultimo) {
 		pacientesRepository.opcao7(bamultimo);
+	}
+
+	@Transactional
+	public void opcao8(int bamultimo, String unidade) {
+		pacientesRepository.opcao8(bamultimo, unidade);
+	}
+
+	@Transactional
+	public void opcao9(int bamultimo, String unidade) {
+		pacientesRepository.opcao9(bamultimo, unidade);
+	}
+
+	@Transactional
+	public int opcao10(int bamultimo, String unidade) {
+		return pacientesRepository.opcao10(bamultimo, unidade);
 	}
 
 	@Transactional

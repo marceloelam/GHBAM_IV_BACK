@@ -1,8 +1,11 @@
 package br.com.iv.controller;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
+import br.com.iv.service.ProvaVidaFacialService;
 import br.com.iv.service.ResetSenhaService;
 import br.com.iv.service.ResetSenhaService.ValidacaoFacialException;
 import jakarta.inject.Inject;
@@ -25,6 +28,9 @@ public class ResetSenhaController {
 
     @Inject
     ResetSenhaService resetSenhaService;
+
+    @Inject
+    ProvaVidaFacialService provaVidaFacialService;
 
     @POST
     public Response criarSolicitacao(
@@ -126,29 +132,62 @@ public class ResetSenhaController {
         }
     }
 
+    // Inicia a prova de vida: devolve a ordem sorteada das etapas (virar/olhar de
+    // frente). Nao revela se a matricula existe; o desafio vale uma unica tentativa.
+    @POST
+    @Path("/facial/desafio")
+    public Response criarDesafioFacial(Map<String, String> request) {
+        String matricula = request == null ? null : request.get("matricula");
+        if (matricula == null || matricula.isBlank()) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                .entity(Map.of("erro", "Matricula obrigatoria."))
+                .build();
+        }
+        try {
+            ProvaVidaFacialService.Desafio desafio = provaVidaFacialService.criar(matricula);
+            return Response.ok(Map.of(
+                "desafioId", desafio.id(),
+                "etapas", desafio.etapas(),
+                "validadeSegundos", desafio.validadeSegundos()
+            )).build();
+        } catch (IllegalStateException e) {
+            return Response.status(Response.Status.SERVICE_UNAVAILABLE)
+                .entity(Map.of("erro", e.getMessage()))
+                .build();
+        }
+    }
+
     @POST
     @Path("/facial")
     public Response resetFacial(
         @Context HttpHeaders httpHeaders,
-        Map<String, String> request) {
+        Map<String, Object> request) {
         try {
-            String matricula = request.get("matricula");
-            String foto = request.get("foto");
-            if (foto == null || foto.isBlank()) {
-                foto = request.get("imagemBase64");
+            String matricula = texto(request.get("matricula"));
+            String desafioId = texto(request.get("desafioId"));
+            List<String> imagens = new ArrayList<>();
+            if (request.get("imagens") instanceof List<?> lista) {
+                lista.forEach(item -> imagens.add(texto(item)));
             }
 
-            if (matricula == null || matricula.isBlank() || foto == null || foto.isBlank()) {
+            if (matricula == null || matricula.isBlank()) {
                 return Response.status(Response.Status.BAD_REQUEST)
-                    .entity(Map.of("erro", "Matricula e foto sao obrigatorias."))
+                    .entity(Map.of("erro", "Matricula e fotos sao obrigatorias."))
+                    .build();
+            }
+            // Cliente antigo (uma foto so, sem prova de vida) nao e mais aceito.
+            if (desafioId == null || desafioId.isBlank() || imagens.isEmpty()) {
+                return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(Map.of("erro", "A validacao facial agora exige prova de vida. Atualize a pagina (Ctrl+F5) e tente novamente."))
                     .build();
             }
 
             resetSenhaService.redefinirSenhaPadraoPorValidacaoFacial(
                 matricula,
-                foto,
+                desafioId,
+                imagens,
                 obterIPCliente(httpHeaders),
-                request.get("computador")
+                texto(request.get("computador"))
             );
 
             return Response.ok(Map.of(
@@ -206,6 +245,10 @@ public class ResetSenhaController {
                 .entity(Map.of("erro", "Erro ao confirmar senha"))
                 .build();
         }
+    }
+
+    private String texto(Object valor) {
+        return valor instanceof String s ? s : null;
     }
 
     private String obterIPCliente(HttpHeaders httpHeaders) {

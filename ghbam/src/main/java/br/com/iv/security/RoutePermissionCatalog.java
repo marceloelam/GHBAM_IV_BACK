@@ -33,6 +33,9 @@ public class RoutePermissionCatalog {
             entry("unidades", "pcadunidades", "kadm"),
             entry("ad", "kadm", "ksubadm"),
             entry("admin/pool-status", "kadm"),
+            entry("log/data", "kadm", "plogs", "pauditoriaclinica"),
+            entry("log/pesquisa", "kadm", "plogs", "pauditoriaclinica"),
+            entry("log", "kadm", "plogs"),
             entry("producao-medica", "pproducaomedica", "kadm"),
             entry("producao-assistencial", "kadm"),
             entry("api/assinaturas-clinicas", "kmedico", "kdentista", "kenfermagem", "ktcenfermagem", "kconsultorio_medico", "kfisioterapia", "kassistencia", "knutricao", "kfonoaudiologia", "kpsicologia", "pevolucaomultidisciplinar", "pverificarassinatura", "kadm"),
@@ -53,6 +56,9 @@ public class RoutePermissionCatalog {
             entry("bulario", "kmedico", "kenfermagem", "ktriagem", "kadm"),
             entry("cbo", "krecepcao", "ktriagem", "kmedico", "kenfermagem", "kfaturamento", "kadm"),
             entry("cid", "ktriagem", "kmedico", "kenfermagem", "kfaturamento", "kadm"),
+            // Conferencia da embalagem na checagem a beira-leito: quem administra e,
+            // na maioria das vezes, o tecnico de enfermagem (so leitura do catalogo).
+            entry("cdss/conferencia-medicamento", "kenfermagem", "ktcenfermagem", "kmedico", "kadm"),
             entry("cdss", "kmedico", "kenfermagem", "ktriagem", "kfarmaciacentral", "kfarmcentral", "kfarmhmsfx",
                     "pauditoriaclinica", "presumopaciente", "pcomoestaopaciente", "pprontuariocompleto",
                     "penfermariaseleitos", "pnir", "pccih", "kadm"),
@@ -127,6 +133,18 @@ public class RoutePermissionCatalog {
             // exportacao LGPD e acao administrativa, restrita a kadm, nao aberta
             // pros mesmos papeis clinicos que consultam paciente no dia a dia.
             entry("pacientes/exportar", "kadm", "pexportardadoslgpd"),
+            // Correcao de BAM (/base2/correcaodebam): mesclagem/cancelamentos
+            // irreversiveis. Sem estas entradas caiam no generico "pacientes",
+            // aberto a recepcao/medico/enfermagem. Inclui as rotas GET legadas.
+            entry("pacientes/correcao-bam", "kadm", "pcorrecaobam"),
+            entry("pacientes/correcaobam", "kadm", "pcorrecaobam"),
+            entry("pacientes/correcaobam2", "kadm", "pcorrecaobam"),
+            entry("pacientes/opcao1", "kadm", "pcorrecaobam"),
+            entry("pacientes/opcao2", "kadm", "pcorrecaobam"),
+            entry("pacientes/opcao3", "kadm", "pcorrecaobam"),
+            entry("pacientes/opcao4", "kadm", "pcorrecaobam"),
+            entry("pacientes/opcao5", "kadm", "pcorrecaobam"),
+            entry("pacientes/opcao7", "kadm", "pcorrecaobam"),
             // Pedido de exclusao de dados (LGPD art. 18, VI) - sempre negado com base
             // legal (guarda permanente do prontuario, Resolucao CFM 1.821/2007 +
             // LGPD art. 16, II). Mesmo publico de "pacientes/exportar" - setor
@@ -369,6 +387,8 @@ public class RoutePermissionCatalog {
             entry("rh", "krh", "pcontroleplantoes", "pprodutividaderh", "ptreinamentocertificacao", "pgerenciarcertificados", "kadm"),
             entry("unidadevideoconfig", "kadm"),
             entry("unidadevideos", "kadm"),
+            // Só os GETs do kiosk (isPublicKioskRequest) ficam públicos; o resto fecha por padrão.
+            entry("painelvoz", "kadm"),
 
             // Consulta CPF+nascimento -> CNS no cadastro publico do CNES, usada no
             // cadastro do paciente. Mesmo publico de "pacientes": quem cadastra e

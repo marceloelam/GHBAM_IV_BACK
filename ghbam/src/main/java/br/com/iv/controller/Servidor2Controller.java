@@ -1,6 +1,7 @@
 package br.com.iv.controller;
 //YHWH é minha sabedoria. A YHWH consagro esse sistema
 import java.util.List;
+import java.util.Map;
 
 import br.com.iv.dto.Servidor2Dto;
 import br.com.iv.entity.Servidor2;
@@ -17,11 +18,13 @@ import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import org.jboss.logging.Logger;
 
 @Path("servidor2")
 @Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)
 public class Servidor2Controller {
+	private static final Logger LOG = Logger.getLogger(Servidor2Controller.class);
 	@Inject
 	br.com.iv.service.ServidorService servidorService;
 	@POST
@@ -32,8 +35,8 @@ public class Servidor2Controller {
 			return Response.ok("Migração concluída com sucesso!").build();
 		} catch (Exception e) {
 			// Log completo da exceção para diagnóstico em ambiente de desenvolvimento
-			e.printStackTrace();
-			String msg = e.getMessage() != null ? e.getMessage() : e.toString();
+			LOG.error("Falha ao migrar servidores para o cadastro v2.", e);
+			String msg = "Nao foi possivel concluir a migracao de servidores.";
 			return Response.serverError().entity("Erro na migração: " + msg).build();
 		}
 	}
@@ -130,7 +133,7 @@ public class Servidor2Controller {
 			return Response.ok(Servidor2).status(201).build();
 		} catch (IllegalStateException e) {
 			return Response.status(Response.Status.CONFLICT)
-				.entity("{\"erro\":\"" + e.getMessage() + "\"}")
+				.entity(Map.of("erro", e.getMessage() == null ? "Operacao nao permitida." : e.getMessage()))
 				.build();
 		}
 	}

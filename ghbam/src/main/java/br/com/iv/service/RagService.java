@@ -88,16 +88,12 @@ public class RagService {
                     String resposta = r[2].toString();
                     int id = Integer.parseInt(r[0].toString());
                     aprendizadoRepository.incrementarUso(id);
-                    System.out.println("[RagService] Reutilizando aprendizado #" + id +
-                        " (similaridade=" + String.format("%.2f", similaridade) +
-                        ", usos=" + (usos + 1) + ")");
                     RagAnswer ans = new RagAnswer(resposta, false, null);
                     ans.idaprendizado = id;
                     return ans;
                 }
             }
         } catch (Exception e) {
-            System.out.println("[RagService] Erro ao buscar aprendizado: " + e.getMessage());
         }
         return null;
     }
@@ -120,10 +116,8 @@ public class RagService {
             if (embed != null) {
                 aprendizadoRepository.atualizarEmbedding(a.getIdaprendizado(), embeddingService.embeddingParaString(embed));
             }
-            System.out.println("[RagService] Aprendizado salvo #" + a.getIdaprendizado());
             return a.getIdaprendizado();
         } catch (Exception e) {
-            System.out.println("[RagService] Erro ao salvar aprendizado: " + e.getMessage());
         }
         return 0;
     }
@@ -131,7 +125,6 @@ public class RagService {
     public void registrarFeedback(int idAprendizado, int feedback) {
         if (feedback < -1 || feedback > 1) return;
         aprendizadoRepository.registrarFeedback(idAprendizado, feedback);
-        System.out.println("[RagService] Feedback #" + idAprendizado + " = " + feedback);
     }
 
     private Integer detectarPacienteNaPergunta(String pergunta) {
@@ -200,11 +193,9 @@ public class RagService {
         try {
             List<Pacientes> pacientes = pacientesRepository.buscarPorNomeInteligente(nome, 5);
             if (!pacientes.isEmpty()) {
-                System.out.println("[RagService] Paciente auto-detectado: " + pacientes.get(0).getNome() + " (id=" + pacientes.get(0).getIdpaciente() + ")");
                 return pacientes.get(0).getIdpaciente();
             }
         } catch (Exception e) {
-            System.out.println("[RagService] Erro ao buscar paciente: " + e.getMessage());
         }
         return null;
     }
@@ -399,7 +390,6 @@ public class RagService {
                     userContent.append(resultadoWeb);
                 }
             } catch (Exception e) {
-                System.out.println("[RagService] Busca na web falhou: " + e.getMessage());
             }
         }
 
@@ -540,7 +530,6 @@ public class RagService {
                     userContent.append(resultadoWeb);
                 }
             } catch (Exception e) {
-                System.out.println("[RagService] Busca na web falhou: " + e.getMessage());
             }
         }
 
@@ -720,7 +709,6 @@ public class RagService {
                     systemContent.append("\n\n## INFORMACOES DA INTERNET (busca automatica)\n\n").append(resultadoWeb);
                 }
             } catch (Exception e) {
-                System.out.println("[RagService] Busca na web falhou: " + e.getMessage());
             }
         }
 

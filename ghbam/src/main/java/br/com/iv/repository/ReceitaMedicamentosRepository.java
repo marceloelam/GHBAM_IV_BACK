@@ -24,7 +24,6 @@ public class ReceitaMedicamentosRepository implements PanacheRepository<ReceitaM
 	                     .setParameter(1, obs)
 	                     .setParameter(2, bam)
 	                     .executeUpdate();
-	        System.out.println(sql);
 	    }
 
 }

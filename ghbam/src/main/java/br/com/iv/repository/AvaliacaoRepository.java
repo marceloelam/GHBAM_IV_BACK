@@ -88,7 +88,6 @@ public class AvaliacaoRepository implements PanacheRepository<Avaliacao> {
 
 		String sql = "UPDATE avaliacao set esperando = " + op + " where idavaliacao = :id";
 		entityManager.createNativeQuery(sql).setParameter("id", idavaliacao).executeUpdate();
-		System.out.println(sql);
 	}
 
 	public void atualizarCor(int idavaliacao, int ncor, String cor) {
@@ -96,26 +95,26 @@ public class AvaliacaoRepository implements PanacheRepository<Avaliacao> {
 		String sql = "UPDATE avaliacao set cor = :idcor, risco = :risco where idavaliacao = :id";
 		entityManager.createNativeQuery(sql).setParameter("id", idavaliacao).setParameter("idcor", ncor)
 				.setParameter("risco", cor).executeUpdate();
-		System.out.println(sql);
 	}
 
-	public void atualizarAnamnese(int idavaliacao, String texto) {
+	public int atualizarAnamnese(int idavaliacao, String texto) {
 
-		String sql = "UPDATE avaliacao set anamnese = '" + texto + "' where idavaliacao = :id";
-		entityManager.createNativeQuery(sql).setParameter("id", idavaliacao).executeUpdate();
-		System.out.println(sql);
+		String sql = "UPDATE avaliacao set anamnese = :anamnese where idavaliacao = :id";
+		return entityManager.createNativeQuery(sql)
+				.setParameter("anamnese", texto)
+				.setParameter("id", idavaliacao)
+				.executeUpdate();
 	}
 
 	@SuppressWarnings({ "unchecked", "unused" })
 	@Transactional
 	public List<Avaliacao> classificacaoDeRisco(String unidade, String dataRequerida) {
-		LocalDate data = LocalDate.now();
-		DateTimeFormatter formatador = DateTimeFormatter.ofPattern("yyyy/MM/dd");
-		String datas = data.format(formatador).toString();
+		String sql = "select * from avaliacao where cast(data as date) = cast(:dataRequerida as date) and unidade = :unidade";
 
-		String sql = "select * from avaliacao where cast(data as date) = cast('" + dataRequerida + "' as date) and unidade = '" + unidade + "'";
-
-			return getEntityManager().createNativeQuery(sql, Avaliacao.class).getResultList();
+		return getEntityManager().createNativeQuery(sql, Avaliacao.class)
+				.setParameter("dataRequerida", dataRequerida)
+				.setParameter("unidade", unidade)
+				.getResultList();
 	}
 
 	

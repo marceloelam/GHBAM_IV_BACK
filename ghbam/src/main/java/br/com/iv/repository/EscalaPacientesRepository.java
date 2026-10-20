@@ -66,6 +66,19 @@ public class EscalaPacientesRepository implements PanacheRepository<EscalaPacien
 		return find("tempcod = ?1", query).list();
 	}
 
+	public boolean existeHorarioAgendado(LocalDate data, String unidade, String setor, String medico, String horario) {
+		return count(
+				"inicioagenda = ?1 and unidade = ?2 and replace(setor, ' ', '') = ?3 and medico = ?4 and horamarcada = ?5 and agenda = true and atendido = false",
+				data, unidade, setor.replaceAll("\\s", ""), medico, horario) > 0;
+	}
+
+	public void bloquearHorarioAgendado(LocalDate data, String unidade, String setor, String medico, String horario) {
+		String chave = String.join("\u001F", data.toString(), unidade, setor.replaceAll("\\s", ""), medico, horario);
+		entityManager.createNativeQuery("select pg_advisory_xact_lock(hashtext(:chave))")
+				.setParameter("chave", chave)
+				.getSingleResult();
+	}
+
 	public void fecharTodosBamAbertoDoPaciente(int idPaciente) {
 		String sql = "UPDATE tratamento set tratado = 1 where idtratamento in (select tratamento_idtratamento from bam where paciente_idpaciente = :id_do_paciente)";
 		entityManager.createNativeQuery(sql).setParameter("id_do_paciente", idPaciente).executeUpdate();
@@ -75,7 +88,6 @@ public class EscalaPacientesRepository implements PanacheRepository<EscalaPacien
 	public void alterarAIdade(String nomePaciente) {
 		String sql = "UPDATE pacientes set idade = DATE_PART('YEAR', age(CURRENT_DATE, cast(nascimento as date))) where nome like :nome_do_paciente || '%')";
 		entityManager.createNativeQuery(sql).setParameter("nome_do_paciente", nomePaciente).executeUpdate();
-		System.out.println(sql);
 	}
 
 	// Atualizar idade atráves do dia atual de passagem na triagem
@@ -101,7 +113,6 @@ public class EscalaPacientesRepository implements PanacheRepository<EscalaPacien
 				.setParameter("unidade", unidade)
 				.setParameter("datas", datas)
 				.executeUpdate();
-		System.out.println(sql);
 	}
 
 	@SuppressWarnings("unchecked")
@@ -209,7 +220,7 @@ public class EscalaPacientesRepository implements PanacheRepository<EscalaPacien
 		LocalDate dt = LocalDate.parse(data);
 
 		List<EscalaPaciente> lista = find(
-				"cast(inicioagenda as date) = ?1 AND setor = ?2 AND medico = ?3 AND unidade = ?4 AND atendido = false order by cast(horamarcada as time)",
+				"cast(inicioagenda as date) = ?1 AND replace(setor, ' ', '') = ?2 AND medico = ?3 AND unidade = ?4 AND agenda = true AND atendido = false order by cast(horamarcada as time)",
 				dt, n_nome, medico, unidade).list();
 
 		return lista.stream().map(e -> {

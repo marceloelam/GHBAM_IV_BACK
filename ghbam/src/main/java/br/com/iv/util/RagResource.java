@@ -290,13 +290,16 @@ public class RagResource {
 
     @POST
     @Path("/indexar-bulario")
-    @Transactional
+    // Sem @Transactional aqui de proposito: sao milhares de medicamentos e cada embedding leva ~0,3 s,
+    // o que estourava o timeout de 120 s da transacao unica e desfazia tudo. Cada documento e gravado
+    // na transacao do proprio RagService.indexarDocumento, entao o progresso fica salvo.
     public Response indexarBulario(Map<String, Object> body) {
         try {
             boolean forcar = body.containsKey("forcar") && Boolean.TRUE.equals(body.get("forcar"));
             int total = 0;
             int ignorados = 0;
             int erros = 0;
+            String primeiroErro = null;
 
             List<Bulario> todos = bularioRepository.findAll().list();
             for (Bulario b : todos) {
@@ -337,16 +340,27 @@ public class RagResource {
                     total++;
                 } catch (Exception e) {
                     erros++;
+                    // registra so o primeiro erro com stack e guarda o motivo para a tela;
+                    // os demais costumam ser a mesma causa (ex.: servico de embedding fora do ar)
+                    if (primeiroErro == null) {
+                        primeiroErro = e.getClass().getSimpleName() + ": " + e.getMessage();
+                        LOG.error("Falha ao indexar medicamento id=" + b.getId() + " em /api/rag/indexar-bulario", e);
+                    }
                 }
+            }
+
+            if (erros > 0) {
+                LOG.warn("Indexacao do bulario: " + total + " indexados, " + erros + " erros. Primeiro erro: " + primeiroErro);
             }
 
             return Response.ok(Map.of(
                 "mensagem", total + " medicamentos indexados" +
                             (ignorados > 0 ? ", " + ignorados + " ja existentes ignorados" : "") +
-                            (erros > 0 ? ", " + erros + " erros" : ""),
+                            (erros > 0 ? ", " + erros + " erros (motivo: " + primeiroErro + ")" : ""),
                 "indexados", total,
                 "ignorados", ignorados,
-                "erros", erros
+                "erros", erros,
+                "motivoErro", primeiroErro == null ? "" : primeiroErro
             )).build();
 
         } catch (Exception e) {

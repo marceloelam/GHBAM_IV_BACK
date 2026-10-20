@@ -36,6 +36,10 @@ public class BaseConhecimentoFarmaceutico {
         public Set<String> classes = new LinkedHashSet<>();
         public String atc;
         public Double doseMaximaDiaMg;
+        /** Limite por peso (mg/kg/dia); vale junto com doseMaximaDiaMg quando ambos existem. */
+        public Double doseMaximaMgKgDia;
+        /** Motivo de nao haver teto diario fixo (titulado, topico, UI...); null quando ha limite. */
+        public String semTetoFixo;
         public boolean altaVigilancia;
         public boolean antimicrobiano;
         public boolean exigePeso;
@@ -109,6 +113,8 @@ public class BaseConhecimentoFarmaceutico {
                 }
                 m.atc = texto(no.get("atc"));
                 m.doseMaximaDiaMg = decimal(no.get("doseMaximaDiaMg"));
+                m.doseMaximaMgKgDia = decimal(no.get("doseMaximaMgKgDia"));
+                m.semTetoFixo = texto(no.get("semTetoFixo"));
                 m.altaVigilancia = no.path("altaVigilancia").asBoolean(false);
                 m.antimicrobiano = no.path("antimicrobiano").asBoolean(false);
                 m.exigePeso = no.path("exigePeso").asBoolean(false);

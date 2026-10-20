@@ -75,7 +75,6 @@ public class Servidor2Repository implements PanacheRepository<Servidor2> {
 			String sql = "UPDATE Servidor2 set ativo = :ativo where idServidor2 = :idServidor2";
 			entityManager.createNativeQuery(sql).setParameter("ativo", status).setParameter("idServidor2", id)
 					.executeUpdate();
-			System.out.println(sql);
 		}
 
 }

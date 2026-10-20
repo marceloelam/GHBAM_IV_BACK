@@ -56,10 +56,11 @@ public class MonitoramentoService {
         dto.setTempoPermanenciaMediaDias(arredondar(permanencia));
 
         BigDecimal leitos = scalar(
-            "SELECT COUNT(*) FROM localcenso WHERE unidade = :u AND excluido = false",
+            "SELECT COUNT(*) FROM localcenso WHERE unidade = :u AND excluido = false AND disponivel = true",
             unidade, hoje);
         BigDecimal internados = scalar(
-            "SELECT COUNT(*) FROM novointernado WHERE unidade = :u AND alta = false",
+            "SELECT COUNT(*) FROM novointernado n JOIN localcenso l ON l.idsetorlocalcenso = n.local_idsetorlocalcenso "
+            + "WHERE n.unidade = :u AND n.alta = false AND l.excluido = false AND l.disponivel = true",
             unidade, hoje);
 
         int totalLeitos = intVal(leitos);
@@ -107,9 +108,10 @@ public class MonitoramentoService {
 
     private void carregarSetores(MonitoramentoDto dto, String unidade) {
         String sql = "SELECT COALESCE(s.setor, 'SEM SETOR'), "
-            + "COUNT(n.idninternado), COUNT(l.idsetorlocalcenso) "
+            + "COUNT(n.idninternado), "
+            + "COUNT(DISTINCT l.idsetorlocalcenso) "
             + "FROM setorcenso s "
-            + "LEFT JOIN localcenso l ON l.setorcenso_idsetorcenso = s.idsetorcenso AND l.excluido = false "
+            + "LEFT JOIN localcenso l ON l.setorcenso_idsetorcenso = s.idsetorcenso AND l.excluido = false AND l.disponivel = true "
             + "LEFT JOIN novointernado n ON n.local_idsetorlocalcenso = l.idsetorlocalcenso AND n.alta = false AND n.unidade = :u "
             + "WHERE s.unidade = :u AND s.excluido = false "
             + "GROUP BY s.setor ORDER BY COUNT(n.idninternado) DESC, s.setor";

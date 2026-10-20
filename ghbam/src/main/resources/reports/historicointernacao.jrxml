@@ -13,13 +13,23 @@
 		<![CDATA[SELECT
 (select count(*) from assinatura_clinica ac where ac.idbam = b.idbam and upper(ac.status) = 'ASSINADO') as assinaturas_clinicas_total,
 (select count(*) from assinatura_clinica ac where ac.idbam = b.idbam and upper(ac.status) = 'ADENDO') as adendos_clinicos_total,
+to_char(i.datasaida, 'DD/MM/YYYY') as saida_txt,
+(case when i.datasaida is null then 'EM CURSO' else i.motivodaalta end) as motivo_txt,
+(select string_agg(to_char(a.datadaacao, 'DD/MM/YYYY'), ', ' order by a.datadaacao)
+   from novointernadoadm a where a.nbam = b.idbam and a.motivosaida = 'ALTA ADM') as altasadm_txt,
+(select count(*) from novointernadoadm a where a.nbam = b.idbam and a.motivosaida = 'ALTA ADM') as altasadm_qtd,
 * FROM pacientes p, internacao i , bam b
 WHERE b.idbam = cast(i.bam as integer) and b.paciente_idpaciente = p.idpaciente
  and b.unidade =  $P{ssigla} 
- and i.prontuario=  $P{numerodoprontuario}]]>
+ and i.prontuario=  $P{numerodoprontuario}
+ORDER BY i.datainternacao DESC NULLS LAST, i.idninternado DESC]]>
 	</queryString>
 	<field name="assinaturas_clinicas_total" class="java.lang.Long"/>
 	<field name="adendos_clinicos_total" class="java.lang.Long"/>
+	<field name="saida_txt" class="java.lang.String"/>
+	<field name="motivo_txt" class="java.lang.String"/>
+	<field name="altasadm_txt" class="java.lang.String"/>
+	<field name="altasadm_qtd" class="java.lang.Long"/>
 	<field name="idpaciente" class="java.lang.Integer">
 		<property name="com.jaspersoft.studio.field.name" value="idpaciente"/>
 		<property name="com.jaspersoft.studio.field.label" value="idpaciente"/>
@@ -370,6 +380,21 @@ WHERE b.idbam = cast(i.bam as integer) and b.paciente_idpaciente = p.idpaciente
 		<property name="com.jaspersoft.studio.field.label" value="transorigem"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="bam"/>
 	</field>
+	<variable name="totalInternacoes" class="java.lang.Integer" calculation="Count">
+		<variableExpression><![CDATA[$F{idbam}]]></variableExpression>
+	</variable>
+	<variable name="totalEmCurso" class="java.lang.Integer" calculation="Sum">
+		<variableExpression><![CDATA["EM CURSO".equals($F{motivo_txt}) ? 1 : 0]]></variableExpression>
+		<initialValueExpression><![CDATA[0]]></initialValueExpression>
+	</variable>
+	<variable name="totalObitos" class="java.lang.Integer" calculation="Sum">
+		<variableExpression><![CDATA[$F{motivo_txt} != null && $F{motivo_txt}.startsWith("OBITO") ? 1 : 0]]></variableExpression>
+		<initialValueExpression><![CDATA[0]]></initialValueExpression>
+	</variable>
+	<variable name="totalAltasAdm" class="java.lang.Long" calculation="Sum">
+		<variableExpression><![CDATA[$F{altasadm_qtd} == null ? 0L : $F{altasadm_qtd}]]></variableExpression>
+		<initialValueExpression><![CDATA[0L]]></initialValueExpression>
+	</variable>
 	<background>
 		<band splitType="Stretch"/>
 	</background>
@@ -729,7 +754,7 @@ WHERE b.idbam = cast(i.bam as integer) and b.paciente_idpaciente = p.idpaciente
 				<text><![CDATA[Local]]></text>
 			</staticText>
 			<staticText>
-				<reportElement x="344" y="234" width="84" height="14" uuid="e67a8403-cddf-4110-94c7-d11916128fef">
+				<reportElement x="290" y="234" width="84" height="14" uuid="e67a8403-cddf-4110-94c7-d11916128fef">
 					<property name="com.jaspersoft.studio.unit.height" value="cm"/>
 				</reportElement>
 				<textElement verticalAlignment="Middle">
@@ -752,13 +777,27 @@ WHERE b.idbam = cast(i.bam as integer) and b.paciente_idpaciente = p.idpaciente
 				<textFieldExpression><![CDATA[$P{hospital}]]></textFieldExpression>
 			</textField>
 			<staticText>
-				<reportElement x="481" y="234" width="70" height="14" uuid="3296d599-0976-4e01-a1c2-5cf133ed1e38">
+				<reportElement x="495" y="234" width="57" height="14" uuid="3296d599-0976-4e01-a1c2-5cf133ed1e38">
 					<property name="com.jaspersoft.studio.unit.height" value="cm"/>
 				</reportElement>
 				<textElement verticalAlignment="Middle">
 					<font size="8" isBold="true"/>
 				</textElement>
 				<text><![CDATA[Unidade]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="380" y="234" width="46" height="14" uuid="5b1d3c2a-7e44-4f0a-9b61-0c2a9d7e1a01"/>
+				<textElement verticalAlignment="Middle">
+					<font size="8" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Saída]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="430" y="234" width="60" height="14" uuid="5b1d3c2a-7e44-4f0a-9b61-0c2a9d7e1a02"/>
+				<textElement verticalAlignment="Middle">
+					<font size="8" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Motivo]]></text>
 			</staticText>
 			<image hAlign="Center" vAlign="Middle" onErrorType="Blank">
 				<reportElement stretchType="RelativeToTallestObject" x="1" y="3" width="99" height="54" uuid="064b3a26-19f6-4f1e-8b51-1c7a7a7f7349">
@@ -770,7 +809,7 @@ WHERE b.idbam = cast(i.bam as integer) and b.paciente_idpaciente = p.idpaciente
 		</band>
 	</title>
 	<detail>
-		<band height="15" splitType="Stretch">
+		<band height="27" splitType="Stretch">
 			<rectangle>
 				<reportElement x="3" y="1" width="82" height="13" uuid="7e4d090f-0b35-472e-9970-a2a1b92748d4"/>
 			</rectangle>
@@ -781,8 +820,37 @@ WHERE b.idbam = cast(i.bam as integer) and b.paciente_idpaciente = p.idpaciente
 				<reportElement x="150" y="1" width="137" height="13" uuid="e524896f-54ca-43bd-b994-190e894529b9"/>
 			</rectangle>
 			<rectangle>
-				<reportElement x="287" y="1" width="265" height="13" uuid="6c5e04fc-098a-4140-95f2-1e22016a7140"/>
+				<reportElement x="287" y="1" width="90" height="13" uuid="6c5e04fc-098a-4140-95f2-1e22016a7140"/>
 			</rectangle>
+			<rectangle>
+				<reportElement x="377" y="1" width="50" height="13" uuid="5b1d3c2a-7e44-4f0a-9b61-0c2a9d7e1a03"/>
+			</rectangle>
+			<rectangle>
+				<reportElement x="427" y="1" width="65" height="13" uuid="5b1d3c2a-7e44-4f0a-9b61-0c2a9d7e1a04"/>
+			</rectangle>
+			<textField>
+				<reportElement x="380" y="2" width="46" height="13" uuid="5b1d3c2a-7e44-4f0a-9b61-0c2a9d7e1a05"/>
+				<textElement verticalAlignment="Middle">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{saida_txt} == null ? "" : $F{saida_txt}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="430" y="2" width="61" height="13" uuid="5b1d3c2a-7e44-4f0a-9b61-0c2a9d7e1a06"/>
+				<textElement verticalAlignment="Middle">
+					<font size="6"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{motivo_txt} == null ? "" : $F{motivo_txt}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement positionType="Float" x="8" y="15" width="544" height="11" isRemoveLineWhenBlank="true" uuid="5b1d3c2a-7e44-4f0a-9b61-0c2a9d7e1a07">
+					<printWhenExpression><![CDATA[$F{altasadm_txt} != null]]></printWhenExpression>
+				</reportElement>
+				<textElement verticalAlignment="Middle">
+					<font size="7" isItalic="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["- Alta administrativa (AIH encerrada, paciente seguiu internado) em: " + $F{altasadm_txt}]]></textFieldExpression>
+			</textField>
 			<textField>
 				<reportElement x="8" y="2" width="77" height="13" uuid="54491a07-bf50-4200-a852-6036ddf2b893"/>
 				<textElement verticalAlignment="Middle">
@@ -805,17 +873,17 @@ WHERE b.idbam = cast(i.bam as integer) and b.paciente_idpaciente = p.idpaciente
 				<textFieldExpression><![CDATA[($F{local}==null?"":$F{local}.equals("Não informado...")?"":$F{local})]]></textFieldExpression>
 			</textField>
 			<textField>
-				<reportElement x="290" y="2" width="184" height="13" uuid="294eb4ea-6dc9-4193-8b48-587169a760da"/>
+				<reportElement x="290" y="2" width="86" height="13" uuid="294eb4ea-6dc9-4193-8b48-587169a760da"/>
 				<textElement verticalAlignment="Middle">
 					<font size="7"/>
 				</textElement>
 				<textFieldExpression><![CDATA[($F{procedencia}==null?"":$F{procedencia}.equals("Não informado...")?"":$F{procedencia})]]></textFieldExpression>
 			</textField>
 			<rectangle>
-				<reportElement x="481" y="1" width="71" height="13" uuid="9de27a32-cfa2-4ec6-8bb4-27d6079ef50a"/>
+				<reportElement x="492" y="1" width="60" height="13" uuid="9de27a32-cfa2-4ec6-8bb4-27d6079ef50a"/>
 			</rectangle>
 			<textField>
-				<reportElement x="485" y="2" width="66" height="13" uuid="88d85050-0ab9-489f-a11d-78a68a353428">
+				<reportElement x="495" y="2" width="56" height="13" uuid="88d85050-0ab9-489f-a11d-78a68a353428">
 					<property name="com.jaspersoft.studio.unit.height" value="cm"/>
 				</reportElement>
 				<textElement verticalAlignment="Middle">
@@ -867,4 +935,25 @@ WHERE b.idbam = cast(i.bam as integer) and b.paciente_idpaciente = p.idpaciente
 			</staticText>
 		</band>
 	</columnFooter>
+	<summary>
+		<band height="22">
+			<frame>
+				<reportElement x="3" y="4" width="549" height="16" backcolor="#F1F5F9" mode="Opaque" uuid="5b1d3c2a-7e44-4f0a-9b61-0c2a9d7e1a10"/>
+				<box>
+					<pen lineWidth="0.5" lineColor="#64748B"/>
+				</box>
+				<textField>
+					<reportElement x="5" y="2" width="539" height="12" uuid="5b1d3c2a-7e44-4f0a-9b61-0c2a9d7e1a11"/>
+					<textElement verticalAlignment="Middle">
+						<font size="8" isBold="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA["TOTAL: " + $V{totalInternacoes} + " internação(ões)"
+	+ "   |   Encerradas: " + ($V{totalInternacoes} - $V{totalEmCurso})
+	+ "   |   Em curso: " + $V{totalEmCurso}
+	+ "   |   Óbitos: " + $V{totalObitos}
+	+ "   |   Altas administrativas: " + $V{totalAltasAdm}]]></textFieldExpression>
+				</textField>
+			</frame>
+		</band>
+	</summary>
 </jasperReport>

@@ -183,6 +183,12 @@ public class Servidor2 extends PanacheEntityBase implements Serializable {
 	@Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
 	private Boolean farmaciarelatorios;
 	@Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+	private Boolean nirlaudointernacao;
+	@Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+	private Boolean nirenfermariaseleitos;
+	@Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+	private Boolean nirhistoricocompleto;
+	@Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
 	private Boolean nir;
 	@Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
 	private Boolean painelnir;
@@ -425,6 +431,9 @@ public class Servidor2 extends PanacheEntityBase implements Serializable {
 		farmaciaoperacoes = false;
 		farmaciaavaliacao = false;
 		farmaciarelatorios = false;
+		nirlaudointernacao = false;
+		nirenfermariaseleitos = false;
+		nirhistoricocompleto = false;
 		nir = false;
 		painelnir = false;
 		localcenso = false;

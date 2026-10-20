@@ -1,5 +1,10 @@
 package br.com.iv.controller;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeParseException;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 import jakarta.inject.Inject;
@@ -24,6 +29,8 @@ import br.com.iv.service.LogService;
 @Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)
 public class LogController {
+	private static final DateTimeFormatter HORA_LOG = DateTimeFormatter.ofPattern("HH:mm");
+	private static final ZoneId ZONA_LOG = ZoneId.of("America/Sao_Paulo");
 
 	@Inject
 	LogService logService;
@@ -37,8 +44,15 @@ public class LogController {
 	@GET
 	@Path("/data/{data}/unidade/{unidade}")
 	public Response xlistarlogData(@PathParam("data") String data, @PathParam("unidade") String unidade) {
-			List<Log> cbo =  logService.filtarPorLogData(data, unidade);
+		try {
+			LocalDate dataFiltro = LocalDate.parse(data);
+			List<Log> cbo = logService.filtarPorLogData(dataFiltro, unidade);
 			return Response.ok(cbo).build();
+		} catch (DateTimeParseException e) {
+			return Response.status(Response.Status.BAD_REQUEST)
+					.entity(java.util.Map.of("erro", "Informe a data no formato AAAA-MM-DD."))
+					.build();
+		}
 	}
 	
 	@GET
@@ -80,6 +94,9 @@ public class LogController {
 	}
 
 	private void enriquecerAutoria(LogDto dto, ContainerRequestContext requestContext) {
+		LocalDateTime agora = LocalDateTime.now(ZONA_LOG);
+		dto.setData(agora.toLocalDate());
+		dto.setHora(agora.format(HORA_LOG));
 		Object valor = requestContext == null ? null : requestContext.getProperty("ghbam.user");
 		if (!(valor instanceof AuthenticatedUser user) || user.matricula() == null || user.matricula().isBlank()) return;
 		String evento = dto.getEvento() == null ? "" : dto.getEvento().trim();

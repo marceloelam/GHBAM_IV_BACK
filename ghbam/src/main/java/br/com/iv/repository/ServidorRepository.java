@@ -66,7 +66,6 @@ public class ServidorRepository implements PanacheRepository<Servidor> {
 		String sql = "UPDATE servidor set pwd = :pwd where matricula = :matricula";
 		entityManager.createNativeQuery(sql).setParameter("pwd", pwd).setParameter("matricula", matricula)
 				.executeUpdate();
-		System.out.println(sql);
 	}
 
 	// Atualizar senha do servidor
@@ -74,7 +73,6 @@ public class ServidorRepository implements PanacheRepository<Servidor> {
 		String sql = "UPDATE servidor set ativo = :ativo where idservidor = :idservidor";
 		entityManager.createNativeQuery(sql).setParameter("ativo", status).setParameter("idservidor", id)
 				.executeUpdate();
-		System.out.println(sql);
 	}
 
 	public List<Servidor> especialistas(String unidade) {
@@ -91,6 +89,17 @@ public class ServidorRepository implements PanacheRepository<Servidor> {
 	 */
 	public List<Servidor> findAllComFir() {
 		return find("(fir is not null and fir <> '') or (biometria is not null and biometria <> '')").list();
+	}
+
+	public List<Servidor> findAllComSourceafis() {
+		return find("biometriaSourceafis is not null and biometriaSourceafis <> ''").list();
+	}
+
+	// Migracao automatica: so grava quando o servidor ainda nao tem modelo SourceAFIS.
+	@jakarta.transaction.Transactional
+	public int salvarSourceafisSeAusente(String matricula, String modelo) {
+		return update("biometriaSourceafis = ?1 where matricula = ?2 and (biometriaSourceafis is null or biometriaSourceafis = '')",
+				modelo, matricula);
 	}
 
 }

@@ -47,6 +47,29 @@ public class ServidorService implements Serializable {
 	@Inject
 	br.com.iv.repository.ConfiguracaoUnidadeRepository configuracaoUnidadeRepository;
 
+	@Inject
+	br.com.iv.biofingertech.SourceAfisFingerprintService sourceAfis;
+
+	// Gera o modelo SourceAFIS a partir das imagens do cadastro. Se a digital foi
+	// trocada/removida sem imagem (agente antigo), descarta o modelo anterior para
+	// nao autenticar com a digital velha; ele sera refeito no proximo login interno.
+	private void aplicarModeloSourceafis(Servidor servidor, ServidorDto dto, String firAnterior) {
+		if (dto.getBiometriaImagens() != null && !dto.getBiometriaImagens().isEmpty()) {
+			try {
+				servidor.setBiometriaSourceafis(sourceAfis.createTemplatesFromImages(dto.getBiometriaImagens(), dto.getBiometriaDpi()));
+				return;
+			} catch (RuntimeException ex) {
+				servidor.setBiometriaSourceafis(null);
+				return;
+			}
+		}
+		String antes = firAnterior == null ? "" : firAnterior.trim();
+		String depois = servidor.getFir() == null ? "" : servidor.getFir().trim();
+		if (!antes.equals(depois)) {
+			servidor.setBiometriaSourceafis(null);
+		}
+	}
+
 	static void aplicarRegistroProfissional(Servidor servidor, ServidorDto dto) {
 		servidor.setCorem(dto.getCorem() != null ? dto.getCorem() : servidor.getCorem());
 		servidor.setCrm(dto.getCrm() != null ? dto.getCrm() : servidor.getCrm());
@@ -246,6 +269,7 @@ public class ServidorService implements Serializable {
 		servidor.setFoto(dto.getFoto());
 		servidor.setBiometria(dto.getBiometria());
 		servidor.setFir(dto.getBiometria());
+		aplicarModeloSourceafis(servidor, dto, null);
 		if(servidor.getCorem().equals("") && !servidor.getCrm().equals(""))
 			servidor.setCorem(servidor.getCrm());
 		
@@ -258,7 +282,6 @@ public class ServidorService implements Serializable {
 			servidor.setCertificadoValidade(dto.getCertificadoValidade());
 		}
 		servidor.persist();
-		System.out.println(servidor);
 
 		// Salvar tambÃ©m em Servidor2
 		Servidor2Dto servidor2Dto = new Servidor2Dto();
@@ -286,10 +309,10 @@ public class ServidorService implements Serializable {
 	// Alterar
 	@Transactional
 	public void atualizarServidor(int id, ServidorDto dto) {
-		Optional<Servidor> servidorOp = Servidor.findByIdOptional(id);
+		Optional<Servidor> servidorOp = Servidor.findByIdOptional(id, jakarta.persistence.LockModeType.PESSIMISTIC_WRITE);
 		Servidor servidor = servidorOp.orElseThrow(() -> new NullPointerException("O servidor nÃ£o foi encontrado..."));
 
-		servidor.setMatricula(dto.getMatricula() != null ? dto.getMatricula() : servidor.getMatricula());
+		ServidorMatriculaService.validarMatriculaCadastro(servidor.getMatricula(), dto.getMatricula());
 		servidor.setNome(dto.getNome() != null ? dto.getNome() : servidor.getNome());
 		servidor.setNascimento(dto.getNascimento() != null ? dto.getNascimento() : servidor.getNascimento());
 		servidor.setCpf(dto.getCpf() != null ? dto.getCpf() : servidor.getCpf());
@@ -343,6 +366,7 @@ public class ServidorService implements Serializable {
 		servidor.setUnidade(dto.getUnidade() != null ? dto.getUnidade() : servidor.getUnidade());
 		servidor.setCbo(dto.getCbo() != null ? dto.getCbo() : servidor.getCbo());
 		servidor.setFoto(dto.getFoto() != null && !dto.getFoto().isBlank() ? dto.getFoto() : servidor.getFoto());
+		String firAnterior = servidor.getFir();
 		if (dto.getBiometria() != null) {
 			servidor.setBiometria(dto.getBiometria());
 		}
@@ -351,6 +375,7 @@ public class ServidorService implements Serializable {
 		} else if (dto.getBiometria() != null) {
 			servidor.setFir(dto.getBiometria());
 		}
+		aplicarModeloSourceafis(servidor, dto, firAnterior);
 		servidor.setUsuarioad(dto.getUsuarioad() != null ? dto.getUsuarioad() : servidor.getUsuarioad());
 		if (dto.getCertificadoPfxBase64() != null && !dto.getCertificadoPfxBase64().isBlank()) {
 			servidor.setCertificadoPfxBase64(dto.getCertificadoPfxBase64());
@@ -359,7 +384,6 @@ public class ServidorService implements Serializable {
 			servidor.setCertificadoEmissor(dto.getCertificadoEmissor());
 			servidor.setCertificadoValidade(dto.getCertificadoValidade());
 		}
-		System.out.println(servidor);
 		servidor.persist();
 		securityPermissionService.invalidateUserCache(servidor.getMatricula());
 
@@ -486,7 +510,6 @@ public class ServidorService implements Serializable {
 		servidor.setBiometria(dto.getBiometria());
 		servidor.setFir(servidor.getFir());
 		servidor.setUsuarioad(servidor.getUsuarioad()==null? "":servidor.getUsuarioad());
-		System.out.println(servidor);
 		return servidor;
 
 	}
@@ -554,7 +577,6 @@ public class ServidorService implements Serializable {
 		servidor.setUsuarioad(servidor.getUsuarioad()==null? "":servidor.getUsuarioad());
 		servidor.setBiometria(servidor.getBiometria() == null ? "" : servidor.getBiometria());
 		servidor.setFir(servidor.getFir() != null ? servidor.getFir() : "");
-		System.out.println(servidor);
 		return servidor;
 
 	}
@@ -611,7 +633,6 @@ public class ServidorService implements Serializable {
 		servidor.setBiometria(dto.getBiometria());
 		servidor.setFir(servidor.getFir());
 		servidor.setUsuarioad(servidor.getUsuarioad()==null? "":servidor.getUsuarioad());
-		System.out.println(servidor);
 		return servidor;
 
 	}

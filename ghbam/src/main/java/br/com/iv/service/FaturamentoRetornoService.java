@@ -1,10 +1,13 @@
 package br.com.iv.service;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.persistence.LockModeType;
 import jakarta.transaction.Transactional;
 
 import br.com.iv.dto.ImportarRetornoDto;
@@ -14,6 +17,7 @@ import br.com.iv.entity.FaturamentoRemessa;
 import br.com.iv.entity.FaturamentoRetorno;
 import br.com.iv.entity.FaturamentoRetornoItem;
 import br.com.iv.enums.RetornoResultado;
+import br.com.iv.enums.RemessaStatus;
 import br.com.iv.repository.FaturamentoRetornoItemRepository;
 import br.com.iv.repository.FaturamentoRetornoRepository;
 import br.com.iv.security.AuthenticatedUser;
@@ -59,11 +63,30 @@ public class FaturamentoRetornoService {
         if (dto == null || dto.getItens() == null || dto.getItens().isEmpty()) {
             throw new IllegalArgumentException("Informe ao menos um item de retorno.");
         }
+        if (dto.getIdremessa() == null || dto.getIdremessa() <= 0) {
+            throw new IllegalArgumentException("Vincule o retorno a uma remessa transmitida.");
+        }
         String unidade = resolverUnidade(dto, user);
+        // Trava a remessa ate o fim da transacao: sem isso duas importacoes simultaneas
+        // passariam juntas pela checagem de "ja existe retorno" abaixo.
+        FaturamentoRemessa remessa = FaturamentoRemessa.findById(dto.getIdremessa(), LockModeType.PESSIMISTIC_WRITE);
+        if (remessa == null || !mesmaUnidade(remessa.getUnidade(), unidade)) {
+            throw new IllegalArgumentException("Remessa nao encontrada para a unidade informada.");
+        }
+        exigirRemessaTransmitida(remessa);
+        if (FaturamentoRetorno.count("idremessa", dto.getIdremessa()) > 0) {
+            throw new IllegalArgumentException("Ja existe retorno importado para a remessa " + remessa.getNumero()
+                    + ". Um segundo retorno deixaria producao glosada marcada como faturada.");
+        }
+        if (dto.getCompetencia() != null && !dto.getCompetencia().isBlank()
+                && !dto.getCompetencia().equals(remessa.getIdcompetencia() > 0
+                        ? competenciaDaRemessa(remessa) : "")) {
+            throw new IllegalArgumentException("A competencia do retorno nao corresponde a remessa.");
+        }
 
         FaturamentoRetorno retorno = new FaturamentoRetorno();
         retorno.setIdremessa(dto.getIdremessa());
-        retorno.setCompetencia(dto.getCompetencia());
+        retorno.setCompetencia(competenciaDaRemessa(remessa));
         retorno.setUnidade(unidade);
         retorno.setDataImportacao(LocalDateTime.now());
         retorno.setUsuario(user == null ? "" : user.matricula());
@@ -73,8 +96,35 @@ public class FaturamentoRetornoService {
 
         int aprovados = 0;
         int rejeitados = 0;
+        Set<Integer> producoesDoRetorno = new HashSet<>();
         for (RetornoItemImportDto itemDto : dto.getItens()) {
+            if (itemDto == null) {
+                throw new IllegalArgumentException("O retorno contem um item vazio.");
+            }
             String resultado = normalizarResultado(itemDto.getResultado());
+            Afaturar producao = null;
+            if (itemDto.getIdafaturar() != null) {
+                if (!producoesDoRetorno.add(itemDto.getIdafaturar())) {
+                    throw new IllegalArgumentException("A producao " + itemDto.getIdafaturar()
+                            + " esta duplicada no retorno.");
+                }
+                producao = Afaturar.find(
+                        "idafaturar = ?1 and numeroRemessa = ?2 and idcompetencia = ?3 and upper(unidade) = upper(?4)",
+                        itemDto.getIdafaturar(), remessa.getNumero(), remessa.getIdcompetencia(), unidade)
+                        .firstResult();
+                if (producao == null) {
+                    Afaturar semVinculo = Afaturar.findById(itemDto.getIdafaturar());
+                    if (semVinculo != null && texto(semVinculo.getNumeroRemessa()).isBlank()) {
+                        throw new IllegalArgumentException("A producao " + itemDto.getIdafaturar()
+                                + " foi exportada antes do GHBAM gravar o numero da remessa em cada linha;"
+                                + " confira o retorno manualmente.");
+                    }
+                    throw new IllegalArgumentException("A producao " + itemDto.getIdafaturar()
+                            + " nao pertence a remessa/unidade/competencia informada.");
+                }
+            } else if (RetornoResultado.APROVADO.name().equals(resultado)) {
+                throw new IllegalArgumentException("Todo item aprovado precisa identificar a producao do GHBAM.");
+            }
 
             FaturamentoRetornoItem item = new FaturamentoRetornoItem();
             item.setIdretorno(retorno.getIdretorno());
@@ -89,7 +139,7 @@ public class FaturamentoRetornoService {
 
             if (RetornoResultado.APROVADO.name().equals(resultado)) {
                 aprovados++;
-                marcarFaturado(itemDto.getIdafaturar());
+                producao.setFaturado(true);
             } else if (RetornoResultado.REJEITADO.name().equals(resultado) || RetornoResultado.GLOSADO.name().equals(resultado)) {
                 rejeitados++;
             }
@@ -97,6 +147,7 @@ public class FaturamentoRetornoService {
 
         retorno.setQuantidadeAprovados(aprovados);
         retorno.setQuantidadeRejeitados(rejeitados);
+        remessa.setStatus(RemessaStatus.RETORNO_IMPORTADO.name());
 
         auditService.registrar(unidade, "IMPORTAR_RETORNO", "SUCESSO",
                 "FaturamentoRetorno", String.valueOf(retorno.getIdretorno()), null, null, null,
@@ -114,6 +165,17 @@ public class FaturamentoRetornoService {
             throw new IllegalArgumentException("Retorno nao encontrado para a unidade informada.");
         }
         return retorno;
+    }
+
+    // Retorno so faz sentido para remessa que saiu do GHBAM: GERADA/VALIDADA/
+    // DISPONIBILIZADA ainda nao foram transmitidas, e CANCELADA/SUBSTITUIDA/REJEITADA
+    // ja devolveram a producao - aprovar ali marcaria faturado o que nao foi pago.
+    // RETORNO_IMPORTADO fica de fora: um retorno por remessa (glosa nao desfaz faturado).
+    static void exigirRemessaTransmitida(FaturamentoRemessa remessa) {
+        if (remessa == null || !Set.of(RemessaStatus.TRANSMITIDA.name(), RemessaStatus.PROCESSADA.name())
+                .contains(remessa.getStatus())) {
+            throw new IllegalArgumentException("O retorno so pode ser importado para uma remessa transmitida.");
+        }
     }
 
     private String resolverUnidade(ImportarRetornoDto dto, AuthenticatedUser user) {
@@ -135,14 +197,17 @@ public class FaturamentoRetornoService {
         return valor == null ? "" : valor.trim();
     }
 
-    private void marcarFaturado(Integer idafaturar) {
-        if (idafaturar == null) {
-            return;
+    private String competenciaDaRemessa(FaturamentoRemessa remessa) {
+        br.com.iv.entity.FaturamentoCompetencia competencia =
+                br.com.iv.entity.FaturamentoCompetencia.findById(remessa.getIdcompetencia());
+        if (competencia == null) {
+            throw new IllegalArgumentException("A competencia da remessa nao foi encontrada.");
         }
-        Afaturar producao = Afaturar.findById(idafaturar);
-        if (producao != null) {
-            producao.setFaturado(true);
-        }
+        return competencia.getCompetencia();
+    }
+
+    private boolean mesmaUnidade(String primeira, String segunda) {
+        return primeira != null && segunda != null && primeira.trim().equalsIgnoreCase(segunda.trim());
     }
 
     private String normalizarResultado(String valor) {

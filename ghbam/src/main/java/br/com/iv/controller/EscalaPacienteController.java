@@ -106,6 +106,8 @@ public class EscalaPacienteController {
 		try {
 			EscalaPaciente escalaPacientes = escalaPacientesService.salvarEscalaPaciente2(dto);
 			return Response.ok(escalaPacientes).status(Response.Status.CREATED).build();
+		} catch (EscalaPacientesService.HorarioOcupadoException e) {
+			return Response.status(Response.Status.CONFLICT).entity(new ErrorResponse(e.getMessage())).build();
 		} catch (IllegalArgumentException e) {
 			return Response.status(Response.Status.BAD_REQUEST).entity(new ErrorResponse(e.getMessage())).build();
 		} catch (Exception e) {
