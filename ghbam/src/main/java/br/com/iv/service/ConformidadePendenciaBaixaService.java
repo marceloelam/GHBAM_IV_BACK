@@ -8,17 +8,28 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import org.jboss.logging.Logger;
+
+import jakarta.enterprise.event.Observes;
+import jakarta.enterprise.event.TransactionPhase;
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.LockModeType;
 import jakarta.ws.rs.BadRequestException;
 import br.com.iv.entity.ConformidadePendenciaBaixa;
 import br.com.iv.entity.Bam;
+import br.com.iv.entity.Afaturar;
+import br.com.iv.enums.InstrumentoRegistro;
+import br.com.iv.enums.ProducaoStatus;
+import br.com.iv.security.AuthenticatedUser;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
 
 @ApplicationScoped
 public class ConformidadePendenciaBaixaService implements Serializable {
     private static final long serialVersionUID = 1L;
+    private static final String TITULO_PENDENCIA_FATURAMENTO = "Atendimento sem procedimento real de faturamento localizado";
+    private static final Logger LOG = Logger.getLogger(ConformidadePendenciaBaixaService.class);
 
     @Inject
     EntityManager entityManager;
@@ -45,6 +56,72 @@ public class ConformidadePendenciaBaixaService implements Serializable {
                 || "TRATADA".equals(status)
                 || "JUSTIFICADA".equals(status)
                 || "IGNORADA".equals(status);
+    }
+
+    /**
+     * Registra a baixa depois do commit do faturamento, em transacao separada.
+     * Se a baixa falhar, a producao ja confirmada permanece gravada.
+     */
+    @Transactional(Transactional.TxType.REQUIRES_NEW)
+    public void faturamentoConfirmado(@Observes(during = TransactionPhase.AFTER_SUCCESS) Afaturar producao) {
+        try {
+            registrarBaixaAutomaticaFaturamento(producao, null);
+        } catch (RuntimeException e) {
+            LOG.warnf(e, "Faturamento %d confirmado, mas nao foi possivel registrar a baixa automatica de conformidade.",
+                    producao == null ? 0 : producao.getIdafaturar());
+        }
+    }
+
+    /**
+     * Fecha a pendencia de faturamento somente depois que a producao foi persistida.
+     * O procedimento escolhido no fluxo assistencial continua sendo a fonte do codigo
+     * SUS; esta rotina nao inventa codigo nem cria producao.
+     */
+    @Transactional
+    public void registrarBaixaAutomaticaFaturamento(Afaturar producao, AuthenticatedUser user) {
+        if (producao == null || producao.getIdafaturar() <= 0 || producao.getBam() <= 0
+                || producao.getProcedimento() == null || producao.getProcedimento().isBlank()) {
+            return;
+        }
+        // Apenas producao ja classificada para um instrumento SUS pode encerrar o
+        // alerta. Uma linha PENDENTE_CLASSIFICACAO ou NAO_FATURAVEL nao representa
+        // faturamento vinculado, mesmo que tenha um codigo preenchido.
+        if (InstrumentoRegistro.NAO_FATURAVEL.name().equals(producao.getInstrumentoRegistro())
+                || InstrumentoRegistro.PENDENTE_CLASSIFICACAO.name().equals(producao.getInstrumentoRegistro())
+                || ProducaoStatus.NAO_FATURAVEL.name().equals(producao.getStatus())
+                || ProducaoStatus.PENDENTE_CLASSIFICACAO.name().equals(producao.getStatus())) {
+            return;
+        }
+
+        int idbam = producao.getBam();
+        Bam bam = entityManager.find(Bam.class, idbam, LockModeType.PESSIMISTIC_WRITE);
+        if (bam == null) return;
+
+        String chave = "Operacional:" + TITULO_PENDENCIA_FATURAMENTO;
+        ConformidadePendenciaBaixa ultima = ConformidadePendenciaBaixa
+                .find("idbam = ?1 and chavePendencia = ?2 order by criadoEm desc", idbam, chave)
+                .firstResult();
+        if (ultima != null && "TRATADA".equalsIgnoreCase(ultima.getStatus())) {
+            return;
+        }
+
+        ConformidadePendenciaBaixa baixa = new ConformidadePendenciaBaixa();
+        baixa.setIdbam(idbam);
+        baixa.setUnidade(unidadeNormalizada(bam.getUnidade()));
+        baixa.setChavePendencia(chave);
+        baixa.setTitulo(TITULO_PENDENCIA_FATURAMENTO);
+        baixa.setTipo("Operacional");
+        baixa.setStatus("TRATADA");
+        baixa.setObservacao("Baixa automatica apos gravacao confirmada do procedimento SUS "
+                + producao.getProcedimento() + " (afaturar " + producao.getIdafaturar() + ").");
+        baixa.setResponsavel(user == null
+                ? textoOuPadrao(producao.getUsuarioalterador(), producao.getNomeservidor())
+                : user.nome());
+        baixa.setResponsavelMatricula(user == null
+                ? textoOuPadrao(producao.getUsuarioalterador(), producao.getMatriculaservidor())
+                : user.matricula());
+        baixa.setCriadoEm(LocalDateTime.now());
+        baixa.persist();
     }
 
     @Transactional

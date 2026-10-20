@@ -38,8 +38,13 @@ public class UnidadeVideoConfigController {
 	@PUT
 	@Path("/{sigla}")
 	public Response salvar(@PathParam("sigla") String sigla, UnidadeVideoConfigDto dto) {
-		UnidadeVideoConfig config = unidadeVideoConfigService.salvar(sigla, dto);
-		return Response.ok(config).build();
+		try {
+			UnidadeVideoConfig config = unidadeVideoConfigService.salvar(sigla, dto);
+			return Response.ok(config).build();
+		} catch (IllegalArgumentException e) {
+			// Frase da chamada ou voz do painel inválida.
+			return respostaInvalida(e.getMessage());
+		}
 	}
 
 	@GET

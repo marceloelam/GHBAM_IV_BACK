@@ -11,11 +11,14 @@ import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.container.ContainerRequestContext;
+import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
 import br.com.iv.dto.LocalCensoDto;
 import br.com.iv.entity.LocalCenso;
+import br.com.iv.security.AuthenticatedUser;
 import br.com.iv.service.LocalCensoService;
 
 @Path("localcenso")
@@ -25,6 +28,9 @@ public class LocalCensoController {
 
 	@Inject
 	LocalCensoService localCensoService;
+
+	@Context
+	ContainerRequestContext requestContext;
 
 	@GET
 	public Response listarSetor() {
@@ -55,7 +61,7 @@ public class LocalCensoController {
 	@PATCH
 	@Path("/{id}/exclusao-logica/{excluido}")
 	public Response atualizarExclusaoLogica(@PathParam("id") int id, @PathParam("excluido") boolean excluido) {
-		localCensoService.alterarSeto(id, excluido);
+		localCensoService.alterarSeto(id, excluido, quemAlterou());
 		return Response.status(204).build();
 	}
 
@@ -103,6 +109,13 @@ public class LocalCensoController {
 	}
 
 
+	// Usado por /localcenso para confirmar antes de bloquear/excluir um leito ocupado.
+	@GET
+	@Path("/{id}/internados-ativos")
+	public Response contarInternadosAtivos(@PathParam("id") int id) {
+		return Response.ok(java.util.Map.of("total", localCensoService.contarInternadosAtivos(id))).build();
+	}
+
 	@POST
 	public Response salvarLocalCenso(LocalCensoDto dto) {
 		LocalCenso localCenso = localCensoService.salvarLocalCenso(dto);
@@ -112,8 +125,17 @@ public class LocalCensoController {
 	@PUT
 	@Path("{id}")
 	public Response atualizarLocalCenso(@PathParam("id") int id, LocalCensoDto dto) {
-		localCensoService.atualizarLocalCenso(id, dto);
-		return Response.status(204).build(); 
+		localCensoService.atualizarLocalCenso(id, dto, quemAlterou());
+		return Response.status(204).build();
+	}
+
+	// Profissional autenticado, gravado em quemdeualta nas altas automáticas por bloqueio do leito.
+	private String quemAlterou() {
+		AuthenticatedUser user = (AuthenticatedUser) requestContext.getProperty("ghbam.user");
+		if (user == null || user.matricula() == null || user.matricula().isBlank()) {
+			return "SISTEMA";
+		}
+		return (user.nome() != null ? user.nome() : "") + " - " + user.matricula();
 	}
 
 }

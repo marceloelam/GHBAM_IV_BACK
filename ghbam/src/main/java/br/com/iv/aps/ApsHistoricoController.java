@@ -41,6 +41,8 @@ public class ApsHistoricoController {
     ApsDb db;
     @Inject
     ApsReferenciaService referencias;
+    @Inject
+    ApsVacinacaoService vacinacao;
 
     @Context
     ContainerRequestContext ctx;
@@ -53,6 +55,45 @@ public class ApsHistoricoController {
             return ApsHttp.proibido("Historico do paciente");
         }
         return executar(() -> historico(idPaciente));
+    }
+
+    /**
+     * Alerta vacinal para o cabecalho do atendimento no hospital: doses do calendario em atraso,
+     * pelo mesmo calculo da caderneta do G-PEC. Sem nenhuma dose registrada no G-PEC o calendario
+     * acusaria "tudo atrasado"; nesse caso devolve semRegistro=true em vez da lista.
+     */
+    @GET
+    @Path("/paciente/{idpaciente}/vacinas-atrasadas")
+    public Response vacinasAtrasadas(@PathParam("idpaciente") Integer idPaciente) {
+        AuthenticatedUser user = ApsHttp.usuario(ctx, sps);
+        if (!pode(user, PUBLICO_HISTORICO)) {
+            return ApsHttp.proibido("Historico do paciente");
+        }
+        return executar(() -> atrasadas(idPaciente));
+    }
+
+    Map<String, Object> atrasadas(Integer idPaciente) {
+        if (idPaciente == null) {
+            throw new IllegalArgumentException("Paciente nao informado.");
+        }
+        Map<String, Object> c = db.one("""
+                SELECT id, data_nascimento FROM aps_cidadao
+                WHERE id_paciente = :p AND data_nascimento IS NOT NULL
+                ORDER BY ativo DESC, atualizado_em DESC LIMIT 1
+                """, p("p", idPaciente));
+        if (c == null) {
+            return p("cadastroAps", false, "semRegistro", true, "atrasadas", List.of());
+        }
+        List<Map<String, Object>> regs = db.list("""
+                SELECT v.* FROM aps_vacinacao v JOIN aps_cidadao c ON c.id = v.id_cidadao
+                WHERE c.id_paciente = :p AND NOT v.excluido
+                """, p("p", idPaciente));
+        boolean semDose = regs.stream().noneMatch(r -> !"APRAZAMENTO".equals(r.get("tipo_registro")));
+        List<Map<String, Object>> atrasadas = semDose ? List.of()
+                : vacinacao.situacao(c, regs).stream().filter(s -> "ATRASADA".equals(s.get("status")))
+                        .map(s -> p("rotulo", s.get("rotulo"), "dataPrevista", s.get("dataPrevista"))).toList();
+        boolean menorDe15 = java.time.LocalDate.parse((String) c.get("data_nascimento")).plusYears(15).isAfter(java.time.LocalDate.now());
+        return p("cadastroAps", true, "idCidadao", c.get("id"), "menorDe15", menorDe15, "semRegistro", semDose, "atrasadas", atrasadas);
     }
 
     @SuppressWarnings("unchecked")

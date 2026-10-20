@@ -1,6 +1,7 @@
 package br.com.iv.repository;
 
 import java.util.List;
+import java.time.LocalDate;
 
 import jakarta.enterprise.context.ApplicationScoped;
 
@@ -29,8 +30,8 @@ public class LogRepository implements PanacheRepository<Log> {
 		return find("upper(evento) like ?1 and unidade = ?2 order by data desc, cast(hora as time) desc  limit 400", "%" + query.toUpperCase() + "%", unidade).list();
 	}
 
-	public List<Log> filtarPorData(String query, String unidade) {
-		return find("cast(data as string) like ?1 and unidade = ?2 order by data desc, cast(hora as time) desc", "%" + query.toUpperCase() + "%", unidade).list();
+	public List<Log> filtarPorData(LocalDate data, String unidade) {
+		return find("data = ?1 and unidade = ?2 order by data desc, cast(hora as time) desc", data, unidade).list();
 	}
 	
 }

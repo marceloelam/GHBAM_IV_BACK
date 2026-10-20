@@ -20,4 +20,10 @@ public class UnidadeVideoConfigDto implements Serializable {
 	private String urlM3u;
 	@Column(length = 120)
 	private String tituloM3u;
+
+	// null = não alterar (telas antigas não enviam); "" = voltar para a voz padrão.
+	private String vozPainel;
+
+	// Mesma regra: null = não alterar; "" = voltar para a frase padrão.
+	private String fraseChamada;
 }

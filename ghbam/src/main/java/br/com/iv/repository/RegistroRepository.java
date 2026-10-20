@@ -34,9 +34,9 @@ public class RegistroRepository implements PanacheRepository<Registro> {
 		entityManager.createNativeQuery(sql).setParameter("id", idRegistro).executeUpdate();
 	}
 
-	public void atualizarRegistroResponsavelObservacao(int idRegistro, String responsavel, String obs) {
+	public int atualizarRegistroResponsavelObservacao(int idRegistro, String responsavel, String obs) {
 		String sql = "UPDATE registro set responsavel = :responsavel, obsentrada = :obs, atendidopor='', eletivo=false  where idregistro = :id";
-		entityManager.createNativeQuery(sql).setParameter("id", idRegistro).setParameter("responsavel", responsavel)
+		return entityManager.createNativeQuery(sql).setParameter("id", idRegistro).setParameter("responsavel", responsavel)
 				.setParameter("obs", obs).executeUpdate();
 	}
 
@@ -155,7 +155,6 @@ public class RegistroRepository implements PanacheRepository<Registro> {
 			entityManager.createNativeQuery(sql).setParameter("id", idRegistro).setParameter("atendidopor", atendidopor)
 					.executeUpdate();
 		}
-		System.out.println(sql);
 	}
 
 	@SuppressWarnings("unchecked")
@@ -180,46 +179,49 @@ public class RegistroRepository implements PanacheRepository<Registro> {
 	}
 
 	public long contarAtendimentosNaSemana(String servidor, String unidade, String quando) {
-	    String sql = "";
+	    String sql;
 
-	    if (quando.equals("dia")) {
+	    if ("dia".equals(quando)) {
 	        sql = "SELECT COALESCE(COUNT(*), 0) " +
 	              "FROM registro r " +
 	              "INNER JOIN bam b ON b.registro_idregistro = r.idregistro " +
 	              "WHERE r.atendidopor = :servidor " +
 	              "AND b.unidade = :unidade " +
-	              "AND b.data >= CURRENT_DATE " +
-	              "AND b.data < CURRENT_DATE + INTERVAL '1 day'";
+	              "AND b.data >= timezone('America/Sao_Paulo', now())::date " +
+	              "AND b.data < timezone('America/Sao_Paulo', now())::date + INTERVAL '1 day'";
 	    }
 
-	    else if (quando.equals("semana")) {
+	    else if ("semana".equals(quando)) {
 	        sql = "SELECT COALESCE(COUNT(*), 0) " +
 	              "FROM registro r " +
 	              "INNER JOIN bam b ON b.registro_idregistro = r.idregistro " +
 	              "WHERE r.atendidopor = :servidor " +
 	              "AND b.unidade = :unidade " +
-	              "AND b.data >= date_trunc('week', CURRENT_DATE) " +
-	              "AND b.data < date_trunc('week', CURRENT_DATE) + INTERVAL '7 days'";
+	              "AND b.data >= date_trunc('week', timezone('America/Sao_Paulo', now()))::date " +
+	              "AND b.data < (date_trunc('week', timezone('America/Sao_Paulo', now())) + INTERVAL '7 days')::date";
 	    }
 
-	    else if (quando.equals("mes")) {
+	    else if ("mes".equals(quando)) {
 	        sql = "SELECT COALESCE(COUNT(*), 0) " +
 	              "FROM registro r " +
 	              "INNER JOIN bam b ON b.registro_idregistro = r.idregistro " +
 	              "WHERE r.atendidopor = :servidor " +
 	              "AND b.unidade = :unidade " +
-	              "AND b.data >= date_trunc('month', NOW()) " +
-	              "AND b.data < date_trunc('month', NOW()) + INTERVAL '1 month'";
+	              "AND b.data >= date_trunc('month', timezone('America/Sao_Paulo', now()))::date " +
+	              "AND b.data < (date_trunc('month', timezone('America/Sao_Paulo', now())) + INTERVAL '1 month')::date";
 	    }
 
-	    else if (quando.equals("ano")) {
+	    else if ("ano".equals(quando)) {
 	        sql = "SELECT COALESCE(COUNT(*), 0) " +
 	              "FROM registro r " +
 	              "INNER JOIN bam b ON b.registro_idregistro = r.idregistro " +
 	              "WHERE r.atendidopor = :servidor " +
 	              "AND b.unidade = :unidade " +
-	              "AND b.data >= date_trunc('year', NOW()) " +
-	              "AND b.data < date_trunc('year', NOW()) + INTERVAL '1 year'";
+	              "AND b.data >= date_trunc('year', timezone('America/Sao_Paulo', now()))::date " +
+	              "AND b.data < (date_trunc('year', timezone('America/Sao_Paulo', now())) + INTERVAL '1 year')::date";
+	    }
+	    else {
+	        throw new IllegalArgumentException("Periodo de contagem invalido.");
 	    }
 
 	    try {

@@ -17,6 +17,11 @@ public class SourceAfisFingerprintService {
     public static final String TEMPLATE_PREFIX = "SOURCEAFIS_V1:";
     private static final double DEFAULT_THRESHOLD = 40.0d;
     private static final double DEFAULT_DPI = 500.0d;
+    private static final double AMBIGUITY_MARGIN = 10.0d;
+    private static final int TEMPLATE_CACHE_MAX = 20000;
+    // Desserializar o template custa mais que comparar; o cache evita refazer isso a cada login.
+    private static final java.util.Map<String, FingerprintTemplate> TEMPLATE_CACHE =
+            new java.util.concurrent.ConcurrentHashMap<>();
 
     public String createTemplateFromImage(String imageBase64, Double dpi) {
         byte[] imageBytes = decodeBase64Payload(imageBase64);
@@ -77,6 +82,73 @@ public class SourceAfisFingerprintService {
                 minimum,
                 bestServidor == null ? null : bestServidor.getMatricula(),
                 bestServidor);
+    }
+
+    /**
+     * Identificacao 1:N no proprio servidor usando a coluna biometria_sourceafis
+     * (um ou mais modelos separados por ';'). Rejeita como ambiguo quando outro
+     * servidor tambem passa do limiar com pontuacao proxima da melhor, para nao
+     * logar a pessoa errada.
+     */
+    public MatchResult identifyServidores(String probeTemplateValue, List<Servidor> servidores, Double threshold) {
+        FingerprintMatcher matcher = new FingerprintMatcher(readTemplate(probeTemplateValue));
+        double minimum = threshold == null || threshold <= 0 ? DEFAULT_THRESHOLD : threshold;
+        double best = Double.NEGATIVE_INFINITY;
+        double secondBest = Double.NEGATIVE_INFINITY;
+        Servidor bestServidor = null;
+
+        for (Servidor servidor : servidores) {
+            double score = Double.NEGATIVE_INFINITY;
+            for (String templateValue : splitTemplates(servidor == null ? null : servidor.getBiometriaSourceafis())) {
+                try {
+                    score = Math.max(score, matcher.match(cachedTemplate(templateValue)));
+                } catch (RuntimeException ignored) {
+                    // Um template corrompido nao deve impedir a busca nos demais.
+                }
+            }
+            if (score > best) {
+                secondBest = best;
+                best = score;
+                bestServidor = servidor;
+            } else if (score > secondBest) {
+                secondBest = score;
+            }
+        }
+
+        boolean ambiguo = secondBest >= minimum && best - secondBest < AMBIGUITY_MARGIN;
+        boolean matched = bestServidor != null && best >= minimum && !ambiguo;
+        return new MatchResult(
+                matched,
+                best == Double.NEGATIVE_INFINITY ? 0.0d : best,
+                minimum,
+                bestServidor == null ? null : bestServidor.getMatricula(),
+                bestServidor);
+    }
+
+    /** Gera os modelos a partir das imagens e junta no formato da coluna biometria_sourceafis. */
+    public String createTemplatesFromImages(List<String> imagesBase64, Double dpi) {
+        StringBuilder out = new StringBuilder();
+        for (String image : imagesBase64) {
+            if (text(image).isBlank()) continue;
+            if (out.length() > 0) out.append(';');
+            out.append(createTemplateFromImage(image, dpi));
+        }
+        return out.length() == 0 ? null : out.toString();
+    }
+
+    public List<String> splitTemplates(String value) {
+        List<String> templates = new java.util.ArrayList<>();
+        for (String part : text(value).split(";")) {
+            if (isSourceAfisTemplate(part)) templates.add(part.trim());
+        }
+        return templates;
+    }
+
+    private FingerprintTemplate cachedTemplate(String value) {
+        if (TEMPLATE_CACHE.size() > TEMPLATE_CACHE_MAX) {
+            TEMPLATE_CACHE.clear();
+        }
+        return TEMPLATE_CACHE.computeIfAbsent(value, this::readTemplate);
     }
 
     public boolean isSourceAfisTemplate(String value) {

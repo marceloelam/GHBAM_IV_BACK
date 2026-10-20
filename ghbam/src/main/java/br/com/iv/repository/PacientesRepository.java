@@ -461,7 +461,6 @@ public class PacientesRepository implements PanacheRepository<Pacientes> {
 		String sql = "UPDATE pacientes set prontuario = :prontuario  where idpaciente = :id ";
 		entityManager.createNativeQuery(sql).setParameter("id", idpaciente).setParameter("prontuario", prontuario)
 				.executeUpdate();
-		System.out.println(sql);
 	}
 
 	// Atualizar idade através do dia atual de passagem na triagem
@@ -661,20 +660,52 @@ public class PacientesRepository implements PanacheRepository<Pacientes> {
 			 * " GROUP BY p.idpaciente, p.nome, p.idade, p.prontuario, p.pacienteespecial, b.idbam,  t.tipo_alta, b.data,  l.bam"
 			 * + " ORDER BY   p.prontuario, cast(b.data as date) desc, p.nome, l.bam ";
 			 */
-			String sql = "SELECT p.idpaciente, p.nome, p.idade, p.prontuario, p.pacienteespecial, MAX(b.idbam) AS idbam, cast(b.data as date), "
-					+ " CASE WHEN l.idlaudo IS NOT NULL THEN 'internacao' ELSE t.tipo_alta END AS tipo_alta, l.bam as bamlaudo "
+			// Uma linha por paciente: o pedido de internação do BAM mais recente.
+			// Os demais BAMs com pedido e um BAM posterior ao pedido vão como aviso,
+			// para o NIR conferir pedidos feitos no BAM errado (nada é ocultado).
+			String sql = "WITH pedidos AS ( "
+					+ " SELECT p.idpaciente, p.nome, p.idade, p.prontuario, p.pacienteespecial, b.idbam, cast(b.data as date) AS data_bam, "
+					+ " regexp_replace(coalesce(p.cpf, ''), '\\D', '', 'g') AS cpf_num, p.nascimento AS nasc, "
+					+ " CASE WHEN l.idlaudo IS NOT NULL THEN 'internacao' ELSE t.tipo_alta END AS tipo_alta, l.bam as bamlaudo, "
+					+ " ROW_NUMBER() OVER (PARTITION BY p.idpaciente ORDER BY b.idbam DESC, l.idlaudo DESC NULLS LAST) AS ordem "
 					+ " FROM pacientes p LEFT JOIN bam b ON p.idpaciente = b.paciente_idpaciente "
 					+ " LEFT JOIN tratamento t ON t.idtratamento = b.tratamento_idtratamento "
 					+ " LEFT JOIN laudoautorizacao l ON l.bam = b.idbam "
-					+ " LEFT JOIN internacao i ON i.bam = cast(b.idbam as text) " + " WHERE p.nome LIKE '" + nome
-					+ "%' " + " AND b.unidade = '" + unidade + "'" + " AND p.pacienteespecial != 'OBITO' "
+					+ " LEFT JOIN internacao i ON i.bam = cast(b.idbam as text) "
+					+ " WHERE p.nome LIKE :nome AND b.unidade = :unidade AND p.pacienteespecial != 'OBITO' "
 					+ " AND b.transferido = false " + " AND i.bam is null"
 					+ " AND (l.idlaudo IS NOT NULL OR (t.tipo_alta = 'internacao' AND t.tratado = 1)) "
 					+ " AND cast(b.data as date) BETWEEN (cast(CURRENT_DATE as date) - INTERVAL '5 days') AND cast(CURRENT_DATE as date) "
-					+ " GROUP BY p.idpaciente, p.nome, p.idade, p.prontuario, p.pacienteespecial, b.idbam, t.tipo_alta, b.data, l.idlaudo, l.bam"
-					+ " ORDER BY p.prontuario, cast(b.data as date) desc, p.nome, l.bam ";
+					+ " ) "
+					+ " SELECT * FROM ( "
+					+ " SELECT pd.idpaciente, pd.nome, pd.idade, pd.prontuario, pd.pacienteespecial, pd.idbam, pd.data_bam, pd.tipo_alta, pd.bamlaudo, "
+					+ " (SELECT string_agg(cast(x.idbam as text), ', ' ORDER BY x.idbam DESC) "
+					+ "    FROM (SELECT DISTINCT o.idbam FROM pedidos o WHERE o.idpaciente = pd.idpaciente AND o.idbam <> pd.idbam) x) AS outrosbamspedido, "
+					+ " (SELECT MAX(b2.idbam) FROM bam b2 "
+					+ "    WHERE b2.paciente_idpaciente = pd.idpaciente AND b2.unidade = :unidade AND b2.idbam > pd.idbam) AS bamposterior, "
+					// Internação aberta recente em outro BAM: o pedido pode ser duplicado.
+					// Também procura pelo CPF, porque há pacientes com cadastro duplicado.
+					+ " (SELECT MAX(cast(i2.bam as integer)) FROM internacao i2 "
+					+ "    JOIN bam b3 ON b3.idbam = cast(i2.bam as integer) "
+					+ "    JOIN pacientes p3 ON p3.idpaciente = b3.paciente_idpaciente "
+					+ "    WHERE (b3.paciente_idpaciente = pd.idpaciente "
+					+ "      OR (length(pd.cpf_num) = 11 AND regexp_replace(coalesce(p3.cpf, ''), '\\D', '', 'g') = pd.cpf_num) "
+					// RN e cadastros sem CPF: o mesmo prontuário também identifica a pessoa.
+					// Exige formato válido e mesmo nascimento: há prontuários-lixo ('-', '10') repetidos.
+					+ "      OR (pd.prontuario ~ '^[0-9]+-[0-9]+$' AND p3.prontuario = pd.prontuario AND p3.nascimento = pd.nasc)) "
+					+ "    AND b3.unidade = :unidade "
+					+ "    AND cast(i2.datasaida as date) IS NULL AND i2.motivodaalta = '-' "
+					+ "    AND cast(i2.datainternacao as date) >= CURRENT_DATE - 30) AS baminternado "
+					+ " FROM pedidos pd WHERE pd.ordem = 1 "
+					+ " ) r "
+					// Internado num BAM mais novo que o pedido: o pedido já foi atendido (duplicado).
+					+ " WHERE coalesce(r.baminternado, 0) < r.idbam "
+					+ " ORDER BY r.prontuario, r.data_bam desc, r.nome, r.bamlaudo ";
 
-			List<Object[]> results = getEntityManager().createNativeQuery(sql).getResultList();
+			List<Object[]> results = getEntityManager().createNativeQuery(sql)
+					.setParameter("nome", nome + "%")
+					.setParameter("unidade", unidade)
+					.getResultList();
 
 			for (Object[] result : results) {
 				PacientesNirDto dto = new PacientesNirDto();
@@ -688,6 +719,9 @@ public class PacientesRepository implements PanacheRepository<Pacientes> {
 				dto.setData(toLegacyDate(result[6]));
 				dto.setTipo_alta((String) result[7]);
 				dto.setBamlaudo(result[8] != null ? (Integer) result[8] : 0);
+				dto.setOutrosbamspedido(result[9] != null ? result[9].toString() : "");
+				dto.setBamposterior(result[10] != null ? ((Number) result[10]).intValue() : 0);
+				dto.setBaminternado(result[11] != null ? ((Number) result[11]).intValue() : 0);
 				// dto.setDatasaida((Date) result[6]);
 				// dto.setAlta((Boolean) result[7]);
 				// dto.setDatainternacao((Date) result[8]);
@@ -794,18 +828,22 @@ public class PacientesRepository implements PanacheRepository<Pacientes> {
 
 		List<PacientesNirDto> pacientesNir = new ArrayList<>();
 
-		String sql = "SELECT p.idpaciente, p.nome, p.idade, p.prontuario, p.pacienteespecial, MAX(b.idbam) AS idbam, cast(b.data as date), t.tipo_alta, l.bam as bamlaudo "
+		// Mesmos critérios da aba "Novas internações" do /nir (filtragemParaNir tipo "novo"):
+		// laudo de autorização entra mesmo sem tratamento finalizado e a janela é de 5 dias.
+		// O painel continua mostrando também os pacientes em observação.
+		String sql = "SELECT p.idpaciente, p.nome, p.idade, p.prontuario, p.pacienteespecial, MAX(b.idbam) AS idbam, cast(b.data as date), "
+				+ " CASE WHEN l.idlaudo IS NOT NULL THEN 'internacao' ELSE t.tipo_alta END AS tipo_alta, l.bam as bamlaudo "
 				+ " FROM pacientes p LEFT JOIN bam b ON p.idpaciente = b.paciente_idpaciente "
 				+ " LEFT JOIN tratamento t ON t.idtratamento = b.tratamento_idtratamento "
 				+ " LEFT JOIN laudoautorizacao l ON l.bam = b.idbam "
-				+ " LEFT JOIN internacao i ON i.bam = cast(b.idbam as text) " + " WHERE  b.unidade = '" + unidade + "'"
+				+ " LEFT JOIN internacao i ON i.bam = cast(b.idbam as text) " + " WHERE  b.unidade = :unidade "
 				+ " AND p.pacienteespecial != 'OBITO' " + " AND b.transferido = false " + " AND i.bam is null"
-				+ " AND (((t.tipo_alta = 'obs' OR t.tipo_alta = 'internacao') AND t.tratado = 1 ) ) "
-				+ " AND cast(b.data as date) BETWEEN (cast(CURRENT_DATE as date) - INTERVAL '2 days') AND cast(CURRENT_DATE as date) "
-				+ " GROUP BY p.idpaciente, p.nome, p.idade, p.prontuario, p.pacienteespecial, b.idbam, t.tipo_alta, b.data, l.bam"
+				+ " AND (l.idlaudo IS NOT NULL OR ((t.tipo_alta = 'obs' OR t.tipo_alta = 'internacao') AND t.tratado = 1)) "
+				+ " AND cast(b.data as date) BETWEEN (cast(CURRENT_DATE as date) - INTERVAL '5 days') AND cast(CURRENT_DATE as date) "
+				+ " GROUP BY p.idpaciente, p.nome, p.idade, p.prontuario, p.pacienteespecial, b.idbam, t.tipo_alta, b.data, l.idlaudo, l.bam"
 				+ " ORDER BY p.prontuario, cast(b.data as date) desc, p.nome, l.bam ";
 
-		List<Object[]> results = getEntityManager().createNativeQuery(sql).getResultList();
+		List<Object[]> results = getEntityManager().createNativeQuery(sql).setParameter("unidade", unidade).getResultList();
 
 		for (Object[] result : results) {
 			PacientesNirDto dto = new PacientesNirDto();
@@ -1646,98 +1684,78 @@ public class PacientesRepository implements PanacheRepository<Pacientes> {
 	@Transactional
 	public void opcao1(int bamgravado, int idpaciente1, int bamultimo, String prontuario, int idregistro, int idtratado,
 			String controle, String unidade) {
-		String sql = "update novointernado set nbam = " + bamultimo + ", bam_idbam = " + bamultimo
-				+ ", pacientes_idpaciente = " + idpaciente1 + ", prontuario = '" + prontuario + "'   where unidade ='"
-				+ unidade + "' and bam_idbam = " + bamgravado;
+		// Mesmas atualizacoes de antes, agora com parametros: prontuario, controle e
+		// unidade chegam pela URL e eram concatenados direto no SQL (injecao).
+		// As antigas sql9/sql10 (afaturar/afaturar2 "set idpaciente = X where
+		// idpaciente = X") nao alteravam nada e foram retiradas.
+		String bamNovoTxt = String.valueOf(bamultimo);
+		String bamAntigoTxt = String.valueOf(bamgravado);
 
-		String sql2 = "update internacao set bam = '" + bamultimo + "', iddopaciente = " + idpaciente1
-				+ ", prontuario = '" + prontuario + "'   where unidade ='" + unidade + "' and bam = '" + bamgravado
-				+ "'";
+		entityManager.createNativeQuery("update novointernado set nbam = :novo, bam_idbam = :novo, "
+				+ "pacientes_idpaciente = :idp, prontuario = :pront where unidade = :unidade and bam_idbam = :antigo")
+				.setParameter("novo", bamultimo).setParameter("idp", idpaciente1).setParameter("pront", prontuario)
+				.setParameter("unidade", unidade).setParameter("antigo", bamgravado).executeUpdate();
 
-		String sql3 = "update evolucaopaciente set nbam = " + bamultimo + ", prontuario = '" + prontuario
-				+ "'  where unidade ='" + unidade + "' and nbam = " + bamgravado;
+		entityManager.createNativeQuery("update internacao set bam = :novo, iddopaciente = :idp, prontuario = :pront "
+				+ "where unidade = :unidade and bam = :antigo")
+				.setParameter("novo", bamNovoTxt).setParameter("idp", idpaciente1).setParameter("pront", prontuario)
+				.setParameter("unidade", unidade).setParameter("antigo", bamAntigoTxt).executeUpdate();
 
-		String sql4 = "update evolucaopacienteenf set nbam = " + bamultimo + ", prontuario = '" + prontuario
-				+ "'  where unidade ='" + unidade + "' and nbam = " + bamgravado;
+		for (String tabela : List.of("evolucaopaciente", "evolucaopacienteenf")) {
+			entityManager.createNativeQuery("update " + tabela + " set nbam = :novo, prontuario = :pront "
+					+ "where unidade = :unidade and nbam = :antigo")
+					.setParameter("novo", bamultimo).setParameter("pront", prontuario)
+					.setParameter("unidade", unidade).setParameter("antigo", bamgravado).executeUpdate();
+		}
 
-		String sql5 = "update prescricao set bam = " + bamultimo + "  where  bam = " + bamgravado;
+		// Tabela/coluna fixas no codigo (nunca vindas da requisicao).
+		String[][] colunasNumericas = { { "prescricao", "bam" }, { "pedidomedico2", "bam" },
+				{ "pedidoresultadolaboratorio", "bam" }, { "prescricaocont", "bam" },
+				{ "anamneseinternacao", "nbam" }, { "laudoautorizacao", "bam" },
+				{ "examescomplementares", "nbam" } };
+		for (String[] tc : colunasNumericas) {
+			atualizarBamNumerico(tc[0], tc[1], bamultimo, bamgravado);
+		}
 
-		String sql6 = "update pedidomedico2 set bam = " + bamultimo + "  where  bam = " + bamgravado;
+		entityManager.createNativeQuery("update atendimento set bam = :novo, idpaciente = :idp where bam = :antigo")
+				.setParameter("novo", bamultimo).setParameter("idp", idpaciente1).setParameter("antigo", bamgravado)
+				.executeUpdate();
 
-		String sql7 = "update pedidoresultadolaboratorio set bam = " + bamultimo + "  where  bam = " + bamgravado;
+		entityManager.createNativeQuery("update imagens set idbam = :novo, idpacientes = :idp, idregistro = :reg, "
+				+ "idtratamento = :trat, controleid = :controle where idbam = :antigo")
+				.setParameter("novo", bamultimo).setParameter("idp", idpaciente1).setParameter("reg", idregistro)
+				.setParameter("trat", idtratado).setParameter("controle", controle)
+				.setParameter("antigo", bamgravado).executeUpdate();
 
-		String sql8 = "update prescricaocont set bam = " + bamultimo + "  where  bam = " + bamgravado;
+		entityManager.createNativeQuery("update infocomplemetares set bam = :novo where bam = :antigo")
+				.setParameter("novo", bamNovoTxt).setParameter("antigo", bamAntigoTxt).executeUpdate();
 
-		String sql9 = "update afaturar set idpaciente = " + idpaciente1 + " where  idpaciente = " + idpaciente1;
+		entityManager.createNativeQuery("update laboratorio set controleid = :controle, idbam = :novo, "
+				+ "idpacientes = :idp, idregistro = :reg, idtratamento = :trat where idbam = :antigo")
+				.setParameter("controle", controle).setParameter("novo", bamultimo).setParameter("idp", idpaciente1)
+				.setParameter("reg", idregistro).setParameter("trat", idtratado).setParameter("antigo", bamgravado)
+				.executeUpdate();
 
-		String sql10 = "update afaturar2 set idpaciente = " + idpaciente1 + " where  idpaciente = " + idpaciente1;
+		String[][] colunasNumericas2 = { { "laudorecurso", "nbam" }, { "laudosolautoproambu", "nbam" },
+				{ "parecerespecialista", "nbam" }, { "prescricaoassist", "bam" },
+				{ "protocolosinan", "numerodobam" }, { "riscocirurgico", "nbam" } };
+		for (String[] tc : colunasNumericas2) {
+			atualizarBamNumerico(tc[0], tc[1], bamultimo, bamgravado);
+		}
 
-		String sql11 = "update anamneseinternacao set nbam = " + bamultimo + " where  nbam = " + bamgravado;
+		entityManager.createNativeQuery("update visitantes set nbam = :novo where nbam = :antigo")
+				.setParameter("novo", bamNovoTxt).setParameter("antigo", bamAntigoTxt).executeUpdate();
 
-		String sql12 = "update laudoautorizacao set bam = " + bamultimo + " where  bam = " + bamgravado;
+		atualizarBamNumerico("receitamedicamentos", "nbam", bamultimo, bamgravado);
 
-		String sql13 = "update examescomplementares set nbam = " + bamultimo + " where  nbam = " + bamgravado;
+		entityManager.createNativeQuery("delete from bam where idbam = :antigo")
+				.setParameter("antigo", bamgravado).executeUpdate();
 
-		String sql14 = "update atendimento set bam = " + bamultimo + ", idpaciente = " + idpaciente1 + " where  bam = "
-				+ bamgravado;
+	}
 
-		String sql15 = "update imagens set idbam = " + bamultimo + ", idpacientes = " + idpaciente1 + ", idregistro = "
-				+ idregistro + ", idtratamento = " + idtratado + ", controleid ='" + controle + "'   where  idbam = "
-				+ bamgravado;
-
-		String sql16 = "update infocomplemetares set bam = '" + bamultimo + "'   where  bam = '" + bamgravado + "'";
-
-		String sql17 = "update laboratorio set controleid = '" + controle + "', idbam = " + bamultimo
-				+ ", idpacientes = " + idpaciente1 + ", idregistro = " + idregistro + ", idtratamento = " + idtratado
-				+ "   where  idbam = " + bamgravado;
-
-		String sql18 = "update laudorecurso set nbam = " + bamultimo + "  where  nbam = " + bamgravado;
-
-		String sql19 = "update laudosolautoproambu set nbam = " + bamultimo + "  where  nbam = " + bamgravado;
-
-		String sql20 = "update parecerespecialista set nbam = " + bamultimo + "  where  nbam = " + bamgravado;
-
-		String sql21 = "update prescricaoassist set bam = " + bamultimo + "  where  bam = " + bamgravado;
-
-		String sql22 = "update protocolosinan set numerodobam = " + bamultimo + "  where  numerodobam = " + bamgravado;
-
-		String sql23 = "update riscocirurgico set nbam = " + bamultimo + "  where  nbam = " + bamgravado;
-
-		String sql24 = "update visitantes set nbam = '" + bamultimo + "'  where  nbam = '" + bamgravado + "'";
-
-		String sql25 = "update receitamedicamentos set nbam = " + bamultimo + "  where  nbam = " + bamgravado;
-
-		String sql26 = "delete from bam  where  idbam = " + bamgravado;
-
-		// String sql = "delete from pacientes where idpaciente =" + antigo;
-
-		entityManager.createNativeQuery(sql).executeUpdate();
-		entityManager.createNativeQuery(sql2).executeUpdate();
-		entityManager.createNativeQuery(sql3).executeUpdate();
-		entityManager.createNativeQuery(sql4).executeUpdate();
-		entityManager.createNativeQuery(sql5).executeUpdate();
-		entityManager.createNativeQuery(sql6).executeUpdate();
-		entityManager.createNativeQuery(sql7).executeUpdate();
-		entityManager.createNativeQuery(sql8).executeUpdate();
-		entityManager.createNativeQuery(sql9).executeUpdate();
-		entityManager.createNativeQuery(sql10).executeUpdate();
-		entityManager.createNativeQuery(sql11).executeUpdate();
-		entityManager.createNativeQuery(sql12).executeUpdate();
-		entityManager.createNativeQuery(sql13).executeUpdate();
-		entityManager.createNativeQuery(sql14).executeUpdate();
-		entityManager.createNativeQuery(sql15).executeUpdate();
-		entityManager.createNativeQuery(sql16).executeUpdate();
-		entityManager.createNativeQuery(sql17).executeUpdate();
-		entityManager.createNativeQuery(sql18).executeUpdate();
-		entityManager.createNativeQuery(sql19).executeUpdate();
-		entityManager.createNativeQuery(sql20).executeUpdate();
-		entityManager.createNativeQuery(sql21).executeUpdate();
-		entityManager.createNativeQuery(sql22).executeUpdate();
-		entityManager.createNativeQuery(sql23).executeUpdate();
-		entityManager.createNativeQuery(sql24).executeUpdate();
-		entityManager.createNativeQuery(sql25).executeUpdate();
-		entityManager.createNativeQuery(sql26).executeUpdate();
-
+	private void atualizarBamNumerico(String tabela, String coluna, int bamNovo, int bamAntigo) {
+		entityManager.createNativeQuery("update " + tabela + " set " + coluna + " = :novo where " + coluna + " = :antigo")
+				.setParameter("novo", bamNovo).setParameter("antigo", bamAntigo).executeUpdate();
 	}
 
 	@Transactional
@@ -1756,8 +1774,10 @@ public class PacientesRepository implements PanacheRepository<Pacientes> {
 
 	@Transactional
 	public void opcao4(int bamultimo) {
-		String sql = "update internacao set datasaida = null where bam = '" + bamultimo + "'";
-		entityManager.createNativeQuery(sql).executeUpdate();
+		// Reabre a internação (ex.: paciente transferido que voltou com o mesmo BAM).
+		// O motivo volta a '-': o sistema só considera aberta a internação com motivo '-'.
+		String sql = "update internacao set datasaida = null, motivodaalta = '-', medicodeualta = null where bam = :bam";
+		entityManager.createNativeQuery(sql).setParameter("bam", String.valueOf(bamultimo)).executeUpdate();
 
 	}
 
@@ -1769,12 +1789,17 @@ public class PacientesRepository implements PanacheRepository<Pacientes> {
 	        Pacientes paciente = entityManager.find(Pacientes.class, idpac);
 	        
 	        if (paciente == null) {
-	            System.out.println("Nenhum paciente encontrado com id " + idpac);
 	            return;
 	        }
 
 	        String nome = paciente.getNome();
 	        String mae = paciente.getMae();
+
+	        // Sem nome ou sem mae o LIKE vira '%%' (CONCAT ignora NULL no Postgres)
+	        // e casaria qualquer paciente: o de menor id seria fundido e excluido.
+	        if (nome == null || nome.isBlank() || mae == null || mae.isBlank()) {
+	            throw new IllegalArgumentException("Paciente sem nome ou nome da mae: duplicidade nao pode ser verificada com seguranca.");
+	        }
 
 	        // 2️⃣ Buscar pacientes duplicados usando Native Query
 	        String sql = "SELECT p.* FROM pacientes p WHERE " +
@@ -1841,7 +1866,6 @@ public class PacientesRepository implements PanacheRepository<Pacientes> {
 	        }
 
 	    } catch (Exception e) {
-	        e.printStackTrace();
 	        throw new RuntimeException("Erro ao consolidar pacientes duplicados", e);
 	    }
 	}
@@ -1850,15 +1874,101 @@ public class PacientesRepository implements PanacheRepository<Pacientes> {
 		 // 1️⃣ Buscar paciente pelo ID usando JPA
         Bam bam = entityManager.find(Bam.class, bamultimo);
         
-        if (bam == null) {
-            System.out.println("Nenhum bam encontrado com  " + bam);
+        if (bam == null || bam.getTratamento() == null) {
             return;
         }
 
         int idt  = bam.getTratamento().getIdtratamento();
-		String sql  = "update tratamento set tratado = 0  where idtratamento  =  " + idt;
-		entityManager.createNativeQuery(sql).executeUpdate();
+		entityManager.createNativeQuery("update tratamento set tratado = 0 where idtratamento = :idt")
+				.setParameter("idt", idt).executeUpdate();
 
+	}
+
+	// Recusa de regra (422) com texto legivel: a tela de Correcao de BAM mostra o
+	// corpo da resposta no alerta de erro.
+	private static jakarta.ws.rs.WebApplicationException recusarCorrecao(String motivo) {
+		return new jakarta.ws.rs.WebApplicationException(jakarta.ws.rs.core.Response.status(422)
+				.entity(motivo).type("text/plain; charset=UTF-8").build());
+	}
+
+	private Bam bamParaCorrecao(int idbam, String unidade) {
+		Bam bam = entityManager.find(Bam.class, idbam);
+		if (bam == null || unidade == null || !unidade.equals(bam.getUnidade())) {
+			throw recusarCorrecao("BAM " + idbam + " não encontrado nesta unidade.");
+		}
+		if (bam.getTratamento() == null || bam.getAvaliacao() == null || bam.getRegistro() == null) {
+			throw recusarCorrecao("BAM " + idbam + " sem registro, triagem ou tratamento vinculados.");
+		}
+		return bam;
+	}
+
+	private boolean setorPassaPelaTriagem(String setor, String unidade) {
+		Number total = (Number) entityManager.createNativeQuery("select count(*) from setoresunidade "
+				+ "where triar = true and setor = :setor and siglaunidade = :unidade")
+				.setParameter("setor", setor).setParameter("unidade", unidade).getSingleResult();
+		return total != null && total.longValue() > 0;
+	}
+
+	// Opcao 8 - Devolver o paciente a fila da triagem. Mesmos criterios da fila
+	// (avaliado = 0, avaliacao do dia, setor que tria). Os dados ja digitados na
+	// triagem sao preservados; sao sobrescritos quando a triagem for salva de novo.
+	@Transactional
+	public void opcao8(int idbam, String unidade) {
+		Bam bam = bamParaCorrecao(idbam, unidade);
+		if (bam.getTratamento().getTratado() != 0) {
+			throw recusarCorrecao("O atendimento deste BAM já foi finalizado. Use antes "
+					+ "\"Cancelar finalização do atendimento\".");
+		}
+		if (!setorPassaPelaTriagem(bam.getRegistro().getSetor(), unidade)) {
+			throw recusarCorrecao("O setor \"" + bam.getRegistro().getSetor() + "\" não passa pela triagem nesta unidade.");
+		}
+		String hoje = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy/MM/dd"));
+		String dataTriagem = bam.getAvaliacao().getData();
+		if (dataTriagem == null || !dataTriagem.trim().startsWith(hoje)) {
+			throw recusarCorrecao("A fila da triagem mostra apenas BAMs de hoje; este BAM é de " + dataTriagem + ".");
+		}
+		entityManager.createNativeQuery("update avaliacao set avaliado = 0, esperando = 0 where idavaliacao = :id")
+				.setParameter("id", bam.getAvaliacao().getIdavaliacao()).executeUpdate();
+		entityManager.createNativeQuery("update bam set ematendimento = false where idbam = :idbam")
+				.setParameter("idbam", idbam).executeUpdate();
+	}
+
+	// Opcao 9 - Devolver o paciente a fila do medico: libera o "em atendimento"
+	// travado e tira da lista de reavaliacao (esperando = 1). Nao reabre alta nem
+	// mexe em internacao/observacao (fluxo do NIR).
+	@Transactional
+	public void opcao9(int idbam, String unidade) {
+		Bam bam = bamParaCorrecao(idbam, unidade);
+		if (bam.getTratamento().getTratado() != 0) {
+			throw recusarCorrecao("O atendimento deste BAM já foi finalizado. Use "
+					+ "\"Cancelar finalização do atendimento\".");
+		}
+		String tipoAlta = bam.getTratamento().getTipo_alta();
+		if ("internacao".equalsIgnoreCase(tipoAlta) || "obs".equalsIgnoreCase(tipoAlta)) {
+			throw recusarCorrecao("Paciente encaminhado para internação/observação; a correção deve ser feita pelo NIR.");
+		}
+		if (setorPassaPelaTriagem(bam.getRegistro().getSetor(), unidade) && bam.getAvaliacao().getAvaliado() != 1) {
+			throw recusarCorrecao("Paciente ainda não foi triado; ele vai para a fila do médico após a triagem.");
+		}
+		entityManager.createNativeQuery("update avaliacao set esperando = 0 where idavaliacao = :id")
+				.setParameter("id", bam.getAvaliacao().getIdavaliacao()).executeUpdate();
+		entityManager.createNativeQuery("update bam set ematendimento = false where idbam = :idbam")
+				.setParameter("idbam", idbam).executeUpdate();
+	}
+
+	// Opcao 10 - Devolver a coleta os exames de laboratorio marcados como
+	// coletados por engano. So os que ainda nao tem resultado (efetuado = false):
+	// exame com resultado nunca volta para a coleta.
+	@Transactional
+	public int opcao10(int idbam, String unidade) {
+		bamParaCorrecao(idbam, unidade);
+		int alterados = entityManager.createNativeQuery("update pedidomedico2 set coletar = true "
+				+ "where bam = :bam and local = 'LABORATORIO' and efetuado = false and coletar = false")
+				.setParameter("bam", idbam).executeUpdate();
+		if (alterados == 0) {
+			throw recusarCorrecao("Nenhum exame de laboratório coletado e sem resultado neste BAM.");
+		}
+		return alterados;
 	}
 	
 	@Transactional

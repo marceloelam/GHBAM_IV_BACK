@@ -70,7 +70,6 @@ public class SetoresRepository implements PanacheRepository<Setores> {
                 .setParameter("novoNome", siglaUnidadeAlterada)
                 .setParameter("nomeAntigo", siglaUnidadeAntiga)
                 .executeUpdate(); 
-		System.out.println(sql);
 	}
 	
 	

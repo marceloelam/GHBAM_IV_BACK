@@ -45,7 +45,7 @@ public class ChamadaRepository implements PanacheRepository<ChamadaPaciente> {
 				+ " ORDER BY CAST(DATA AS date) DESC, CAST(HORA AS time) DESC";
 
 		List<ChamadaPaciente> resultado = entityManager.createNativeQuery(sql, ChamadaPaciente.class)
-	            .setParameter("unidade", "%" + unidade.toUpperCase() + "%")
+	            .setParameter("unidade", "%" + escaparLike(unidade.toUpperCase()) + "%")
 	            .setMaxResults(8)
 	            .getResultList();
 
@@ -111,95 +111,38 @@ public class ChamadaRepository implements PanacheRepository<ChamadaPaciente> {
 		}
 		String sql = "SELECT * FROM chamadapaciente WHERE upper(unidade) LIKE :unidade" + filtroTv + " ORDER BY CAST(DATA AS date) DESC, CAST(HORA AS time) DESC";
 		List<ChamadaPaciente> resultado = entityManager.createNativeQuery(sql, ChamadaPaciente.class)
-			.setParameter("unidade", "%" + unidade.toUpperCase() + "%")
+			.setParameter("unidade", "%" + escaparLike(unidade.toUpperCase()) + "%")
 			.setMaxResults(1)
 			.getResultList();
-		System.out.println("[DEBUG] Resultado filtarultimoDireita: " + resultado);
 		return resultado;
+	}
+
+	/**
+	 * Rotas públicas do painel usam LIKE '%sigla%'. Sem escapar, a unidade "%" traria as
+	 * chamadas (com nome de paciente) de todas as unidades. No PostgreSQL o escape padrão é '\'.
+	 */
+	static String escaparLike(String valor) {
+		return String.valueOf(valor == null ? "" : valor)
+				.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
 	}
 
 	@SuppressWarnings("unchecked")
 	@Transactional
 	public List<ChamadaPaciente> filtarultimo(String unidade, String tv) {
 		unidade = unidade == null ? "" : unidade.trim().toUpperCase(Locale.ROOT);
-		String sql = "";
-		if (tv.equals("1")) {
-			String subConsulta = "(select idchamada from chamadapaciente where upper(unidade)  = '" + unidade
-					+ "' and p1 = true and chamoup1 = false ORDER BY cast(DATA as date) desc, CAST(HORA as time) desc limit 1)";
-
-			sql = "select * from chamadapaciente where upper(unidade) = '" + unidade + "' and p1=true and idchamada = "
-					+ subConsulta + " ORDER BY cast(DATA as date) desc, CAST(HORA as time) desc limit 1";
+		// Rota pública do painel (kiosk): a unidade vai como parâmetro, nunca concatenada no SQL.
+		// A TV só entra no nome da coluna depois de validada (1 a 10).
+		if (tv == null || !tv.matches("10|[1-9]")) {
+			return List.of();
 		}
-
-		if (tv.equals("2")) {
-			String subConsulta = "(select idchamada from chamadapaciente where upper(unidade)  = '" + unidade
-					+ "' and p2 = true and chamoup2 = false ORDER BY cast(DATA as date) desc, CAST(HORA as time) desc limit 1)";
-
-			sql = "select * from chamadapaciente where upper(unidade) = '" + unidade + "' and p2=true and idchamada = "
-					+ subConsulta + " ORDER BY cast(DATA as date) desc, CAST(HORA as time) desc limit 1";
-		}
-
-		if (tv.equals("3")) {
-			String subConsulta = "(select idchamada from chamadapaciente where upper(unidade)  = '" + unidade
-					+ "' and p3 = true and chamoup3 = false ORDER BY cast(DATA as date) desc, CAST(HORA as time) desc limit 1)";
-
-			sql = "select * from chamadapaciente where upper(unidade) = '" + unidade + "' and p3=true and idchamada = "
-					+ subConsulta + " ORDER BY cast(DATA as date) desc, CAST(HORA as time) desc limit 1";
-		}
-
-		if (tv.equals("4")) {
-			String subConsulta = "(select idchamada from chamadapaciente where upper(unidade)  = '" + unidade
-					+ "' and p4 = true and chamoup4 = false ORDER BY cast(DATA as date) desc, CAST(HORA as time) desc limit 1)";
-
-			sql = "select * from chamadapaciente where upper(unidade) = '" + unidade + "' and p4=true and idchamada = "
-					+ subConsulta + " ORDER BY cast(DATA as date) desc, CAST(HORA as time) desc limit 1";
-		}
-
-		if (tv.equals("5")) {
-			String subConsulta = "(select idchamada from chamadapaciente where upper(unidade)  = '" + unidade
-					+ "' and p5 = true and chamoup5 = false ORDER BY cast(DATA as date) desc, CAST(HORA as time) desc limit 1)";
-
-			sql = "select * from chamadapaciente where upper(unidade) = '" + unidade + "' and p5=true and idchamada = "
-					+ subConsulta + " ORDER BY cast(DATA as date) desc, CAST(HORA as time) desc limit 1";
-		}
-
-		if (tv.equals("6")) {
-			String subConsulta = "(select idchamada from chamadapaciente where upper(unidade)  = '" + unidade
-					+ "' and p6 = true and chamoup6 = false ORDER BY cast(DATA as date) desc, CAST(HORA as time) desc limit 1)";
-
-			sql = "select * from chamadapaciente where upper(unidade) = '" + unidade + "' and p6=true and idchamada = "
-					+ subConsulta + " ORDER BY cast(DATA as date) desc, CAST(HORA as time) desc limit 1";
-		}
-		if (tv.equals("7")) {
-			String subConsulta = "(select idchamada from chamadapaciente where upper(unidade)  = '" + unidade
-					+ "' and p7 = true and chamoup7 = false ORDER BY cast(DATA as date) desc, CAST(HORA as time) desc limit 1)";
-
-			sql = "select * from chamadapaciente where upper(unidade) = '" + unidade + "' and p7=true and idchamada = "
-					+ subConsulta + " ORDER BY cast(DATA as date) desc, CAST(HORA as time) desc limit 1";
-		}
-		if (tv.equals("8")) {
-			String subConsulta = "(select idchamada from chamadapaciente where upper(unidade)  = '" + unidade
-					+ "' and p8 = true and chamoup8 = false ORDER BY cast(DATA as date) desc, CAST(HORA as time) desc limit 1)";
-
-			sql = "select * from chamadapaciente where upper(unidade) = '" + unidade + "' and p8=true and idchamada = "
-					+ subConsulta + " ORDER BY cast(DATA as date) desc, CAST(HORA as time) desc limit 1";
-		}
-		if (tv.equals("9")) {
-			String subConsulta = "(select idchamada from chamadapaciente where upper(unidade)  = '" + unidade
-					+ "' and p9 = true and chamoup9 = false ORDER BY cast(DATA as date) desc, CAST(HORA as time) desc limit 1)";
-
-			sql = "select * from chamadapaciente where upper(unidade) = '" + unidade + "' and p9=true and idchamada = "
-					+ subConsulta + " ORDER BY cast(DATA as date) desc, CAST(HORA as time) desc limit 1";
-		}
-		if (tv.equals("10")) {
-			String subConsulta = "(select idchamada from chamadapaciente where upper(unidade)  = '" + unidade
-					+ "' and p10 = true and chamoup10 = false ORDER BY cast(DATA as date) desc, CAST(HORA as time) desc limit 1)";
-
-			sql = "select * from chamadapaciente where upper(unidade) = '" + unidade + "' and p10=true and idchamada = "
-					+ subConsulta + " ORDER BY cast(DATA as date) desc, CAST(HORA as time) desc limit 1";
-		}
-
-		return getEntityManager().createNativeQuery(sql, ChamadaPaciente.class).getResultList();
+		String sql = "select * from chamadapaciente where upper(unidade) = :unidade and p" + tv
+				+ "=true and idchamada = (select idchamada from chamadapaciente where upper(unidade) = :unidade and p" + tv
+				+ " = true and chamoup" + tv
+				+ " = false ORDER BY cast(DATA as date) desc, CAST(HORA as time) desc limit 1)"
+				+ " ORDER BY cast(DATA as date) desc, CAST(HORA as time) desc limit 1";
+		return getEntityManager().createNativeQuery(sql, ChamadaPaciente.class)
+				.setParameter("unidade", unidade)
+				.getResultList();
 	}
 
 	public void removerOprimeiro(String unidade, String tv) {
@@ -287,7 +230,6 @@ public class ChamadaRepository implements PanacheRepository<ChamadaPaciente> {
 			sql = "UPDATE chamadapaciente set chamoup10 = true where idchamada = :id";
 
 		entityManager.createNativeQuery(sql).setParameter("id", idchamada).executeUpdate();
-		System.out.println(sql);
 	}
 
 }

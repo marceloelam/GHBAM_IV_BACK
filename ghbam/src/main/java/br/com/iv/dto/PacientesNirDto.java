@@ -38,6 +38,10 @@ public class PacientesNirDto implements Serializable {
 	private String diagfinal;
 	private Date dataacao;
 	private String diagnostico;
+	// NIR "novo": outros BAMs com pedido de internação e BAM posterior ao pedido.
+	private String outrosbamspedido;
+	private int bamposterior;
+	private int baminternado;
 	
 	
 }

@@ -12,6 +12,7 @@ import br.com.iv.util.ClassificacaoRiscoResponse;
 import jakarta.annotation.security.PermitAll;
 import jakarta.inject.Inject;
 import jakarta.json.Json;
+import jakarta.json.JsonException;
 import jakarta.json.JsonObject;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
@@ -167,25 +168,53 @@ public class AvaliacaoController {
 	@POST
 	@Path("/atualizaranaminese/{idavaliacao}/anamnese")
 	@Consumes(MediaType.APPLICATION_JSON)
-	public void atualizarAnamnese(@PathParam("idavaliacao") int idavaliacao, 
+	public Response atualizarAnamnese(@PathParam("idavaliacao") int idavaliacao,
 	                              String body) {
-	    atualizarAnamnesePorBody(idavaliacao, body);
+	    return atualizarAnamnesePorBody(idavaliacao, body);
 	}
 
 	@PATCH
 	@Path("/{idavaliacao}/anamnese")
 	@Consumes(MediaType.APPLICATION_JSON)
-	public void atualizarAnamnesePatch(@PathParam("idavaliacao") int idavaliacao, 
+	public Response atualizarAnamnesePatch(@PathParam("idavaliacao") int idavaliacao,
 	                              String body) {
-	    atualizarAnamnesePorBody(idavaliacao, body);
+	    return atualizarAnamnesePorBody(idavaliacao, body);
 	}
 
-	private void atualizarAnamnesePorBody(int idavaliacao, String body) {
-	    // body vai ser o JSON, exemplo: { "texto": "..." }
-	    JsonObject json = Json.createReader(new StringReader(body)).readObject();
-	    String anamnese = json.getString("texto");
+	private Response atualizarAnamnesePorBody(int idavaliacao, String body) {
+	    if (idavaliacao <= 0 || body == null || body.isBlank()) {
+	        return Response.status(Response.Status.BAD_REQUEST)
+	                .entity(Map.of("message", "Informe uma avaliação válida e o texto da anamnese."))
+	                .build();
+	    }
 
-	    avaliacaoService.atualizarAnamnese(idavaliacao, anamnese);
+	    final String anamnese;
+	    try (var reader = Json.createReader(new StringReader(body))) {
+	        JsonObject json = reader.readObject();
+	        if (!json.containsKey("texto") || json.isNull("texto")
+	                || json.get("texto").getValueType() != jakarta.json.JsonValue.ValueType.STRING) {
+	            return Response.status(Response.Status.BAD_REQUEST)
+	                    .entity(Map.of("message", "O campo texto deve ser uma string."))
+	                    .build();
+	        }
+	        anamnese = json.getString("texto");
+	    } catch (JsonException e) {
+	        return Response.status(Response.Status.BAD_REQUEST)
+	                .entity(Map.of("message", "O corpo da requisição deve ser um JSON válido."))
+	                .build();
+	    }
+
+	    if (anamnese.length() > 8000) {
+	        return Response.status(Response.Status.BAD_REQUEST)
+	                .entity(Map.of("message", "A anamnese deve ter no máximo 8.000 caracteres."))
+	                .build();
+	    }
+
+	    return avaliacaoService.atualizarAnamnese(idavaliacao, anamnese) > 0
+	            ? Response.noContent().build()
+	            : Response.status(Response.Status.NOT_FOUND)
+	                    .entity(Map.of("message", "Avaliação não encontrada."))
+	                    .build();
 	}
 
 	@PATCH

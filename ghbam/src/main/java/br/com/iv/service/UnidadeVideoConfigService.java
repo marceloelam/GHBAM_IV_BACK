@@ -55,6 +55,18 @@ public class UnidadeVideoConfigService implements Serializable {
 		config.setModo(dto.getModo());
 		config.setUrlM3u(dto.getUrlM3u());
 		config.setTituloM3u(dto.getTituloM3u());
+		// null = tela antiga que não envia o campo: mantém a voz já escolhida.
+		if (dto.getVozPainel() != null) {
+			String voz = dto.getVozPainel().trim();
+			if (!voz.isEmpty() && !voz.matches("[a-z0-9-]{1,40}")) {
+				throw new IllegalArgumentException("Voz do painel inválida.");
+			}
+			config.setVozPainel(voz.isEmpty() ? null : voz);
+		}
+		if (dto.getFraseChamada() != null) {
+			// Lança IllegalArgumentException com a mensagem do problema (marcador desconhecido, tamanho).
+			config.setFraseChamada(PainelVozService.validarModeloFrase(dto.getFraseChamada()));
+		}
 
 		if (config.isPersistent()) {
 			return config;

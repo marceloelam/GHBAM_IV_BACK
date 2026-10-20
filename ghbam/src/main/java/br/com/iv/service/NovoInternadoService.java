@@ -23,6 +23,9 @@ public class NovoInternadoService implements Serializable {
 	@Inject
 	BamRepository bamRepository;
 
+	@Inject
+	ProntuarioDefinitivoService prontuarioDefinitivoService;
+
 	public List<NovoInternado> listarTodosOsRegistros() {
 		return novointernadoRepository.listAll();
 	}
@@ -100,6 +103,14 @@ public class NovoInternadoService implements Serializable {
 			novoInternado.setQuemdeualta(dto.getQuemdeualta());
 			novoInternado.setQuemexcluiu(dto.getQuemexcluiu());
 			novoInternado.setQuemleitoalterou(dto.getQuemleitoalterou());
+
+			// Admissao do RN aloca direto no censo: o leito ja sai com o prontuario definitivo.
+			if (dto.getPacientes() != null) {
+				String definitivo = prontuarioDefinitivoService.garantir(dto.getPacientes().getIdpaciente(), dto.getQuemalocou());
+				if (definitivo != null) {
+					novoInternado.setProntuario(definitivo);
+				}
+			}
 
 			novoInternado.persist();
 			bamRepository.atualizarMarcadorTransferencia(numeroDoBam.getIdbam(), false);

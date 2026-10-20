@@ -58,27 +58,82 @@ public class ReconhecimentoFacialService {
     }
 
     public ResultadoValidacao validar(String fotoCadastradaBase64, String fotoCapturadaBase64) {
-        if (!configurado()) {
-            return ResultadoValidacao.falha("Servico de reconhecimento facial nao configurado.");
+        Consulta consulta = consultar(fotoCadastradaBase64, fotoCapturadaBase64, null);
+        if (consulta.falha() != null) {
+            return ResultadoValidacao.falha(consulta.falha());
         }
 
-        if (fotoCadastradaBase64 == null || fotoCadastradaBase64.isBlank()
-            || fotoCapturadaBase64 == null || fotoCapturadaBase64.isBlank()) {
-            return ResultadoValidacao.falha("Foto cadastrada e foto capturada sao obrigatorias.");
+        double similaridade = normalizarSimilaridade(maiorSimilaridade(consulta.root()));
+        double threshold = thresholdSeguro();
+        return similaridade >= threshold
+            ? ResultadoValidacao.sucesso(similaridade)
+            : ResultadoValidacao.falha(
+                similaridade,
+                "Rosto nao reconhecido para esta matricula. Similaridade "
+                    + percentual(similaridade) + "%; minimo exigido " + percentual(threshold) + "%."
+            );
+    }
+
+    /**
+     * Compara a imagem alvo com a de referencia e devolve tambem a pose (yaw/pitch)
+     * do rosto alvo, usada pela prova de vida. Nao aplica o limiar: quem chama decide.
+     */
+    public ResultadoPose compararComPose(String referenciaBase64, String alvoBase64) {
+        return compararComPose(referenciaBase64, alvoBase64, null);
+    }
+
+    /**
+     * @param limiarDeteccao confianca minima para o CompreFace aceitar um rosto
+     *        (det_prob_threshold); null usa o padrao do servico. Rosto virado com
+     *        pouca luz costuma precisar de um limiar menor.
+     */
+    public ResultadoPose compararComPose(String referenciaBase64, String alvoBase64, Double limiarDeteccao) {
+        String parametros = "face_plugins=pose"
+            + (limiarDeteccao == null ? "" : "&det_prob_threshold=" + limiarDeteccao);
+        Consulta consulta = consultar(referenciaBase64, alvoBase64, parametros);
+        if (consulta.falha() != null) {
+            return ResultadoPose.falha(consulta.falha());
+        }
+
+        JsonNode melhor = melhorCorrespondencia(consulta.root());
+        if (melhor == null) {
+            return ResultadoPose.falha("Rosto nao encontrado na imagem capturada.");
+        }
+        JsonNode yaw = melhor.path("pose").path("yaw");
+        if (!yaw.isNumber()) {
+            return ResultadoPose.falha("Servico facial nao retornou a pose do rosto. Verifique o plugin 'pose' do CompreFace.");
+        }
+        double similaridade = normalizarSimilaridade(melhor.path("similarity").asDouble(0));
+        return ResultadoPose.sucesso(similaridade, yaw.asDouble(), melhor.path("pose").path("pitch").asDouble(0));
+    }
+
+    private Consulta consultar(String fotoReferenciaBase64, String fotoAlvoBase64, String parametros) {
+        if (!configurado()) {
+            return Consulta.erro("Servico de reconhecimento facial nao configurado.");
+        }
+
+        if (fotoReferenciaBase64 == null || fotoReferenciaBase64.isBlank()
+            || fotoAlvoBase64 == null || fotoAlvoBase64.isBlank()) {
+            return Consulta.erro("Foto cadastrada e foto capturada sao obrigatorias.");
         }
 
         try {
-            String fotoCadastradaNormalizada = normalizarBase64(fotoCadastradaBase64);
-            String fotoCapturadaNormalizada = normalizarBase64(fotoCapturadaBase64);
-            validarImagemBase64(fotoCadastradaNormalizada, "foto cadastrada");
-            validarImagemBase64(fotoCapturadaNormalizada, "foto capturada");
+            String fotoReferenciaNormalizada = normalizarBase64(fotoReferenciaBase64);
+            String fotoAlvoNormalizada = normalizarBase64(fotoAlvoBase64);
+            validarImagemBase64(fotoReferenciaNormalizada, "foto cadastrada");
+            validarImagemBase64(fotoAlvoNormalizada, "foto capturada");
 
             Map<String, String> payload = new HashMap<>();
-            payload.put("source_image", fotoCadastradaNormalizada);
-            payload.put("target_image", fotoCapturadaNormalizada);
+            payload.put("source_image", fotoReferenciaNormalizada);
+            payload.put("target_image", fotoAlvoNormalizada);
+
+            String url = verificationUrl.get();
+            if (parametros != null && !parametros.isBlank()) {
+                url = url + (url.contains("?") ? "&" : "?") + parametros;
+            }
 
             HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(verificationUrl.get()))
+                .uri(URI.create(url))
                 .timeout(Duration.ofSeconds(timeoutSeconds))
                 .header("x-api-key", apiKey.get())
                 .header("Content-Type", MediaType.APPLICATION_JSON)
@@ -89,28 +144,37 @@ public class ReconhecimentoFacialService {
             if (response.statusCode() < 200 || response.statusCode() >= 300) {
                 LOGGER.warning("[ReconhecimentoFacial] CompreFace HTTP " + response.statusCode() + ": "
                     + limitar(response.body(), 500));
-                return ResultadoValidacao.falha(mensagemPorStatus(response.statusCode(), response.body()));
+                return Consulta.erro(mensagemPorStatus(response.statusCode(), response.body()));
             }
 
-            JsonNode root = objectMapper.readTree(response.body());
-            double similaridade = normalizarSimilaridade(maiorSimilaridade(root));
-            double threshold = thresholdSeguro();
-            return similaridade >= threshold
-                ? ResultadoValidacao.sucesso(similaridade)
-                : ResultadoValidacao.falha(
-                    similaridade,
-                    "Rosto nao reconhecido para esta matricula. Similaridade "
-                        + percentual(similaridade) + "%; minimo exigido " + percentual(threshold) + "%."
-                );
+            return new Consulta(objectMapper.readTree(response.body()), null);
         } catch (ConnectException e) {
             LOGGER.log(Level.WARNING, "[ReconhecimentoFacial] Servico facial indisponivel", e);
-            return ResultadoValidacao.falha("Servico de reconhecimento facial indisponivel. Verifique se o CompreFace esta em execucao e acessivel pelo backend.");
+            return Consulta.erro("Servico de reconhecimento facial indisponivel. Verifique se o CompreFace esta em execucao e acessivel pelo backend.");
         } catch (IllegalArgumentException e) {
             LOGGER.log(Level.WARNING, "[ReconhecimentoFacial] Imagem em Base64 invalida", e);
-            return ResultadoValidacao.falha(e.getMessage());
+            return Consulta.erro(e.getMessage());
         } catch (Exception e) {
             LOGGER.log(Level.WARNING, "[ReconhecimentoFacial] Erro ao consultar servico facial", e);
-            return ResultadoValidacao.falha("Erro ao consultar reconhecimento facial.");
+            return Consulta.erro("Erro ao consultar reconhecimento facial.");
+        }
+    }
+
+    private JsonNode melhorCorrespondencia(JsonNode root) {
+        JsonNode melhor = null;
+        for (JsonNode resultado : root.path("result")) {
+            for (JsonNode match : resultado.path("face_matches")) {
+                if (melhor == null || match.path("similarity").asDouble(0) > melhor.path("similarity").asDouble(0)) {
+                    melhor = match;
+                }
+            }
+        }
+        return melhor;
+    }
+
+    private record Consulta(JsonNode root, String falha) {
+        static Consulta erro(String mensagem) {
+            return new Consulta(null, mensagem);
         }
     }
 
@@ -282,6 +346,16 @@ public class ReconhecimentoFacialService {
 
         public String getMensagem() {
             return mensagem;
+        }
+    }
+
+    public record ResultadoPose(boolean ok, double similaridade, double yaw, double pitch, String mensagem) {
+        static ResultadoPose sucesso(double similaridade, double yaw, double pitch) {
+            return new ResultadoPose(true, similaridade, yaw, pitch, null);
+        }
+
+        static ResultadoPose falha(String mensagem) {
+            return new ResultadoPose(false, 0, 0, 0, mensagem);
         }
     }
 

@@ -5,6 +5,7 @@ import java.util.List;
 import br.com.iv.dto.ChamadaDto;
 import br.com.iv.entity.ChamadaPaciente;
 import br.com.iv.service.ChamadaService;
+import br.com.iv.service.PainelVozService;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
@@ -24,6 +25,9 @@ public class ChamadaController {
 
 	@Inject
 	ChamadaService chamadaService;
+
+	@Inject
+	PainelVozService painelVozService;
 
 	@GET
 	@Path("/unidade1/{unidade}/unico/{tv}")
@@ -63,7 +67,9 @@ public class ChamadaController {
 	
 	@POST
 	public Response salvarChamada(ChamadaDto dto) {
-		ChamadaPaciente chamada = chamadaService.salvarChamada(dto); 
+		ChamadaPaciente chamada = chamadaService.salvarChamada(dto);
+		// Começa a gerar a voz em segundo plano; nunca lança exceção nem atrasa a resposta.
+		painelVozService.preaquecer(chamada);
 		return Response.ok(chamada).status(201).build();
 	}
 

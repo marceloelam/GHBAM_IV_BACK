@@ -80,12 +80,17 @@ public class ApsVacinacaoService {
     @Inject
     ApsReferenciaService referencias;
 
+    @Inject
+    ApsCidadaoService cidadaos;
+
     private static Map<String, Object> cal(int imuno, int dose, int idade, int idadeMax, String rotulo) {
         return Map.of("imunobiologico", imuno, "dose", dose, "idadeMeses", idade, "idadeMaxMeses", idadeMax, "rotulo", rotulo);
     }
 
     public Map<String, Object> caderneta(Long idCidadao) {
-        Map<String, Object> c = db.one("SELECT id, nome, data_nascimento, sexo, cpf, cns FROM aps_cidadao WHERE id = :id", p("id", idCidadao));
+        cidadaos.completarDoHospitalSemFalhar(idCidadao);
+        Map<String, Object> c = db.one("SELECT id, nome, nome_social, nome_mae, data_nascimento, sexo, cpf, cns FROM aps_cidadao WHERE id = :id",
+                p("id", idCidadao));
         if (c == null) {
             throw new IllegalArgumentException("Cidadao nao encontrado.");
         }

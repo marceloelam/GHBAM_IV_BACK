@@ -37,6 +37,14 @@ public class UnidadeVideoConfig extends PanacheEntityBase implements Serializabl
 	@Column(length = 120)
 	private String tituloM3u;
 
+	// Voz da chamada no painel (id do catálogo em PainelVozService); vazio = voz padrão.
+	@Column(length = 40)
+	private String vozPainel;
+
+	// Frase falada na chamada, com marcadores [saudação] [paciente] [ao local] [no setor]; vazio = frase padrão.
+	@Column(length = 300)
+	private String fraseChamada;
+
 	public UnidadeVideoConfig() {
 		this.tipoTransicao = "corte";
 		this.duracaoTransicao = 1.0;

@@ -783,13 +783,7 @@ public class PedidoMedico2Repository implements PanacheRepository<PedidoMedico2>
 					+ "AND (pe.local = 'MEDICACAO' OR pe.local = 'MEDICAMENTO') " + "AND pe.unidade = :unidade "
 					+ "ORDER BY p.nome, b.idbam DESC, pe.idpedidomedico DESC";
 
-			try {
-				results = getEntityManager().createNativeQuery(sql).setParameter("unidade", unidade).getResultList();
-			} catch (Exception e) {
-				System.err.println("Erro ao executar pedido2Ps: " + e.getMessage());
-				e.printStackTrace();
-				throw e;
-			}
+			results = getEntityManager().createNativeQuery(sql).setParameter("unidade", unidade).getResultList();
 
 		} else {
 
@@ -813,18 +807,11 @@ public class PedidoMedico2Repository implements PanacheRepository<PedidoMedico2>
 					+ "AND pe.local = :local " + "AND pe.unidade = :unidade "
 					+ "ORDER BY p.nome, b.idbam DESC, pe.idpedidomedico DESC";
 
-			try {
-				results = getEntityManager().createNativeQuery(sql).setParameter("local", local)
-						.setParameter("unidade", unidade).getResultList();
-			} catch (Exception e) {
-				System.err.println("Erro ao executar pedido2Ps: " + e.getMessage());
-				e.printStackTrace();
-				throw e;
-			}
+			results = getEntityManager().createNativeQuery(sql).setParameter("local", local)
+					.setParameter("unidade", unidade).getResultList();
 
 		}
 
-		System.out.println("Resultados encontrados: " + results.size() + " - " + sql);
 		List<PedidoMedico2xDto> lista = new ArrayList<>();
 
 		for (Object[] r : results) {

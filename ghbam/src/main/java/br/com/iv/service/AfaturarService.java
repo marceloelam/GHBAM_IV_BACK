@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import jakarta.enterprise.event.Event;
 import br.com.iv.dto.AfaturarDto;
 import br.com.iv.entity.Afaturar;
 import br.com.iv.entity.Pacientes;
@@ -31,6 +32,9 @@ public class AfaturarService implements Serializable {
 
 	@Inject
 	br.com.iv.repository.FaturamentoProducaoRepository producaoRepository;
+
+	@Inject
+	Event<Afaturar> faturamentoPersistido;
 
 	@Transactional
 	public List<Afaturar> filtarPorAfaturarPeriodo(String d1, String d2, String unidade) {
@@ -100,6 +104,7 @@ public class AfaturarService implements Serializable {
 		if (!origemModulo.isBlank() && origemId != null) {
 			Afaturar existente = producaoRepository.buscarPorOrigem(origemModulo, origemId);
 			if (existente != null) {
+				faturamentoPersistido.fire(existente);
 				return existente;
 			}
 		}
@@ -164,6 +169,7 @@ public class AfaturarService implements Serializable {
 		// FaturamentoProducaoService.prepararProducaoNova.
 		faturamentoProducaoService.prepararProducaoNova(afaturar, user);
 		afaturar.persist();
+		faturamentoPersistido.fire(afaturar);
 		return afaturar;
 	}
 

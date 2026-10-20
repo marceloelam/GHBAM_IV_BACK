@@ -28,6 +28,8 @@ import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.container.ContainerRequestContext;
+import jakarta.ws.rs.core.Context;
 import javax.sql.DataSource;
 import net.sf.jasperreports.engine.JRException;
 import net.sf.jasperreports.engine.JasperCompileManager;
@@ -36,6 +38,9 @@ import net.sf.jasperreports.engine.JasperFillManager;
 import net.sf.jasperreports.engine.JasperPrint;
 import net.sf.jasperreports.engine.JasperReport;
 import net.sf.jasperreports.engine.util.JRLoader;
+import br.com.iv.entity.ConfiguracaoUnidade;
+import br.com.iv.repository.ConfiguracaoUnidadeRepository;
+import br.com.iv.security.SecurityPermissionService;
 
 @Path("/report")
 public class ReportResource {
@@ -54,6 +59,15 @@ public class ReportResource {
     @Inject
     DataSource dataSource;
     
+    @Inject
+    ConfiguracaoUnidadeRepository configuracaoUnidadeRepository;
+
+    @Inject
+    SecurityPermissionService securityPermissionService;
+
+    @Context
+    ContainerRequestContext requestContext;
+
     @PostConstruct
     void init() {
         LOG.info("ReportResource inicializado com cache de relatórios");
@@ -86,19 +100,28 @@ public class ReportResource {
             
             // **MÉTODO OTIMIZADO: Usa try-with-resources com a nova Conexao**
             JasperPrint jasperPrint;
-            // Credenciais não vêm do navegador; o pool oficial já é validado
-            // pelo backend e evita o 500 quando campos legados estão ausentes.
-            try (Connection connection = dataSource.getConnection()) {
-                
-                jasperPrint = JasperFillManager.fillReport(
-                    jasperReport,
-                    parameters,
-                    connection
-                );
-                
-                LOG.debugf("Conexão utilizada e será fechada automaticamente");
-            } // A conexão é fechada automaticamente aqui
-            
+            String unidade = unidadeDaSessao();
+            if (unidade.isBlank()) {
+                // Compatibilidade com chamadas legadas sem JWT; sessões válidas usam a unidade do token.
+                try (Connection connection = dataSource.getConnection()) {
+                    jasperPrint = JasperFillManager.fillReport(jasperReport, parameters, connection);
+                }
+            } else {
+                ConfiguracaoUnidade configuracao = configuracaoUnidadeRepository
+                    .find("upper(sigla) = upper(?1)", unidade).firstResult();
+                if (configuracao == null || configuracao.getUrlConexao() == null
+                        || !configuracao.getUrlConexao().startsWith("jdbc:postgresql://")
+                        || configuracao.getUserConexao() == null || configuracao.getUserConexao().isBlank()
+                        || configuracao.getPwdConexao() == null || configuracao.getPwdConexao().isBlank()) {
+                    return Response.status(Response.Status.CONFLICT)
+                        .entity("A unidade ativa não possui conexão de banco configurada para relatórios.")
+                        .build();
+                }
+                try (Conexao conexaoUnidade = Conexao.getConexao(configuracao.getUrlConexao(),
+                        configuracao.getUserConexao(), configuracao.getPwdConexao())) {
+                    jasperPrint = JasperFillManager.fillReport(jasperReport, parameters, conexaoUnidade.getConnection());
+                }
+            }
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream(1024 * 1024); // 1MB inicial
             JasperExportManager.exportReportToPdfStream(jasperPrint, outputStream);
             
@@ -129,6 +152,10 @@ public class ReportResource {
         }
     }
     
+    private String unidadeDaSessao() {
+        return securityPermissionService.unidadeDaSessao(requestContext).split(":")[0].trim();
+    }
+
     // ========== MÉTODOS DE CACHE (mantenha os que você já tem) ==========
     
     private JasperReport getCompiledReport(String reportFile) throws JRException, IOException {

@@ -25,7 +25,6 @@ public class BalancoHidricoSaidaRepository implements PanacheRepository<BalancoH
 	    ).list();
 
 	    if (resultados.isEmpty()) {
-	        System.out.println("Nenhum balanço hídrico de Saida encontrado para BAM " + bam + " na data " + data);
 	    }
 	    return resultados;
 	}

@@ -118,8 +118,8 @@ public class RegistroService implements Serializable {
 	}
 
 	@Transactional
-	public void atualizarRegistroResponsavelObservacao(int idRegistro, String responsavel, String obs) {
-		registroRepository.atualizarRegistroResponsavelObservacao(idRegistro, responsavel, obs);
+	public int atualizarRegistroResponsavelObservacao(int idRegistro, String responsavel, String obs) {
+		return registroRepository.atualizarRegistroResponsavelObservacao(idRegistro, responsavel, obs);
 	}
 	
 	@Transactional

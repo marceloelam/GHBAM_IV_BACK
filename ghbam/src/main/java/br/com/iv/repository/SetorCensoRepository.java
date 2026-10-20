@@ -58,7 +58,6 @@ public class SetorCensoRepository implements PanacheRepository<SetorCenso> {
 	public void alterarExclusao(int id, boolean excluido) {
 		String sql = "UPDATE setorcenso set excluido = :excluir where idsetorcenso = :id";
 		entityManager.createNativeQuery(sql).setParameter("id", id).setParameter("excluir", excluido).executeUpdate();
-		System.out.println(sql);
 	}
 
 	@Transactional

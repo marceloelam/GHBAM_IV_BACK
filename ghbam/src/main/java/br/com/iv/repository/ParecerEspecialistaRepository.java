@@ -28,7 +28,6 @@ public class ParecerEspecialistaRepository implements PanacheRepositoryBase<Pare
         .getResultList();
 
     // Log temporário para depuração: quantos resultados vieram
-    System.out.println("[DEBUG] Executando findAnamneseInternacao nbam=" + nbam + " unidade=" + unidade);
     // Mapear cada linha (Object[]) para AnamneseInternacaoDto
     return results.stream().map(row -> {
         AnamneseInternacaoDto dto = new AnamneseInternacaoDto();

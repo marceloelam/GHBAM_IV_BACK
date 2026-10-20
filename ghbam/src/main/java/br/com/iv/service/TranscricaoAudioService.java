@@ -9,7 +9,10 @@ import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.time.Duration;
+import java.util.Optional;
 import java.util.UUID;
+
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -30,6 +33,22 @@ public class TranscricaoAudioService {
     private static final String DEFAULT_OPENAI_MODEL = "gpt-4o-mini-transcribe";
     private static final String OPENAI_DIARIZATION_MODEL = "gpt-4o-transcribe-diarize";
     private static final String DEFAULT_GROQ_MODEL = "whisper-large-v3";
+    // Glossario do Whisper (campo "prompt"): ensina so a GRAFIA de termos. NUNCA usar frases
+    // clinicas de exemplo: o Whisper copia trechos do prompt para a transcricao quando o audio
+    // e curto/baixo - um exemplo com "hipertenso e diabetico" virou achado inventado no ditado.
+    // Por isso aqui so ha medicamentos, unidades e siglas, e ecoDoVocabulario() barra copia.
+    // Sobrescreva com ghbam.ditado.vocabulario; "off" desliga o glossario.
+    private static final String VOCABULARIO_PADRAO = "Glossário: dipirona, paracetamol, ibuprofeno, cetoprofeno, "
+            + "tramadol, morfina, ondansetrona, metoclopramida, bromoprida, omeprazol, pantoprazol, escopolamina, "
+            + "ceftriaxona, amoxicilina, clavulanato, azitromicina, ciprofloxacino, cefalexina, dexametasona, "
+            + "hidrocortisona, prednisona, salbutamol, ipratrópio, losartana, captopril, enalapril, anlodipino, "
+            + "hidroclorotiazida, furosemida, metformina, insulina NPH, glibenclamida, enoxaparina, heparina, "
+            + "diazepam, haloperidol, prometazina; mg, mcg, g, mL, UI, gotas, EV, IM, VO, SC, SL, "
+            + "6/6 h, 8/8 h, 12/12 h, SOS, ACM, PA, FC, FR, SatO2, HGT, mmHg, bpm.";
+
+    @ConfigProperty(name = "ghbam.ditado.vocabulario")
+    Optional<String> vocabularioConfigurado;
+
     private final HttpClient httpClient = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(20)).build();
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -144,6 +163,12 @@ public class TranscricaoAudioService {
         escrever(output, "Content-Disposition: form-data; name=\"temperature\"\r\n\r\n");
         escrever(output, "0\r\n");
         escrever(output, "--" + boundary + "\r\n");
+        if (!identificarInterlocutores && !vocabulario().isBlank()) {
+            // O modelo de diarizacao da OpenAI nao aceita prompt.
+            escrever(output, "Content-Disposition: form-data; name=\"prompt\"\r\n\r\n");
+            escrever(output, vocabulario() + "\r\n");
+            escrever(output, "--" + boundary + "\r\n");
+        }
         if (identificarInterlocutores) {
             escrever(output, "Content-Disposition: form-data; name=\"chunking_strategy\"\r\n\r\n");
             escrever(output, "auto\r\n");
@@ -181,7 +206,42 @@ public class TranscricaoAudioService {
                 || normalizado.contains("marco paret")
                 || normalizado.contains("foi rece")
                 || normalizado.contains("legendas pela comunidade")
-                || normalizado.contains("amara.org");
+                || normalizado.contains("amara.org")
+                // Em audio silencioso o Whisper pode devolver o proprio vocabulario.
+                || normalizado.contains("glossário")
+                || ecoDoVocabulario(normalizado);
+    }
+
+    private String vocabulario() {
+        return vocabularioConfigurado
+                .map(String::trim)
+                .filter(v -> !v.isBlank())
+                .map(v -> "off".equalsIgnoreCase(v) ? "" : v)
+                .orElse(VOCABULARIO_PADRAO);
+    }
+
+    private static final int EXTENSAO_ECO = 5;
+
+    // Barra a transcricao que contem 5+ palavras seguidas do glossario, na mesma ordem:
+    // fala real nao repete a lista; copia do prompt repete.
+    private boolean ecoDoVocabulario(String normalizado) {
+        String[] glossario = palavras(vocabulario());
+        if (glossario.length < EXTENSAO_ECO) {
+            return false;
+        }
+        String texto = " " + String.join(" ", palavras(normalizado)) + " ";
+        for (int i = 0; i + EXTENSAO_ECO <= glossario.length; i++) {
+            String trecho = String.join(" ", java.util.Arrays.copyOfRange(glossario, i, i + EXTENSAO_ECO));
+            if (texto.contains(" " + trecho + " ")) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static String[] palavras(String texto) {
+        String limpo = texto.toLowerCase().replaceAll("[^\\p{L}\\p{N}/]+", " ").trim();
+        return limpo.isEmpty() ? new String[0] : limpo.split(" ");
     }
 
     private record ProvedorTranscricao(String url, String apiKey, String model) {

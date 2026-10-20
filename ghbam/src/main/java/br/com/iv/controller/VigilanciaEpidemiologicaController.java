@@ -192,7 +192,7 @@ public class VigilanciaEpidemiologicaController {
                               LEFT JOIN avaliacao a ON a.idavaliacao=b.avaliacao_idavaliacao
                               LEFT JOIN tratamento t ON t.idtratamento=b.tratamento_idtratamento
                               WHERE r.idregistro=b.registro_idregistro
-                                AND TRANSLATE(LOWER(COALESCE(r.queixaprincipal,'') || ' ' || COALESCE(r.obsentrada,'') || ' ' || COALESCE(a.anamnese,'') || ' ' || COALESCE(a.comentario,'') || ' ' || COALESCE(t.diagnostico_provisorio,'')), :acentos, :semAcentos)
+                                AND (' ' || REGEXP_REPLACE(TRANSLATE(LOWER(COALESCE(r.queixaprincipal,'') || ' ' || COALESCE(r.obsentrada,'') || ' ' || COALESCE(a.anamnese,'') || ' ' || COALESCE(a.comentario,'') || ' ' || COALESCE(t.diagnostico_provisorio,'')), :acentos, :semAcentos), '[^a-z0-9]+', ' ', 'g') || ' ')
                                     ILIKE ANY(CAST(string_to_array(:padroesDoenca, '|') AS text[]))
                           ))
                         UNION ALL
@@ -211,8 +211,8 @@ public class VigilanciaEpidemiologicaController {
                           AND COALESCE(NULLIF(UPPER(:origem), ''), 'TODOS') IN ('TODOS', 'GPEC')
                           AND (:doenca = '' OR EXISTS (
                               SELECT 1 FROM aps_problema pr
-                              WHERE pr.id_cidadao = c.id
-                                AND TRANSLATE(LOWER(COALESCE(pr.descricao,'') || ' ' || COALESCE(pr.cid10,'') || ' ' || COALESCE(pr.ciap,'')), :acentos, :semAcentos)
+                              WHERE pr.id_atendimento = a.id AND pr.tipo = 'PROBLEMA'
+                                AND (' ' || REGEXP_REPLACE(TRANSLATE(LOWER(COALESCE(pr.descricao,'') || ' ' || COALESCE(pr.cid10,'') || ' ' || COALESCE(pr.ciap,'')), :acentos, :semAcentos), '[^a-z0-9]+', ' ', 'g') || ' ')
                                     ILIKE ANY(CAST(string_to_array(:padroesDoenca, '|') AS text[]))
                           ))
                     ), concentracoes AS (
@@ -262,7 +262,7 @@ public class VigilanciaEpidemiologicaController {
                               LEFT JOIN avaliacao a ON a.idavaliacao=b.avaliacao_idavaliacao
                               LEFT JOIN tratamento t ON t.idtratamento=b.tratamento_idtratamento
                               WHERE r.idregistro=b.registro_idregistro
-                                AND TRANSLATE(LOWER(COALESCE(r.queixaprincipal,'') || ' ' || COALESCE(r.obsentrada,'') || ' ' || COALESCE(a.anamnese,'') || ' ' || COALESCE(a.comentario,'') || ' ' || COALESCE(t.diagnostico_provisorio,'')), :acentos, :semAcentos)
+                                AND (' ' || REGEXP_REPLACE(TRANSLATE(LOWER(COALESCE(r.queixaprincipal,'') || ' ' || COALESCE(r.obsentrada,'') || ' ' || COALESCE(a.anamnese,'') || ' ' || COALESCE(a.comentario,'') || ' ' || COALESCE(t.diagnostico_provisorio,'')), :acentos, :semAcentos), '[^a-z0-9]+', ' ', 'g') || ' ')
                                     ILIKE ANY(CAST(string_to_array(:padroesDoenca, '|') AS text[]))
                           ))
                         UNION ALL
@@ -274,8 +274,8 @@ public class VigilanciaEpidemiologicaController {
                           AND COALESCE(NULLIF(UPPER(:origem), ''), 'TODOS') IN ('TODOS', 'GPEC')
                           AND (:doenca = '' OR EXISTS (
                               SELECT 1 FROM aps_problema pr
-                              WHERE pr.id_cidadao = a.id_cidadao
-                                AND TRANSLATE(LOWER(COALESCE(pr.descricao,'') || ' ' || COALESCE(pr.cid10,'') || ' ' || COALESCE(pr.ciap,'')), :acentos, :semAcentos)
+                              WHERE pr.id_atendimento = a.id AND pr.tipo = 'PROBLEMA'
+                                AND (' ' || REGEXP_REPLACE(TRANSLATE(LOWER(COALESCE(pr.descricao,'') || ' ' || COALESCE(pr.cid10,'') || ' ' || COALESCE(pr.ciap,'')), :acentos, :semAcentos), '[^a-z0-9]+', ' ', 'g') || ' ')
                                     ILIKE ANY(CAST(string_to_array(:padroesDoenca, '|') AS text[]))
                           ))
                     ) fontes
@@ -607,7 +607,7 @@ public class VigilanciaEpidemiologicaController {
                 LEFT JOIN anamneseinternacao ai ON ai.nbam=b.idbam
                 WHERE CAST(b.data AS date) BETWEEN :inicio AND :fim
                   AND (:unidade='' OR b.unidade=:unidade)
-                  AND TRANSLATE(LOWER(
+                  AND (' ' || REGEXP_REPLACE(TRANSLATE(LOWER(
                     COALESCE(r.queixaprincipal,'') || ' ' ||
                     COALESCE(r.obsentrada,'') || ' ' ||
                     COALESCE(a.anamnese,'') || ' ' ||
@@ -619,7 +619,7 @@ public class VigilanciaEpidemiologicaController {
                     COALESCE(t.obs_enfermagem,'') || ' ' ||
                     COALESCE(ai.frente,'') || ' ' ||
                     COALESCE(ai.verso,'')
-                  ), :acentos, :semAcentos) ILIKE ANY(CAST(string_to_array(:padroes,'|') AS text[]))
+                  ), :acentos, :semAcentos), '[^a-z0-9]+', ' ', 'g') || ' ') ILIKE ANY(CAST(string_to_array(:padroes,'|') AS text[]))
                 ORDER BY b.idbam, b.data DESC
                 LIMIT 500
                 """;
@@ -733,22 +733,21 @@ public class VigilanciaEpidemiologicaController {
                 """;
         String textos = gpec ? """
                     SELECT a.id AS origem_id,
-                           TRANSLATE(LOWER(COALESCE(pr.descricao,'') || ' ' || COALESCE(pr.cid10,'') || ' ' || COALESCE(pr.ciap,'')), :acentos, :semAcentos) AS txt
+                           ' ' || REGEXP_REPLACE(TRANSLATE(LOWER(COALESCE(pr.descricao,'') || ' ' || COALESCE(pr.cid10,'') || ' ' || COALESCE(pr.ciap,'')), :acentos, :semAcentos), '[^a-z0-9]+', ' ', 'g') || ' ' AS txt
                     FROM aps_atendimento a
-                    JOIN aps_cidadao c ON c.id = a.id_cidadao
-                    JOIN aps_problema pr ON pr.id_cidadao = c.id
+                    JOIN aps_problema pr ON pr.id_atendimento = a.id AND pr.tipo = 'PROBLEMA'
                     WHERE a.data_referencia BETWEEN :inicio AND :fim
                       AND a.status <> 'CANCELADO'
                       AND (:unidade='' OR UPPER(a.unidade)=UPPER(:unidade))
                 """ : """
                     SELECT b.idbam AS origem_id,
-                           TRANSLATE(LOWER(
+                           ' ' || REGEXP_REPLACE(TRANSLATE(LOWER(
                              COALESCE(r.queixaprincipal,'') || ' ' || COALESCE(r.obsentrada,'') || ' ' ||
                              COALESCE(a.anamnese,'') || ' ' || COALESCE(a.comentario,'') || ' ' ||
                              COALESCE(a.hpp,'') || ' ' || COALESCE(a.risco,'') || ' ' ||
                              COALESCE(t.diagnostico_provisorio,'') || ' ' || COALESCE(t.evolucao_prescricao,'') || ' ' ||
                              COALESCE(t.obs_enfermagem,'') || ' ' || COALESCE(ai.frente,'') || ' ' || COALESCE(ai.verso,'')
-                           ), :acentos, :semAcentos) AS txt
+                           ), :acentos, :semAcentos), '[^a-z0-9]+', ' ', 'g') || ' ' AS txt
                     FROM bam b
                     JOIN registro r ON r.idregistro=b.registro_idregistro
                     LEFT JOIN avaliacao a ON a.idavaliacao=b.avaliacao_idavaliacao
@@ -791,7 +790,7 @@ public class VigilanciaEpidemiologicaController {
                 LEFT JOIN anamneseinternacao ai ON ai.nbam=b.idbam
                 WHERE CAST(b.data AS date) BETWEEN :inicio AND :fim
                   AND (:unidade='' OR b.unidade=:unidade)
-                  AND TRANSLATE(LOWER(
+                  AND (' ' || REGEXP_REPLACE(TRANSLATE(LOWER(
                     COALESCE(r.queixaprincipal,'') || ' ' ||
                     COALESCE(r.obsentrada,'') || ' ' ||
                     COALESCE(a.anamnese,'') || ' ' ||
@@ -803,7 +802,7 @@ public class VigilanciaEpidemiologicaController {
                     COALESCE(t.obs_enfermagem,'') || ' ' ||
                     COALESCE(ai.frente,'') || ' ' ||
                     COALESCE(ai.verso,'')
-                  ), :acentos, :semAcentos) ILIKE ANY(CAST(string_to_array(:padroes, '|') AS text[]))
+                  ), :acentos, :semAcentos), '[^a-z0-9]+', ' ', 'g') || ' ') ILIKE ANY(CAST(string_to_array(:padroes, '|') AS text[]))
                 """;
         Query q = em.createNativeQuery(sql)
                 .setParameter("inicio", inicio)
@@ -820,12 +819,11 @@ public class VigilanciaEpidemiologicaController {
         String sql = """
                 SELECT count(DISTINCT a.id)
                 FROM aps_atendimento a
-                JOIN aps_cidadao c ON c.id = a.id_cidadao
-                JOIN aps_problema pr ON pr.id_cidadao = c.id
+                JOIN aps_problema pr ON pr.id_atendimento = a.id AND pr.tipo = 'PROBLEMA'
                 WHERE a.data_referencia BETWEEN :inicio AND :fim
                   AND a.status <> 'CANCELADO'
                   AND (:unidade='' OR UPPER(a.unidade)=UPPER(:unidade))
-                  AND TRANSLATE(LOWER(COALESCE(pr.descricao,'') || ' ' || COALESCE(pr.cid10,'') || ' ' || COALESCE(pr.ciap,'')), :acentos, :semAcentos)
+                  AND (' ' || REGEXP_REPLACE(TRANSLATE(LOWER(COALESCE(pr.descricao,'') || ' ' || COALESCE(pr.cid10,'') || ' ' || COALESCE(pr.ciap,'')), :acentos, :semAcentos), '[^a-z0-9]+', ' ', 'g') || ' ')
                       ILIKE ANY(CAST(string_to_array(:padroes, '|') AS text[]))
                 """;
         return ((Number) em.createNativeQuery(sql)
@@ -949,7 +947,10 @@ public class VigilanciaEpidemiologicaController {
         List<String> padroes = new ArrayList<>();
         for (String parte : partes) {
             String termo = parte.trim();
-            if (!termo.isBlank()) padroes.add("%" + termo + "%");
+            if (!termo.isBlank()) {
+                String normalizado = termo.replaceAll("[^a-z0-9]+", " ").trim().replaceAll("\\s+", " ");
+                if (!normalizado.isBlank()) padroes.add("% " + normalizado + " %");
+            }
         }
         return String.join("|", padroes);
     }

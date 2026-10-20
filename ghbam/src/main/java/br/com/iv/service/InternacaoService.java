@@ -33,6 +33,9 @@ public class InternacaoService implements Serializable {
 	@Inject
 	FaturamentoAihService faturamentoAihService;
 
+	@Inject
+	ProntuarioDefinitivoService prontuarioDefinitivoService;
+
 	// Listando todas as Internacao
 	public List<Internacao> listarTodasInternacao() {
 		return internacaoRepository.listAll(Sort.by("sala"));
@@ -67,6 +70,12 @@ public class InternacaoService implements Serializable {
 		internacao.setOrigem(dto.getOrigem());
 		internacao.setUnidade(dto.getUnidade());
 		internacao.setIdDoPaciente(dto.getIdDoPaciente());
+
+		// Vale para NIR, Admissao do RN e emergencia: internado sai daqui com prontuario definitivo.
+		String definitivo = prontuarioDefinitivoService.garantir(dto.getIdDoPaciente(), dto.getAtendente());
+		if (definitivo != null) {
+			internacao.setProntuario(definitivo);
+		}
 
 		internacao.persist();
 		return internacao;

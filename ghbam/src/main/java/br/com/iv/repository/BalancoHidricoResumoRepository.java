@@ -32,7 +32,6 @@ public class BalancoHidricoResumoRepository implements PanacheRepository<ResumoB
 	    List<ResumoBalancoHidrico> resultados = query.getResultList();
 	    
 	    if (resultados.isEmpty()) {
-	        System.out.println("Nenhum balanço hídrico de entrada encontrado para BAM " + bam + " na data " + data);
 	    }
 	    return resultados;
 	    

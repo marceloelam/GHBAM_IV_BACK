@@ -1,12 +1,19 @@
 package br.com.iv.service;
 
 import java.io.Serializable;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Optional;
 
+import org.jboss.logging.Logger;
+
 import br.com.iv.dto.LocalCensoDto;
+import br.com.iv.dto.LogDto;
 import br.com.iv.entity.LocalCenso;
 import br.com.iv.repository.LocalCensoRepository;
+import br.com.iv.repository.NovoInternadoRepository;
 import io.quarkus.panache.common.Sort;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -16,8 +23,16 @@ import jakarta.transaction.Transactional;
 public class LocalCensoService implements Serializable {
 	private static final long serialVersionUID = 1L;
 
+	private static final Logger LOG = Logger.getLogger(LocalCensoService.class);
+
 	@Inject
 	LocalCensoRepository localCensoRepository;
+
+	@Inject
+	NovoInternadoRepository novoInternadoRepository;
+
+	@Inject
+	LogService logService;
 
 	// Listando todos os setores
 	public List<LocalCenso> listarTodosSetores() {
@@ -93,7 +108,39 @@ public class LocalCensoService implements Serializable {
 	
 	@Transactional
 	public void alterarSeto(int id, boolean excluido) {
+		alterarSeto(id, excluido, "SISTEMA");
+	}
+
+	@Transactional
+	public void alterarSeto(int id, boolean excluido, String quem) {
 		localCensoRepository.alterarExclusao(id, excluido);
+		if (excluido) {
+			darAltaNoLeito(id, "LEITO EXCLUIDO", quem);
+		}
+	}
+
+	public long contarInternadosAtivos(int idleito) {
+		return novoInternadoRepository.contarAtivosPorLeito(idleito);
+	}
+
+	// Leito bloqueado/excluído não pode manter paciente internado: todos recebem alta.
+	private void darAltaNoLeito(int idleito, String motivo, String quem) {
+		List<Integer> bams = novoInternadoRepository.darAltaPorLeito(idleito, LocalDate.now(), quem, motivo);
+		if (bams.isEmpty()) {
+			return;
+		}
+		LocalCenso leito = LocalCenso.<LocalCenso>findByIdOptional(idleito).orElse(null);
+		String nomeLeito = leito != null && leito.getLocal() != null ? leito.getLocal() : String.valueOf(idleito);
+		String unidade = leito != null && leito.getUnidade() != null && !leito.getUnidade().isBlank() ? leito.getUnidade() : "GERAL";
+
+		LogDto log = new LogDto();
+		log.setData(LocalDate.now());
+		log.setHora(LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm")));
+		log.setEvento("Alta automática por " + motivo + " (leito " + nomeLeito + ") dos BAMs " + bams
+				+ " - por " + quem);
+		log.setUnidade(unidade);
+		logService.salvarLogAsync(log);
+		LOG.infof("Leito %d (%s): %d internação(ões) receberam alta automática por %s", idleito, motivo, bams.size(), quem);
 	}
 
 	@Transactional
@@ -114,6 +161,11 @@ public class LocalCensoService implements Serializable {
 	// Alterar
 	@Transactional
 	public void atualizarLocalCenso(int id, LocalCensoDto dto) {
+		atualizarLocalCenso(id, dto, "SISTEMA");
+	}
+
+	@Transactional
+	public void atualizarLocalCenso(int id, LocalCensoDto dto, String quem) {
 		Optional<LocalCenso> localCensoOp = LocalCenso.findByIdOptional(id);
 		LocalCenso localCenso = localCensoOp
 				.orElseThrow(() -> new NullPointerException("LocalCenso não foi encontrado..."));
@@ -125,6 +177,12 @@ public class LocalCensoService implements Serializable {
 		localCenso.setDisponivel(dto.isDisponivel());
 		localCenso.setSetorCenso(dto.getSetorCenso());
 		localCenso.persist();
+
+		if (dto.isExcluido()) {
+			darAltaNoLeito(id, "LEITO EXCLUIDO", quem);
+		} else if (!dto.isDisponivel()) {
+			darAltaNoLeito(id, "LEITO BLOQUEADO", quem);
+		}
 	}
 
 }
