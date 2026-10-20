@@ -1,0 +1,268 @@
+<!-- Created with Jaspersoft Studio version 7.0.3.final using JasperReports Library version 7.0.3-41034ca841d452f3305ba55b9042260aaa1ab5dd  -->
+<jasperReport name="ped2" language="java" pageWidth="595" pageHeight="842" columnWidth="595" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0" uuid="f452b8b3-ba38-4b63-882f-f8c2d6bd960d">
+	<property name="com.jaspersoft.studio.data.sql.tables" value=""/>
+	<property name="com.jaspersoft.studio.data.defaultdataadapter" value="itaguai_conn"/>
+	<property name="com.jaspersoft.studio.data.sql.SQLQueryDesigner.sash.w1" value="288"/>
+	<property name="com.jaspersoft.studio.data.sql.SQLQueryDesigner.sash.w2" value="712"/>
+	<property name="com.jaspersoft.studio.unit." value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.pageHeight" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.pageWidth" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.topMargin" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.bottomMargin" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.leftMargin" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.rightMargin" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.columnWidth" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.columnSpacing" value="pixel"/>
+	<parameter name="idBamPed" class="java.lang.String"/>
+	<parameter name="datainicio" class="java.lang.String"/>
+	<parameter name="logo" class="java.lang.String"/>
+	<parameter name="hospital" class="java.lang.String"/>
+	<parameter name="ssigla" class="java.lang.String"/>
+	<parameter name="prefeitura" class="java.lang.String"/>
+	<parameter name="complemento" class="java.lang.String"/>
+	<query language="SQL"><![CDATA[select p.*,
+assinatura.assinado_por AS assinatura_assinado_por,
+assinatura.assinado_por_matricula AS assinatura_matricula,
+to_char(assinatura.assinado_em, 'DD/MM/YYYY HH24:MI') AS assinatura_data_hora,
+assinatura.conteudo_hash AS assinatura_hash,
+assinatura.idassinatura AS assinatura_id
+from pedidomedico2 p
+LEFT JOIN LATERAL (
+	SELECT ac.idassinatura, ac.assinado_por, ac.assinado_por_matricula, ac.assinado_em, ac.conteudo_hash
+	FROM public.assinatura_clinica ac
+	WHERE upper(ac.tipo_documento) = 'PEDIDO_MEDICO'
+	  AND ac.iddocumento = p.idpedidomedico
+	  AND upper(ac.status) = 'ASSINADO'
+	ORDER BY ac.idassinatura DESC
+	LIMIT 1
+) assinatura ON TRUE
+where p.bam =  cast($P{idBamPed} as integer)  order by  p.local, cast(p.dt as date)]]></query>
+	<field name="idpedidomedico" class="java.lang.Integer">
+		<property name="com.jaspersoft.studio.field.name" value="idpedidomedico"/>
+		<property name="com.jaspersoft.studio.field.label" value="idpedidomedico"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pedidomedico2"/>
+	</field>
+	<field name="bam" class="java.lang.Integer">
+		<property name="com.jaspersoft.studio.field.name" value="bam"/>
+		<property name="com.jaspersoft.studio.field.label" value="bam"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pedidomedico2"/>
+	</field>
+	<field name="crm" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="crm"/>
+		<property name="com.jaspersoft.studio.field.label" value="crm"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pedidomedico2"/>
+	</field>
+	<field name="efetuado" class="java.lang.Boolean">
+		<property name="com.jaspersoft.studio.field.name" value="efetuado"/>
+		<property name="com.jaspersoft.studio.field.label" value="efetuado"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pedidomedico2"/>
+	</field>
+	<field name="local" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="local"/>
+		<property name="com.jaspersoft.studio.field.label" value="local"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pedidomedico2"/>
+	</field>
+	<field name="medico" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="medico"/>
+		<property name="com.jaspersoft.studio.field.label" value="medico"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pedidomedico2"/>
+	</field>
+	<field name="pedido" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="pedido"/>
+		<property name="com.jaspersoft.studio.field.label" value="pedido"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pedidomedico2"/>
+	</field>
+	<field name="setor" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="setor"/>
+		<property name="com.jaspersoft.studio.field.label" value="setor"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pedidomedico2"/>
+	</field>
+	<field name="entrada" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="entrada"/>
+		<property name="com.jaspersoft.studio.field.label" value="entrada"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pedidomedico2"/>
+	</field>
+	<field name="posicao" class="java.lang.Integer">
+		<property name="com.jaspersoft.studio.field.name" value="posicao"/>
+		<property name="com.jaspersoft.studio.field.label" value="posicao"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pedidomedico2"/>
+	</field>
+	<field name="emergencia" class="java.lang.Boolean">
+		<property name="com.jaspersoft.studio.field.name" value="emergencia"/>
+		<property name="com.jaspersoft.studio.field.label" value="emergencia"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pedidomedico2"/>
+	</field>
+	<field name="obs" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="obs"/>
+		<property name="com.jaspersoft.studio.field.label" value="obs"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pedidomedico2"/>
+	</field>
+	<field name="hr" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="hr"/>
+		<property name="com.jaspersoft.studio.field.label" value="hr"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pedidomedico2"/>
+	</field>
+	<field name="dt" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="dt"/>
+		<property name="com.jaspersoft.studio.field.label" value="dt"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pedidomedico2"/>
+	</field>
+	<field name="coletar" class="java.lang.Boolean">
+		<property name="com.jaspersoft.studio.field.name" value="coletar"/>
+		<property name="com.jaspersoft.studio.field.label" value="coletar"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pedidomedico2"/>
+	</field>
+	<field name="ordem" class="java.lang.Integer">
+		<property name="com.jaspersoft.studio.field.name" value="ordem"/>
+		<property name="com.jaspersoft.studio.field.label" value="ordem"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pedidomedico2"/>
+	</field>
+	<field name="internado" class="java.lang.Boolean">
+		<property name="com.jaspersoft.studio.field.name" value="internado"/>
+		<property name="com.jaspersoft.studio.field.label" value="internado"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pedidomedico2"/>
+	</field>
+	<field name="confirmado" class="java.lang.Boolean">
+		<property name="com.jaspersoft.studio.field.name" value="confirmado"/>
+		<property name="com.jaspersoft.studio.field.label" value="confirmado"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pedidomedico2"/>
+	</field>
+	<field name="cod" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="cod"/>
+		<property name="com.jaspersoft.studio.field.label" value="cod"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pedidomedico2"/>
+	</field>
+	<field name="medicoviu" class="java.lang.Boolean">
+		<property name="com.jaspersoft.studio.field.name" value="medicoviu"/>
+		<property name="com.jaspersoft.studio.field.label" value="medicoviu"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pedidomedico2"/>
+	</field>
+	<field name="arquivo" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="arquivo"/>
+		<property name="com.jaspersoft.studio.field.label" value="arquivo"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pedidomedico2"/>
+	</field>
+	<field name="unidade" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="unidade"/>
+		<property name="com.jaspersoft.studio.field.label" value="unidade"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pedidomedico2"/>
+	</field>
+	<field name="liberouexame" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="liberouexame"/>
+		<property name="com.jaspersoft.studio.field.label" value="liberouexame"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pedidomedico2"/>
+	</field>
+	<field name="liberoucoleta" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="liberoucoleta"/>
+		<property name="com.jaspersoft.studio.field.label" value="liberoucoleta"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pedidomedico2"/>
+	</field>
+	<field name="restaurou" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="restaurou"/>
+		<property name="com.jaspersoft.studio.field.label" value="restaurou"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pedidomedico2"/>
+	</field>
+	<field name="obs2" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="obs2"/>
+		<property name="com.jaspersoft.studio.field.label" value="obs2"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pedidomedico2"/>
+	</field>
+	<field name="obs3" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="obs3"/>
+		<property name="com.jaspersoft.studio.field.label" value="obs3"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pedidomedico2"/>
+	</field>
+	<field name="eas" class="java.lang.Boolean">
+		<property name="com.jaspersoft.studio.field.name" value="eas"/>
+		<property name="com.jaspersoft.studio.field.label" value="eas"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pedidomedico2"/>
+	</field>
+	<field name="real" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="real"/>
+		<property name="com.jaspersoft.studio.field.label" value="real"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pedidomedico2"/>
+	</field>
+	<field name="idunico" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="idunico"/>
+		<property name="com.jaspersoft.studio.field.label" value="idunico"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pedidomedico2"/>
+	</field>
+	<field name="assinatura_assinado_por" class="java.lang.String"/>
+	<field name="assinatura_matricula" class="java.lang.String"/>
+	<field name="assinatura_data_hora" class="java.lang.String"/>
+	<field name="assinatura_hash" class="java.lang.String"/>
+	<field name="assinatura_id" class="java.lang.Integer"/>
+	<background splitType="Stretch"/>
+	<title height="92" splitType="Stretch">
+		<element kind="rectangle" uuid="556123c4-a91c-443e-989f-72f4ac44ff22" mode="Opaque" x="10" y="81" width="550" height="11" backcolor="#DEDEDE">
+			<pen lineWidth="0.0"/>
+		</element>
+		<element kind="staticText" uuid="05f36084-c94c-4087-9794-3e3215ddbb52" x="10" y="82" width="40" height="10" fontSize="7.0" bold="true">
+			<text><![CDATA[Data]]></text>
+			<property name="com.jaspersoft.studio.unit.height" value="px"/>
+		</element>
+		<element kind="staticText" uuid="2c760c8a-3822-483b-b523-e56084969d72" x="84" y="82" width="140" height="10" fontSize="7.0" bold="true">
+			<text><![CDATA[pedido]]></text>
+			<property name="com.jaspersoft.studio.unit.height" value="px"/>
+		</element>
+		<element kind="staticText" uuid="b981916a-ed38-4948-8125-7596cdad497b" x="52" y="82" width="30" height="10" fontSize="7.0" bold="true">
+			<text><![CDATA[Hora]]></text>
+			<property name="com.jaspersoft.studio.unit.height" value="px"/>
+		</element>
+		<element kind="staticText" uuid="d67bb22b-a1b4-47f8-96e8-5b11e9905d17" x="293" y="82" width="134" height="10" fontSize="7.0" bold="true">
+			<text><![CDATA[medico]]></text>
+			<property name="com.jaspersoft.studio.unit.height" value="px"/>
+		</element>
+		<element kind="staticText" uuid="40d90e32-1083-4e45-b81c-ad77eccb4232" x="431" y="81" width="126" height="10" fontSize="7.0" bold="true">
+			<text><![CDATA[obs]]></text>
+			<property name="com.jaspersoft.studio.unit.height" value="px"/>
+		</element>
+		<element kind="staticText" uuid="a3ecd2d0-4196-4872-a2b7-efb709fc2938" x="227" y="82" width="74" height="10" fontSize="7.0" bold="true">
+			<text><![CDATA[Local]]></text>
+			<property name="com.jaspersoft.studio.unit.height" value="px"/>
+		</element>
+		<element kind="staticText" uuid="537dc20b-5cc6-408c-9ed2-3261a5ae3650" x="210" y="40" width="147" height="20" fontSize="10.0" bold="true" hTextAlign="Center" vTextAlign="Middle">
+			<text><![CDATA[PEDIDO MÉDICO]]></text>
+		</element>
+		<element kind="textField" uuid="a75061d3-bb73-4430-80e7-4ba9b3f00fcf" x="100" y="4" width="452" height="34" fontSize="12.0" bold="true" hTextAlign="Center" vTextAlign="Middle">
+			<expression><![CDATA[$P{hospital}]]></expression>
+		</element>
+		<element kind="image" uuid="f563f256-a621-4d86-b5b7-bcf71a4e0561" stretchType="ElementGroupHeight" x="1" y="3" width="90" height="50" onErrorType="Blank" hImageAlign="Center" vImageAlign="Middle">
+			<expression><![CDATA[new ByteArrayInputStream(org.apache.commons.codec.binary.Base64.decodeBase64($P{logo}.getBytes()))]]></expression>
+		</element>
+	</title>
+	<detail>
+		<band height="28" splitType="Stretch">
+			<element kind="textField" uuid="17c70e68-1831-423f-9c77-d96376009721" stretchType="ContainerHeight" x="0" y="0" width="40" height="10" fontSize="7.0">
+				<expression><![CDATA[$F{dt}]]></expression>
+				<property name="com.jaspersoft.studio.unit.height" value="px"/>
+			</element>
+			<element kind="textField" uuid="2b637bb8-0341-472d-a62f-d81e23214fd2" stretchType="ContainerHeight" x="74" y="0" width="140" height="10" fontSize="7.0" textAdjust="StretchHeight">
+				<expression><![CDATA[$F{pedido} + " " + ($F{emergencia} == true?"( emergência )":"")]]></expression>
+				<property name="com.jaspersoft.studio.unit.height" value="px"/>
+			</element>
+			<element kind="textField" uuid="dfed964e-b27f-4725-a0cf-66882b4125f3" stretchType="ContainerHeight" x="42" y="0" width="30" height="10" fontSize="7.0">
+				<expression><![CDATA[$F{hr}]]></expression>
+				<property name="com.jaspersoft.studio.unit.height" value="px"/>
+			</element>
+			<element kind="textField" uuid="ca1c43f4-bfc4-4a46-8949-be27cca2e470" stretchType="ContainerHeight" x="283" y="0" width="134" height="10" fontSize="7.0" textAdjust="StretchHeight">
+				<expression><![CDATA[$F{medico} + " - " + $F{crm}]]></expression>
+				<property name="com.jaspersoft.studio.unit.height" value="px"/>
+			</element>
+			<element kind="textField" uuid="784f4d09-96cd-410f-bff4-0d4b7083b6d9" stretchType="ContainerHeight" x="421" y="0" width="126" height="10" fontSize="7.0" textAdjust="StretchHeight">
+				<expression><![CDATA[$F{obs}]]></expression>
+				<property name="com.jaspersoft.studio.unit.height" value="px"/>
+			</element>
+			<element kind="textField" uuid="6d6a31e1-8765-4679-a67e-c81a840c7705" stretchType="ContainerHeight" x="216" y="0" width="64" height="10" fontSize="7.0">
+				<expression><![CDATA[($F{local}.equals("NENFERMAGEM")?"ENFERMAGEM":$F{local})]]></expression>
+				<property name="com.jaspersoft.studio.unit.height" value="px"/>
+			</element>
+			<element kind="line" uuid="e358923b-52a3-4a15-97a6-af24a7bb72d7" positionType="FixRelativeToBottom" x="1" y="14" width="543" height="1" direction="BottomUp">
+				<pen lineColor="#BABABA"/>
+			</element>
+			<element kind="textField" uuid="a029b06e-3c5a-4f93-9438-498f16b371a6" x="74" y="13" width="473" height="11" fontSize="5.0" textAdjust="StretchHeight">
+				<expression><![CDATA[$F{assinatura_id} == null ? "ASSINATURA CLINICA PENDENTE - PEDIDO_MEDICO #" + $F{idpedidomedico} : "Assinado por: " + ($F{assinatura_assinado_por} == null ? "" : $F{assinatura_assinado_por}) + " | Matricula: " + ($F{assinatura_matricula} == null ? "nao informada" : $F{assinatura_matricula}) + " | Data/hora: " + ($F{assinatura_data_hora} == null ? "" : $F{assinatura_data_hora}) + " | Hash SHA-256: " + ($F{assinatura_hash} == null ? "" : $F{assinatura_hash})]]></expression>
+			</element>
+		</band>
+	</detail>
+</jasperReport>

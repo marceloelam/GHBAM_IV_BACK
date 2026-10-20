@@ -1,0 +1,2 @@
+ALTER TABLE servidor2 ADD COLUMN IF NOT EXISTS vigilanciaepidemiologica BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE servidor2 ADD COLUMN IF NOT EXISTS configuracaovigilanciaepidemiologica BOOLEAN NOT NULL DEFAULT FALSE;

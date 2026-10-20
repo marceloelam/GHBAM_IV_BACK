@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Created with Jaspersoft Studio version 6.18.1.final using JasperReports Library version 6.18.1-9d75d1969e774d4f179fb3be8401e98a0e6d1611  -->
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="graficoatendimentos" pageWidth="595" pageHeight="842" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20" uuid="199d6a17-8670-44dc-a36f-8d3ec47a618d">
+	<property name="com.jaspersoft.studio.data.sql.tables" value=""/>
+	<property name="com.jaspersoft.studio.data.defaultdataadapter" value="teste"/>
+	<property name="com.jaspersoft.studio.unit." value="cm"/>
+	<property name="com.jaspersoft.studio.unit.pageHeight" value="cm"/>
+	<property name="com.jaspersoft.studio.unit.pageWidth" value="cm"/>
+	<property name="com.jaspersoft.studio.unit.topMargin" value="cm"/>
+	<property name="com.jaspersoft.studio.unit.bottomMargin" value="cm"/>
+	<property name="com.jaspersoft.studio.unit.leftMargin" value="cm"/>
+	<property name="com.jaspersoft.studio.unit.rightMargin" value="cm"/>
+	<property name="com.jaspersoft.studio.unit.columnWidth" value="cm"/>
+	<property name="com.jaspersoft.studio.unit.columnSpacing" value="cm"/>
+	<property name="com.jaspersoft.studio.data.sql.SQLQueryDesigner.sash.w1" value="339"/>
+	<property name="com.jaspersoft.studio.data.sql.SQLQueryDesigner.sash.w2" value="650"/>
+	<parameter name="datainicial" class="java.lang.String"/>
+	<parameter name="datafinal" class="java.lang.String"/>
+	<parameter name="logo" class="java.lang.String"/>
+	<parameter name="hospital" class="java.lang.String"/>
+	<parameter name="ssigla" class="java.lang.String"/>
+	<parameter name="prefeitura" class="java.lang.String"/>
+	<parameter name="complemento" class="java.lang.String"/>
+	<queryString language="SQL">
+		<![CDATA[select bam.data, registro.setor  from  bam, registro
+where  bam.registro_idregistro=registro.idregistro   
+ and to_char(cast(bam.data as date),'MM') = to_char(cast($P{datainicial} as date),'MM')
+ and to_char(cast(bam.data as date),'YYYY') = to_char(cast($P{datainicial} as date),'YYYY')
+ and bam.unidade =  $P{ssigla} 
+  order by   registro.setor, cast(bam.data as date)]]>
+	</queryString>
+	<field name="data" class="java.sql.Date">
+		<property name="com.jaspersoft.studio.field.name" value="data"/>
+		<property name="com.jaspersoft.studio.field.label" value="data"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="bam"/>
+	</field>
+	<field name="setor" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="setor"/>
+		<property name="com.jaspersoft.studio.field.label" value="setor"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="registro"/>
+	</field>
+	<variable name="setor1" class="java.lang.Integer" resetType="Group" resetGroup="Group1" calculation="Count">
+		<variableExpression><![CDATA[$F{setor}]]></variableExpression>
+	</variable>
+	<variable name="setor2" class="java.lang.Integer" resetType="Page" calculation="Count">
+		<variableExpression><![CDATA[$F{setor}]]></variableExpression>
+	</variable>
+	<group name="Group1">
+		<groupExpression><![CDATA[$F{setor}]]></groupExpression>
+		<groupHeader>
+			<band height="14">
+				<textField>
+					<reportElement x="120" y="0" width="221" height="14" uuid="0bef984d-c9ef-4304-9ad3-d6c4b9791214"/>
+					<textElement>
+						<font isBold="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA["* "  + $F{setor}]]></textFieldExpression>
+				</textField>
+			</band>
+		</groupHeader>
+		<groupFooter>
+			<band height="21">
+				<textField>
+					<reportElement x="222" y="0" width="100" height="14" uuid="fdda31b3-bdfd-47c8-a152-dc0d9afc6ee5"/>
+					<textElement textAlignment="Right"/>
+					<textFieldExpression><![CDATA[$V{setor1}]]></textFieldExpression>
+				</textField>
+				<staticText>
+					<reportElement x="330" y="0" width="109" height="14" uuid="5792ea0c-0978-4d76-9283-964daa00caf5"/>
+					<textElement textAlignment="Left"/>
+					<text><![CDATA[-  Atendimento(s)]]></text>
+				</staticText>
+				<line>
+					<reportElement x="50" y="16" width="425" height="1" uuid="2d033789-0019-4c7c-a7f6-aaee4406509c">
+						<property name="com.jaspersoft.studio.unit.width" value="cm"/>
+					</reportElement>
+				</line>
+			</band>
+		</groupFooter>
+	</group>
+	<group name="Group2">
+		<groupExpression><![CDATA[$F{data}]]></groupExpression>
+	</group>
+	<title>
+		<band height="102" splitType="Stretch">
+			<property name="com.jaspersoft.studio.unit.height" value="cm"/>
+			<staticText>
+				<reportElement x="100" y="10" width="211" height="20" uuid="d7413680-5133-43d4-b627-ac4e67dd5a1f"/>
+				<text><![CDATA[ESTADO DO RIO DE JANEIRO]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="98" y="41" width="211" height="20" uuid="c178ca9b-2773-44b2-ba89-551e2ac767af"/>
+				<text><![CDATA[Secretaria Municipal de Saúde]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="140" y="61" width="269" height="17" uuid="5bcd56ee-1bae-4167-a4e1-85929568c236"/>
+				<textElement textAlignment="Center">
+					<font size="11" isBold="true"/>
+				</textElement>
+				<text><![CDATA[ATENDIMENTOS REALIZADOS POR SETOR]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="100" y="26" width="380" height="20" uuid="dd033882-9001-4dad-a377-376de1da83fe"/>
+				<textElement>
+					<font isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{prefeitura}]]></textFieldExpression>
+			</textField>
+			<textField pattern="MMMM">
+				<reportElement x="227" y="78" width="83" height="14" uuid="7508100a-bd51-4348-b8df-5df79be696be">
+					<property name="com.jaspersoft.studio.unit.height" value="cm"/>
+				</reportElement>
+				<textElement textAlignment="Center"/>
+				<textFieldExpression><![CDATA[$F{data}]]></textFieldExpression>
+			</textField>
+			<line>
+				<reportElement x="50" y="97" width="425" height="1" uuid="626db3a9-feb5-4956-acde-7c91683c5bb0">
+					<property name="com.jaspersoft.studio.unit.width" value="cm"/>
+				</reportElement>
+				<graphicElement>
+					<pen lineWidth="2.0"/>
+				</graphicElement>
+			</line>
+			<image hAlign="Center" vAlign="Middle" onErrorType="Blank">
+				<reportElement stretchType="RelativeToTallestObject" x="1" y="3" width="90" height="50" uuid="5009a5dd-0cea-440c-86f7-b8f71c180c74"/>
+				<imageExpression><![CDATA[new ByteArrayInputStream(org.apache.commons.codec.binary.Base64.decodeBase64($P{logo}.getBytes()))]]></imageExpression>
+			</image>
+		</band>
+	</title>
+	<pageHeader>
+		<band splitType="Stretch"/>
+	</pageHeader>
+	<columnHeader>
+		<band splitType="Stretch"/>
+	</columnHeader>
+	<lastPageFooter>
+		<band height="14">
+			<textField>
+				<reportElement x="303" y="0" width="166" height="14" uuid="de9921bc-33a2-4cc0-9821-b7a174747d9e"/>
+				<textFieldExpression><![CDATA[$V{setor2} + " atendimento(s)"]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="190" y="0" width="109" height="14" uuid="f392e70a-9462-4497-add0-cb03e8d5810c"/>
+				<textElement textAlignment="Right"/>
+				<text><![CDATA[Total :]]></text>
+			</staticText>
+		</band>
+	</lastPageFooter>
+</jasperReport>

@@ -158,11 +158,11 @@ INDEX VERSION 1.134+C:\Projeto\Backend\GHBAM_IV_BACK\.metadata\.plugins\org.ecli
 1412794987.index
 737442830.index
 1579961641.index
-617709951.index
+357568333.index
 171235224.index
 3527230779.index
 1855085407.index
-357568333.index
+617709951.index
 2493943254.index
 478270832.index
 3571151154.index
@@ -186,10 +186,10 @@ INDEX VERSION 1.134+C:\Projeto\Backend\GHBAM_IV_BACK\.metadata\.plugins\org.ecli
 373455258.index
 2904516033.index
 1036076472.index
+3413270776.index
 538448900.index
 1525908472.index
 3053443335.index
-1167275426.index
 3956005695.index
 4012011391.index
 1917126763.index
@@ -286,7 +286,7 @@ INDEX VERSION 1.134+C:\Projeto\Backend\GHBAM_IV_BACK\.metadata\.plugins\org.ecli
 1380963818.index
 3948397155.index
 4162154122.index
-3530136859.index
+833857505.index
 2277338578.index
 2304692647.index
 1032551985.index
@@ -295,7 +295,6 @@ INDEX VERSION 1.134+C:\Projeto\Backend\GHBAM_IV_BACK\.metadata\.plugins\org.ecli
 3328040409.index
 3377163613.index
 3819784710.index
-833857505.index
 3748731653.index
 2701050767.index
 2586246069.index

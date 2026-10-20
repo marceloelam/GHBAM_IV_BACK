@@ -1,0 +1,718 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Created with Jaspersoft Studio version 6.18.1.final using JasperReports Library version 6.18.1-9d75d1969e774d4f179fb3be8401e98a0e6d1611  -->
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="graficoatendimentos" pageWidth="595" pageHeight="842" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20" uuid="199d6a17-8670-44dc-a36f-8d3ec47a618d">
+	<property name="com.jaspersoft.studio.data.sql.tables" value=""/>
+	<property name="com.jaspersoft.studio.unit." value="cm"/>
+	<property name="com.jaspersoft.studio.unit.pageHeight" value="cm"/>
+	<property name="com.jaspersoft.studio.unit.pageWidth" value="cm"/>
+	<property name="com.jaspersoft.studio.unit.topMargin" value="cm"/>
+	<property name="com.jaspersoft.studio.unit.bottomMargin" value="cm"/>
+	<property name="com.jaspersoft.studio.unit.leftMargin" value="cm"/>
+	<property name="com.jaspersoft.studio.unit.rightMargin" value="cm"/>
+	<property name="com.jaspersoft.studio.unit.columnWidth" value="cm"/>
+	<property name="com.jaspersoft.studio.unit.columnSpacing" value="cm"/>
+	<property name="com.jaspersoft.studio.data.defaultdataadapter" value="teste"/>
+	<parameter name="datainicial" class="java.lang.String"/>
+	<parameter name="datafinal" class="java.lang.String"/>
+	<parameter name="logo" class="java.lang.String"/>
+	<parameter name="hospital" class="java.lang.String"/>
+	<parameter name="ssigla" class="java.lang.String"/>
+	<parameter name="prefeitura" class="java.lang.String"/>
+	<parameter name="complemento" class="java.lang.String"/>
+	<queryString language="SQL">
+		<![CDATA[select  distinct on (cast(laudoautorizacao.datasolicitacao as date), laudoautorizacao.diagnosticoinicial,  pacientes.nome ) cast(laudoautorizacao.datasolicitacao as date), laudoautorizacao.diagnosticoinicial,  pacientes.nome,   * from laudoautorizacao inner join  bam on   bam.idbam=laudoautorizacao.bam
+ inner join pacientes on pacientes.idpaciente = bam.paciente_idpaciente  inner join novointernado on bam.idbam = novointernado.bam_idbam
+where laudoautorizacao.datasolicitacao between  cast($P{datainicial} as date)  and  cast($P{datafinal} as date) 
+ and bam.unidade =  $P{ssigla} 
+ order by cast(laudoautorizacao.datasolicitacao as date) desc,  laudoautorizacao.diagnosticoinicial, pacientes.nome]]>
+	</queryString>
+	<field name="datasolicitacao" class="java.sql.Date">
+		<property name="com.jaspersoft.studio.field.name" value="datasolicitacao"/>
+		<property name="com.jaspersoft.studio.field.label" value="datasolicitacao"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="laudoautorizacao"/>
+	</field>
+	<field name="diagnosticoinicial" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="diagnosticoinicial"/>
+		<property name="com.jaspersoft.studio.field.label" value="diagnosticoinicial"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="laudoautorizacao"/>
+	</field>
+	<field name="nome" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="nome"/>
+		<property name="com.jaspersoft.studio.field.label" value="nome"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pacientes"/>
+	</field>
+	<field name="idlaudo" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="idlaudo"/>
+		<property name="com.jaspersoft.studio.field.label" value="idlaudo"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="laudoautorizacao"/>
+	</field>
+	<field name="bam" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="bam"/>
+		<property name="com.jaspersoft.studio.field.label" value="bam"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="laudoautorizacao"/>
+	</field>
+	<field name="caraterinternacao" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="caraterinternacao"/>
+		<property name="com.jaspersoft.studio.field.label" value="caraterinternacao"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="laudoautorizacao"/>
+	</field>
+	<field name="cbor" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="cbor"/>
+		<property name="com.jaspersoft.studio.field.label" value="cbor"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="laudoautorizacao"/>
+	</field>
+	<field name="cidcausas" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="cidcausas"/>
+		<property name="com.jaspersoft.studio.field.label" value="cidcausas"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="laudoautorizacao"/>
+	</field>
+	<field name="cidprincipal" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="cidprincipal"/>
+		<property name="com.jaspersoft.studio.field.label" value="cidprincipal"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="laudoautorizacao"/>
+	</field>
+	<field name="cidsecundario" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="cidsecundario"/>
+		<property name="com.jaspersoft.studio.field.label" value="cidsecundario"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="laudoautorizacao"/>
+	</field>
+	<field name="clinica" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="clinica"/>
+		<property name="com.jaspersoft.studio.field.label" value="clinica"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="laudoautorizacao"/>
+	</field>
+	<field name="cnaeempresa" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="cnaeempresa"/>
+		<property name="com.jaspersoft.studio.field.label" value="cnaeempresa"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="laudoautorizacao"/>
+	</field>
+	<field name="cnes1" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="cnes1"/>
+		<property name="com.jaspersoft.studio.field.label" value="cnes1"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="laudoautorizacao"/>
+	</field>
+	<field name="cnes2" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="cnes2"/>
+		<property name="com.jaspersoft.studio.field.label" value="cnes2"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="laudoautorizacao"/>
+	</field>
+	<field name="cnpjempresa" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="cnpjempresa"/>
+		<property name="com.jaspersoft.studio.field.label" value="cnpjempresa"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="laudoautorizacao"/>
+	</field>
+	<field name="cnpjsegu" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="cnpjsegu"/>
+		<property name="com.jaspersoft.studio.field.label" value="cnpjsegu"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="laudoautorizacao"/>
+	</field>
+	<field name="codprocedimento" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="codprocedimento"/>
+		<property name="com.jaspersoft.studio.field.label" value="codprocedimento"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="laudoautorizacao"/>
+	</field>
+	<field name="cpfprofautorizador" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="cpfprofautorizador"/>
+		<property name="com.jaspersoft.studio.field.label" value="cpfprofautorizador"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="laudoautorizacao"/>
+	</field>
+	<field name="cpfprofissional" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="cpfprofissional"/>
+		<property name="com.jaspersoft.studio.field.label" value="cpfprofissional"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="laudoautorizacao"/>
+	</field>
+	<field name="dataautorizacao" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="dataautorizacao"/>
+		<property name="com.jaspersoft.studio.field.label" value="dataautorizacao"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="laudoautorizacao"/>
+	</field>
+	<field name="COLUMN_21" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="datasolicitacao"/>
+		<property name="com.jaspersoft.studio.field.label" value="datasolicitacao"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="laudoautorizacao"/>
+	</field>
+	<field name="COLUMN_22" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="diagnosticoinicial"/>
+		<property name="com.jaspersoft.studio.field.label" value="diagnosticoinicial"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="laudoautorizacao"/>
+	</field>
+	<field name="documento1" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="documento1"/>
+		<property name="com.jaspersoft.studio.field.label" value="documento1"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="laudoautorizacao"/>
+	</field>
+	<field name="documento2" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="documento2"/>
+		<property name="com.jaspersoft.studio.field.label" value="documento2"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="laudoautorizacao"/>
+	</field>
+	<field name="documento3" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="documento3"/>
+		<property name="com.jaspersoft.studio.field.label" value="documento3"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="laudoautorizacao"/>
+	</field>
+	<field name="executante" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="executante"/>
+		<property name="com.jaspersoft.studio.field.label" value="executante"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="laudoautorizacao"/>
+	</field>
+	<field name="jusinternacao" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="jusinternacao"/>
+		<property name="com.jaspersoft.studio.field.label" value="jusinternacao"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="laudoautorizacao"/>
+	</field>
+	<field name="nainternacao" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="nainternacao"/>
+		<property name="com.jaspersoft.studio.field.label" value="nainternacao"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="laudoautorizacao"/>
+	</field>
+	<field name="nbilhete" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="nbilhete"/>
+		<property name="com.jaspersoft.studio.field.label" value="nbilhete"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="laudoautorizacao"/>
+	</field>
+	<field name="procedimentosolicitado" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="procedimentosolicitado"/>
+		<property name="com.jaspersoft.studio.field.label" value="procedimentosolicitado"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="laudoautorizacao"/>
+	</field>
+	<field name="profissionalautorizador" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="profissionalautorizador"/>
+		<property name="com.jaspersoft.studio.field.label" value="profissionalautorizador"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="laudoautorizacao"/>
+	</field>
+	<field name="provasdiag" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="provasdiag"/>
+		<property name="com.jaspersoft.studio.field.label" value="provasdiag"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="laudoautorizacao"/>
+	</field>
+	<field name="serie" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="serie"/>
+		<property name="com.jaspersoft.studio.field.label" value="serie"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="laudoautorizacao"/>
+	</field>
+	<field name="sintomasclinicos" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="sintomasclinicos"/>
+		<property name="com.jaspersoft.studio.field.label" value="sintomasclinicos"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="laudoautorizacao"/>
+	</field>
+	<field name="solicitante" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="solicitante"/>
+		<property name="com.jaspersoft.studio.field.label" value="solicitante"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="laudoautorizacao"/>
+	</field>
+	<field name="solicitanteassistente" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="solicitanteassistente"/>
+		<property name="com.jaspersoft.studio.field.label" value="solicitanteassistente"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="laudoautorizacao"/>
+	</field>
+	<field name="tipoacidente" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="tipoacidente"/>
+		<property name="com.jaspersoft.studio.field.label" value="tipoacidente"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="laudoautorizacao"/>
+	</field>
+	<field name="unidade" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="unidade"/>
+		<property name="com.jaspersoft.studio.field.label" value="unidade"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="laudoautorizacao"/>
+	</field>
+	<field name="idbam" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="idbam"/>
+		<property name="com.jaspersoft.studio.field.label" value="idbam"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="bam"/>
+	</field>
+	<field name="controle" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="controle"/>
+		<property name="com.jaspersoft.studio.field.label" value="controle"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="bam"/>
+	</field>
+	<field name="cor" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="cor"/>
+		<property name="com.jaspersoft.studio.field.label" value="cor"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="bam"/>
+	</field>
+	<field name="daralta" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="daralta"/>
+		<property name="com.jaspersoft.studio.field.label" value="daralta"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="bam"/>
+	</field>
+	<field name="data" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="data"/>
+		<property name="com.jaspersoft.studio.field.label" value="data"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="bam"/>
+	</field>
+	<field name="datadaalta" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="datadaalta"/>
+		<property name="com.jaspersoft.studio.field.label" value="datadaalta"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="bam"/>
+	</field>
+	<field name="ematendimento" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="ematendimento"/>
+		<property name="com.jaspersoft.studio.field.label" value="ematendimento"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="bam"/>
+	</field>
+	<field name="hora" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="hora"/>
+		<property name="com.jaspersoft.studio.field.label" value="hora"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="bam"/>
+	</field>
+	<field name="internar" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="internar"/>
+		<property name="com.jaspersoft.studio.field.label" value="internar"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="bam"/>
+	</field>
+	<field name="natendente" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="natendente"/>
+		<property name="com.jaspersoft.studio.field.label" value="natendente"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="bam"/>
+	</field>
+	<field name="printtriagem" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="printtriagem"/>
+		<property name="com.jaspersoft.studio.field.label" value="printtriagem"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="bam"/>
+	</field>
+	<field name="receita" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="receita"/>
+		<property name="com.jaspersoft.studio.field.label" value="receita"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="bam"/>
+	</field>
+	<field name="avaliacao_idavaliacao" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="avaliacao_idavaliacao"/>
+		<property name="com.jaspersoft.studio.field.label" value="avaliacao_idavaliacao"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="bam"/>
+	</field>
+	<field name="paciente_idpaciente" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="paciente_idpaciente"/>
+		<property name="com.jaspersoft.studio.field.label" value="paciente_idpaciente"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="bam"/>
+	</field>
+	<field name="prontuario_idprontuario" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="prontuario_idprontuario"/>
+		<property name="com.jaspersoft.studio.field.label" value="prontuario_idprontuario"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="bam"/>
+	</field>
+	<field name="registro_idregistro" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="registro_idregistro"/>
+		<property name="com.jaspersoft.studio.field.label" value="registro_idregistro"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="bam"/>
+	</field>
+	<field name="servidor_idservidor" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="servidor_idservidor"/>
+		<property name="com.jaspersoft.studio.field.label" value="servidor_idservidor"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="bam"/>
+	</field>
+	<field name="tratamento_idtratamento" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="tratamento_idtratamento"/>
+		<property name="com.jaspersoft.studio.field.label" value="tratamento_idtratamento"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="bam"/>
+	</field>
+	<field name="COLUMN_57" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="unidade"/>
+		<property name="com.jaspersoft.studio.field.label" value="unidade"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="bam"/>
+	</field>
+	<field name="prioridade" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="prioridade"/>
+		<property name="com.jaspersoft.studio.field.label" value="prioridade"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="bam"/>
+	</field>
+	<field name="comentariotranferencia" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="comentariotranferencia"/>
+		<property name="com.jaspersoft.studio.field.label" value="comentariotranferencia"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="bam"/>
+	</field>
+	<field name="transferido" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="transferido"/>
+		<property name="com.jaspersoft.studio.field.label" value="transferido"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="bam"/>
+	</field>
+	<field name="transorigem" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="transorigem"/>
+		<property name="com.jaspersoft.studio.field.label" value="transorigem"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="bam"/>
+	</field>
+	<field name="idpaciente" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="idpaciente"/>
+		<property name="com.jaspersoft.studio.field.label" value="idpaciente"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pacientes"/>
+	</field>
+	<field name="bairro" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="bairro"/>
+		<property name="com.jaspersoft.studio.field.label" value="bairro"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pacientes"/>
+	</field>
+	<field name="cep" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="cep"/>
+		<property name="com.jaspersoft.studio.field.label" value="cep"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pacientes"/>
+	</field>
+	<field name="cns" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="cns"/>
+		<property name="com.jaspersoft.studio.field.label" value="cns"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pacientes"/>
+	</field>
+	<field name="cpf" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="cpf"/>
+		<property name="com.jaspersoft.studio.field.label" value="cpf"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pacientes"/>
+	</field>
+	<field name="COLUMN_67" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="data"/>
+		<property name="com.jaspersoft.studio.field.label" value="data"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pacientes"/>
+	</field>
+	<field name="ecivil" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="ecivil"/>
+		<property name="com.jaspersoft.studio.field.label" value="ecivil"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pacientes"/>
+	</field>
+	<field name="endereco" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="endereco"/>
+		<property name="com.jaspersoft.studio.field.label" value="endereco"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pacientes"/>
+	</field>
+	<field name="estado" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="estado"/>
+		<property name="com.jaspersoft.studio.field.label" value="estado"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pacientes"/>
+	</field>
+	<field name="etnia" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="etnia"/>
+		<property name="com.jaspersoft.studio.field.label" value="etnia"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pacientes"/>
+	</field>
+	<field name="COLUMN_72" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="hora"/>
+		<property name="com.jaspersoft.studio.field.label" value="hora"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pacientes"/>
+	</field>
+	<field name="idade" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="idade"/>
+		<property name="com.jaspersoft.studio.field.label" value="idade"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pacientes"/>
+	</field>
+	<field name="latitude" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="latitude"/>
+		<property name="com.jaspersoft.studio.field.label" value="latitude"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pacientes"/>
+	</field>
+	<field name="longitude" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="longitude"/>
+		<property name="com.jaspersoft.studio.field.label" value="longitude"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pacientes"/>
+	</field>
+	<field name="mae" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="mae"/>
+		<property name="com.jaspersoft.studio.field.label" value="mae"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pacientes"/>
+	</field>
+	<field name="municipio" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="municipio"/>
+		<property name="com.jaspersoft.studio.field.label" value="municipio"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pacientes"/>
+	</field>
+	<field name="nascimento" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="nascimento"/>
+		<property name="com.jaspersoft.studio.field.label" value="nascimento"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pacientes"/>
+	</field>
+	<field name="naturalidade" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="naturalidade"/>
+		<property name="com.jaspersoft.studio.field.label" value="naturalidade"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pacientes"/>
+	</field>
+	<field name="COLUMN_80" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="nome"/>
+		<property name="com.jaspersoft.studio.field.label" value="nome"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pacientes"/>
+	</field>
+	<field name="numero" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="numero"/>
+		<property name="com.jaspersoft.studio.field.label" value="numero"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pacientes"/>
+	</field>
+	<field name="pai" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="pai"/>
+		<property name="com.jaspersoft.studio.field.label" value="pai"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pacientes"/>
+	</field>
+	<field name="profissao" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="profissao"/>
+		<property name="com.jaspersoft.studio.field.label" value="profissao"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pacientes"/>
+	</field>
+	<field name="prontuario" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="prontuario"/>
+		<property name="com.jaspersoft.studio.field.label" value="prontuario"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pacientes"/>
+	</field>
+	<field name="rg" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="rg"/>
+		<property name="com.jaspersoft.studio.field.label" value="rg"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pacientes"/>
+	</field>
+	<field name="sangue" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="sangue"/>
+		<property name="com.jaspersoft.studio.field.label" value="sangue"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pacientes"/>
+	</field>
+	<field name="sexo" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="sexo"/>
+		<property name="com.jaspersoft.studio.field.label" value="sexo"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pacientes"/>
+	</field>
+	<field name="telefone" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="telefone"/>
+		<property name="com.jaspersoft.studio.field.label" value="telefone"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pacientes"/>
+	</field>
+	<field name="sic" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="sic"/>
+		<property name="com.jaspersoft.studio.field.label" value="sic"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pacientes"/>
+	</field>
+	<field name="pacienteespecial" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="pacienteespecial"/>
+		<property name="com.jaspersoft.studio.field.label" value="pacienteespecial"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pacientes"/>
+	</field>
+	<field name="tempcod" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="tempcod"/>
+		<property name="com.jaspersoft.studio.field.label" value="tempcod"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pacientes"/>
+	</field>
+	<field name="idninternado" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="idninternado"/>
+		<property name="com.jaspersoft.studio.field.label" value="idninternado"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="novointernado"/>
+	</field>
+	<field name="agente" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="agente"/>
+		<property name="com.jaspersoft.studio.field.label" value="agente"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="novointernado"/>
+	</field>
+	<field name="alta" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="alta"/>
+		<property name="com.jaspersoft.studio.field.label" value="alta"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="novointernado"/>
+	</field>
+	<field name="datadaacao" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="datadaacao"/>
+		<property name="com.jaspersoft.studio.field.label" value="datadaacao"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="novointernado"/>
+	</field>
+	<field name="datainsercaoser" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="datainsercaoser"/>
+		<property name="com.jaspersoft.studio.field.label" value="datainsercaoser"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="novointernado"/>
+	</field>
+	<field name="diagnostico" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="diagnostico"/>
+		<property name="com.jaspersoft.studio.field.label" value="diagnostico"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="novointernado"/>
+	</field>
+	<field name="diainternacao" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="diainternacao"/>
+		<property name="com.jaspersoft.studio.field.label" value="diainternacao"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="novointernado"/>
+	</field>
+	<field name="especialidade" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="especialidade"/>
+		<property name="com.jaspersoft.studio.field.label" value="especialidade"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="novointernado"/>
+	</field>
+	<field name="internado" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="internado"/>
+		<property name="com.jaspersoft.studio.field.label" value="internado"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="novointernado"/>
+	</field>
+	<field name="leitoocupado" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="leitoocupado"/>
+		<property name="com.jaspersoft.studio.field.label" value="leitoocupado"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="novointernado"/>
+	</field>
+	<field name="motivosaida" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="motivosaida"/>
+		<property name="com.jaspersoft.studio.field.label" value="motivosaida"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="novointernado"/>
+	</field>
+	<field name="nbam" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="nbam"/>
+		<property name="com.jaspersoft.studio.field.label" value="nbam"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="novointernado"/>
+	</field>
+	<field name="pendencia" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="pendencia"/>
+		<property name="com.jaspersoft.studio.field.label" value="pendencia"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="novointernado"/>
+	</field>
+	<field name="COLUMN_105" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="prontuario"/>
+		<property name="com.jaspersoft.studio.field.label" value="prontuario"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="novointernado"/>
+	</field>
+	<field name="tempodias" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="tempodias"/>
+		<property name="com.jaspersoft.studio.field.label" value="tempodias"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="novointernado"/>
+	</field>
+	<field name="tipo" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="tipo"/>
+		<property name="com.jaspersoft.studio.field.label" value="tipo"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="novointernado"/>
+	</field>
+	<field name="bam_idbam" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="bam_idbam"/>
+		<property name="com.jaspersoft.studio.field.label" value="bam_idbam"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="novointernado"/>
+	</field>
+	<field name="local_idsetorlocalcenso" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="local_idsetorlocalcenso"/>
+		<property name="com.jaspersoft.studio.field.label" value="local_idsetorlocalcenso"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="novointernado"/>
+	</field>
+	<field name="pacientes_idpaciente" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="pacientes_idpaciente"/>
+		<property name="com.jaspersoft.studio.field.label" value="pacientes_idpaciente"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="novointernado"/>
+	</field>
+	<field name="setor_idsetorcenso" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="setor_idsetorcenso"/>
+		<property name="com.jaspersoft.studio.field.label" value="setor_idsetorcenso"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="novointernado"/>
+	</field>
+	<field name="COLUMN_112" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="unidade"/>
+		<property name="com.jaspersoft.studio.field.label" value="unidade"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="novointernado"/>
+	</field>
+	<field name="tipo_alocacao" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="tipo_alocacao"/>
+		<property name="com.jaspersoft.studio.field.label" value="tipo_alocacao"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="novointernado"/>
+	</field>
+	<field name="quemalocou" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="quemalocou"/>
+		<property name="com.jaspersoft.studio.field.label" value="quemalocou"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="novointernado"/>
+	</field>
+	<field name="quemdeualta" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="quemdeualta"/>
+		<property name="com.jaspersoft.studio.field.label" value="quemdeualta"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="novointernado"/>
+	</field>
+	<field name="quemexcluiu" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="quemexcluiu"/>
+		<property name="com.jaspersoft.studio.field.label" value="quemexcluiu"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="novointernado"/>
+	</field>
+	<field name="quemleitoalterou" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="quemleitoalterou"/>
+		<property name="com.jaspersoft.studio.field.label" value="quemleitoalterou"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="novointernado"/>
+	</field>
+	<variable name="nome1" class="java.lang.Integer" resetType="Group" resetGroup="dat" calculation="DistinctCount">
+		<variableExpression><![CDATA[$F{nome}]]></variableExpression>
+	</variable>
+	<variable name="geral" class="java.lang.Integer" calculation="Count">
+		<variableExpression><![CDATA[$F{nome}]]></variableExpression>
+	</variable>
+	<group name="dat">
+		<groupExpression><![CDATA[$F{datasolicitacao}]]></groupExpression>
+		<groupHeader>
+			<band height="14">
+				<textField pattern="dd/MM/yyyy">
+					<reportElement x="233" y="0" width="86" height="14" uuid="19f1bb6d-a919-45aa-8228-86f2b2bcefa8">
+						<property name="com.jaspersoft.studio.unit.height" value="cm"/>
+					</reportElement>
+					<textElement textAlignment="Center">
+						<font isBold="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$F{datasolicitacao}]]></textFieldExpression>
+				</textField>
+			</band>
+		</groupHeader>
+		<groupFooter>
+			<band height="19">
+				<staticText>
+					<reportElement x="239" y="2" width="109" height="14" uuid="5792ea0c-0978-4d76-9283-964daa00caf5"/>
+					<textElement textAlignment="Left"/>
+					<text><![CDATA[ AIH preenchida(s)]]></text>
+				</staticText>
+				<textField>
+					<reportElement x="212" y="2" width="28" height="14" uuid="fb2841ab-c79e-4647-80ab-1e36cad20793"/>
+					<textElement textAlignment="Right"/>
+					<textFieldExpression><![CDATA[$V{nome1}]]></textFieldExpression>
+				</textField>
+			</band>
+		</groupFooter>
+	</group>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band height="100" splitType="Stretch">
+			<property name="com.jaspersoft.studio.unit.height" value="cm"/>
+			<staticText>
+				<reportElement x="97" y="6" width="211" height="20" uuid="d7413680-5133-43d4-b627-ac4e67dd5a1f"/>
+				<text><![CDATA[ESTADO DO RIO DE JANEIRO]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="98" y="52" width="211" height="20" uuid="c178ca9b-2773-44b2-ba89-551e2ac767af"/>
+				<text><![CDATA[Secretaria Municipal de Saúde]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="0" y="71" width="550" height="23" uuid="5bcd56ee-1bae-4167-a4e1-85929568c236"/>
+				<textElement textAlignment="Center">
+					<font size="11" isBold="true"/>
+				</textElement>
+				<text><![CDATA[PREENCHIMENTO DE AIH]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="97" y="20" width="433" height="16" uuid="91b53e33-e571-4d56-a44c-e9f4471346ae"/>
+				<textElement>
+					<font isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{prefeitura}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="96" y="33" width="454" height="20" uuid="5d7285a5-3917-4c68-8e4e-aa89093bc3fd"/>
+				<textElement verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{hospital}]]></textFieldExpression>
+			</textField>
+			<image hAlign="Center" vAlign="Middle" onErrorType="Blank">
+				<reportElement stretchType="RelativeToTallestObject" x="1" y="3" width="90" height="50" uuid="b007f4c5-c784-4ace-967a-4ad3006118cb"/>
+				<imageExpression><![CDATA[new ByteArrayInputStream(org.apache.commons.codec.binary.Base64.decodeBase64($P{logo}.getBytes()))]]></imageExpression>
+			</image>
+		</band>
+	</title>
+	<pageHeader>
+		<band splitType="Stretch"/>
+	</pageHeader>
+	<columnHeader>
+		<band splitType="Stretch"/>
+	</columnHeader>
+	<summary>
+		<band height="50">
+			<line>
+				<reportElement x="250" y="3" width="51" height="1" uuid="af55facc-7ba2-4ec6-8b0e-801b4b525a6e"/>
+			</line>
+			<staticText>
+				<reportElement x="243" y="6" width="40" height="16" uuid="10ef0fb1-e3a3-4f7e-8d1e-dbe4c271693c"/>
+				<textElement textAlignment="Right">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Total :]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="285" y="7" width="28" height="14" uuid="8b433e5b-cee7-416f-ae7f-50cef6f1be87"/>
+				<textElement textAlignment="Left">
+					<font isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{geral}]]></textFieldExpression>
+			</textField>
+		</band>
+	</summary>
+</jasperReport>

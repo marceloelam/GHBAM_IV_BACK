@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Created with Jaspersoft Studio version 6.20.5.final using JasperReports Library version 6.20.5-3efcf2e67f959db3888d79f73dde2dbd7acb4f8e  -->
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="internados" pageWidth="842" pageHeight="595" orientation="Landscape" columnWidth="802" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20" uuid="f90ae1c5-b6cd-4c8c-a958-50b845e718d3">
+	<property name="com.jaspersoft.studio.data.sql.tables" value=""/>
+	<property name="com.jaspersoft.studio.data.defaultdataadapter" value="conn"/>
+	<property name="com.jaspersoft.studio.unit." value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.pageHeight" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.pageWidth" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.topMargin" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.bottomMargin" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.leftMargin" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.rightMargin" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.columnWidth" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.columnSpacing" value="pixel"/>
+	<property name="com.jaspersoft.studio.data.sql.SQLQueryDesigner.sash.w1" value="314"/>
+	<property name="com.jaspersoft.studio.data.sql.SQLQueryDesigner.sash.w2" value="675"/>
+	<parameter name="logo" class="java.lang.String"/>
+	<parameter name="hospital" class="java.lang.String"/>
+	<parameter name="ssigla" class="java.lang.String"/>
+	<parameter name="prefeitura" class="java.lang.String"/>
+	<parameter name="complemento" class="java.lang.String"/>
+	<parameter name="bamz" class="java.lang.String"/>
+	<queryString language="SQL">
+		<![CDATA[select * from parecerespecialista where cast(nbam as text)=  $P{bamz}  order by data desc]]>
+	</queryString>
+	<field name="idparecerespecialista" class="java.lang.Integer">
+		<property name="com.jaspersoft.studio.field.name" value="idparecerespecialista"/>
+		<property name="com.jaspersoft.studio.field.label" value="idparecerespecialista"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="parecerespecialista"/>
+	</field>
+	<field name="crm" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="crm"/>
+		<property name="com.jaspersoft.studio.field.label" value="crm"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="parecerespecialista"/>
+	</field>
+	<field name="crmrecebedor" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="crmrecebedor"/>
+		<property name="com.jaspersoft.studio.field.label" value="crmrecebedor"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="parecerespecialista"/>
+	</field>
+	<field name="data" class="java.sql.Date">
+		<property name="com.jaspersoft.studio.field.name" value="data"/>
+		<property name="com.jaspersoft.studio.field.label" value="data"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="parecerespecialista"/>
+	</field>
+	<field name="desc1" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="desc1"/>
+		<property name="com.jaspersoft.studio.field.label" value="desc1"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="parecerespecialista"/>
+	</field>
+	<field name="desc2" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="desc2"/>
+		<property name="com.jaspersoft.studio.field.label" value="desc2"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="parecerespecialista"/>
+	</field>
+	<field name="especialidadedestino" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="especialidadedestino"/>
+		<property name="com.jaspersoft.studio.field.label" value="especialidadedestino"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="parecerespecialista"/>
+	</field>
+	<field name="especialidadeorigem" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="especialidadeorigem"/>
+		<property name="com.jaspersoft.studio.field.label" value="especialidadeorigem"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="parecerespecialista"/>
+	</field>
+	<field name="medicorecebedor" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="medicorecebedor"/>
+		<property name="com.jaspersoft.studio.field.label" value="medicorecebedor"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="parecerespecialista"/>
+	</field>
+	<field name="medicorequisitante" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="medicorequisitante"/>
+		<property name="com.jaspersoft.studio.field.label" value="medicorequisitante"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="parecerespecialista"/>
+	</field>
+	<field name="nbam" class="java.lang.Integer">
+		<property name="com.jaspersoft.studio.field.name" value="nbam"/>
+		<property name="com.jaspersoft.studio.field.label" value="nbam"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="parecerespecialista"/>
+	</field>
+	<field name="prontuario" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="prontuario"/>
+		<property name="com.jaspersoft.studio.field.label" value="prontuario"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="parecerespecialista"/>
+	</field>
+	<field name="dataresp" class="java.sql.Date">
+		<property name="com.jaspersoft.studio.field.name" value="dataresp"/>
+		<property name="com.jaspersoft.studio.field.label" value="dataresp"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="parecerespecialista"/>
+	</field>
+	<field name="unidade" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="unidade"/>
+		<property name="com.jaspersoft.studio.field.label" value="unidade"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="parecerespecialista"/>
+	</field>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band height="20" splitType="Stretch">
+			<staticText>
+				<reportElement x="4" y="4" width="173" height="16" uuid="6bbce828-6635-4596-91f3-b91edacee8ef"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font size="11" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Parecer Médico Especialista]]></text>
+			</staticText>
+			<line>
+				<reportElement x="170" y="10" width="340" height="1" uuid="bd49107f-1eb7-482e-95a2-3e051141216e"/>
+			</line>
+		</band>
+	</title>
+	<detail>
+		<band height="137">
+			<textField>
+				<reportElement x="10" y="23" width="500" height="37" uuid="02b62215-243e-46e9-8ea2-289fb44e0d29"/>
+				<textElement>
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{desc1}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="8" y="9" width="119" height="13" uuid="393e2ed2-4776-4b4d-a197-930f19702137">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement>
+					<font size="8" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Solicitação do parecer :]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="10" y="76" width="119" height="13" uuid="f3ef3223-971d-4008-85cb-b5750491d5cb">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement>
+					<font size="8" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Resposta ao parecer :]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="12" y="90" width="498" height="47" uuid="4fa9b74f-6f17-4c92-b81d-cc987d6e198e"/>
+				<box>
+					<bottomPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{desc2} == null?"Aguardando resposta ... ": $F{desc2})]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="100" y="9" width="410" height="13" uuid="fc9012be-dda5-4f6d-9c7d-79aae2acd181">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement>
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{medicorequisitante} + " ( CRM:  " + $F{crm}  + " ) - Esp. de origem : " +  $F{especialidadeorigem} + " - Data : " + $F{data}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="100" y="74" width="410" height="13" uuid="04bb2dc1-d2c6-4379-8d0a-88ab75390505">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement>
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{desc2} == null?"":$F{medicorecebedor}+ " ( CRM:  " + $F{crmrecebedor} + " ) - Esp. de destino : " +  $F{especialidadedestino} + " - Data da reposta : " + ($F{dataresp}==null?"":$F{dataresp} ))]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+</jasperReport>

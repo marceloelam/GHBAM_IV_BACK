@@ -1,0 +1,2 @@
+ALTER TABLE faturamento_aih
+  ALTER COLUMN cid TYPE VARCHAR(20);

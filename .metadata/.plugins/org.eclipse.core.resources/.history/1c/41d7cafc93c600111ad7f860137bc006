@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Created with Jaspersoft Studio version 6.18.1.final using JasperReports Library version 6.18.1-9d75d1969e774d4f179fb3be8401e98a0e6d1611  -->
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="graficoatendimentos" pageWidth="595" pageHeight="842" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20" uuid="199d6a17-8670-44dc-a36f-8d3ec47a618d">
+	<property name="com.jaspersoft.studio.data.sql.tables" value=""/>
+	<property name="com.jaspersoft.studio.data.defaultdataadapter" value="teste"/>
+	<property name="com.jaspersoft.studio.unit." value="cm"/>
+	<property name="com.jaspersoft.studio.unit.pageHeight" value="cm"/>
+	<property name="com.jaspersoft.studio.unit.pageWidth" value="cm"/>
+	<property name="com.jaspersoft.studio.unit.topMargin" value="cm"/>
+	<property name="com.jaspersoft.studio.unit.bottomMargin" value="cm"/>
+	<property name="com.jaspersoft.studio.unit.leftMargin" value="cm"/>
+	<property name="com.jaspersoft.studio.unit.rightMargin" value="cm"/>
+	<property name="com.jaspersoft.studio.unit.columnWidth" value="cm"/>
+	<property name="com.jaspersoft.studio.unit.columnSpacing" value="cm"/>
+	<parameter name="datainicial" class="java.lang.String"/>
+	<parameter name="datafinal" class="java.lang.String"/>
+	<parameter name="setor" class="java.lang.String"/>
+	<parameter name="logo" class="java.lang.String"/>
+	<parameter name="hospital" class="java.lang.String"/>
+	<parameter name="ssigla" class="java.lang.String"/>
+	<parameter name="prefeitura" class="java.lang.String"/>
+	<parameter name="complemento" class="java.lang.String"/>
+	<queryString language="SQL">
+		<![CDATA[SELECT bam.data,
+	pacientes.bairro, pacientes.municipio,
+	avaliacao.cor, COUNT(avaliacao.cor) AS TOTAL
+FROM bam
+	INNER JOIN pacientes ON 
+	 bam.paciente_idpaciente = pacientes.idpaciente 
+	INNER JOIN avaliacao ON 
+	 bam.avaliacao_idavaliacao =avaliacao.idavaliacao 
+WHERE
+cast(bam.data as date)  between  cast($P{datainicial} as date)  and cast($P{datafinal} as date)  and bam.unidade =  $P{ssigla}
+group by bam.data,	pacientes.bairro,	avaliacao.cor, pacientes.municipio
+ORDER BY bam.data ASC, pacientes.municipio ASC, pacientes.bairro ASC]]>
+	</queryString>
+	<field name="data" class="java.sql.Date">
+		<property name="com.jaspersoft.studio.field.name" value="data"/>
+		<property name="com.jaspersoft.studio.field.label" value="data"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="bam"/>
+	</field>
+	<field name="bairro" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="bairro"/>
+		<property name="com.jaspersoft.studio.field.label" value="bairro"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pacientes"/>
+	</field>
+	<field name="municipio" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="municipio"/>
+		<property name="com.jaspersoft.studio.field.label" value="municipio"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pacientes"/>
+	</field>
+	<field name="cor" class="java.lang.Integer">
+		<property name="com.jaspersoft.studio.field.name" value="cor"/>
+		<property name="com.jaspersoft.studio.field.label" value="cor"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="total" class="java.lang.Long">
+		<property name="com.jaspersoft.studio.field.name" value="total"/>
+		<property name="com.jaspersoft.studio.field.label" value="total"/>
+	</field>
+	<group name="Group1">
+		<groupExpression><![CDATA[$F{data}]]></groupExpression>
+		<groupHeader>
+			<band height="21">
+				<rectangle>
+					<reportElement x="0" y="0" width="550" height="19" backcolor="#F2F0F0" uuid="8c9f9432-16b5-4237-adf7-bac2e872c898"/>
+				</rectangle>
+				<textField pattern="dd/MM/yyyy">
+					<reportElement x="5" y="0" width="100" height="20" uuid="1a437383-d755-41df-834e-e0dbfd811a6e"/>
+					<textElement>
+						<font size="12" isBold="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$F{data}]]></textFieldExpression>
+				</textField>
+			</band>
+		</groupHeader>
+	</group>
+	<group name="Group2">
+		<groupExpression><![CDATA[$F{bairro}]]></groupExpression>
+		<groupHeader>
+			<band height="17">
+				<textField>
+					<reportElement x="20" y="0" width="470" height="15" uuid="dcc306c8-4c67-4c6b-afa2-96a83da87a01"/>
+					<textElement>
+						<font isBold="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA["( BAIRRO : " + $F{bairro} + " ) - " +  $F{municipio}]]></textFieldExpression>
+				</textField>
+			</band>
+		</groupHeader>
+	</group>
+	<group name="Group3">
+		<groupExpression><![CDATA[$F{cor}]]></groupExpression>
+		<groupHeader>
+			<band height="20">
+				<textField>
+					<reportElement x="107" y="0" width="193" height="15" uuid="54bc08e6-aae8-48fa-8396-d34b1b7a60e9"/>
+					<textElement textAlignment="Right"/>
+					<textFieldExpression><![CDATA[($F{cor}==1?"Azul":$F{cor}==2?"Verde":$F{cor}==3?"Amarelo":$F{cor}==4?"Laranja":"Vermelho")]]></textFieldExpression>
+				</textField>
+				<textField>
+					<reportElement x="309" y="0" width="201" height="15" uuid="b61495a1-adff-4c29-a000-966a482300e2"/>
+					<textElement textAlignment="Left"/>
+					<textFieldExpression><![CDATA[$F{total} + " - atendimento(s)"]]></textFieldExpression>
+				</textField>
+				<line>
+					<reportElement x="101" y="17" width="450" height="1" uuid="96fc8b0e-65d2-4990-8071-a27684f97ca9"/>
+				</line>
+			</band>
+		</groupHeader>
+	</group>
+	<title>
+		<band height="78" splitType="Stretch">
+			<property name="com.jaspersoft.studio.unit.height" value="cm"/>
+			<staticText>
+				<reportElement x="98" y="10" width="211" height="20" uuid="d7413680-5133-43d4-b627-ac4e67dd5a1f"/>
+				<text><![CDATA[ESTADO DO RIO DE JANEIRO]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="98" y="41" width="211" height="20" uuid="c178ca9b-2773-44b2-ba89-551e2ac767af"/>
+				<text><![CDATA[Secretaria Municipal de Saúde]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="0" y="61" width="551" height="17" uuid="5bcd56ee-1bae-4167-a4e1-85929568c236"/>
+				<textElement textAlignment="Center">
+					<font size="11" isBold="true"/>
+				</textElement>
+				<text><![CDATA[ATENDIMENTOS REALIZADOS POR BAIRRO / SETOR / CLASSIFICAÇÃO]]></text>
+			</staticText>
+			<textField pattern="dd/MM/yyyy">
+				<reportElement x="457" y="10" width="100" height="30" uuid="b84c504d-9527-44fe-8b5b-711ca5138c11"/>
+				<textElement textAlignment="Right"/>
+				<textFieldExpression><![CDATA[new java.util.Date()]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="97" y="27" width="433" height="16" uuid="383bc9f1-a187-4b92-a9e0-a7462a8c0ada"/>
+				<textElement>
+					<font isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{prefeitura}]]></textFieldExpression>
+			</textField>
+			<image hAlign="Center" vAlign="Middle" onErrorType="Blank">
+				<reportElement stretchType="RelativeToTallestObject" x="1" y="3" width="90" height="50" uuid="bc458599-4428-4134-ae23-5e7c18b2e915"/>
+				<imageExpression><![CDATA[new ByteArrayInputStream(org.apache.commons.codec.binary.Base64.decodeBase64($P{logo}.getBytes()))]]></imageExpression>
+			</image>
+		</band>
+	</title>
+	<pageHeader>
+		<band splitType="Stretch"/>
+	</pageHeader>
+</jasperReport>

@@ -1,0 +1,968 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Created with Jaspersoft Studio version 6.18.1.final using JasperReports Library version 6.18.1-9d75d1969e774d4f179fb3be8401e98a0e6d1611  -->
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="subtriagem" pageWidth="595" pageHeight="842" columnWidth="595" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0" uuid="fdce5a7f-4cbe-442d-818c-ebd62c6aa44e">
+	<property name="com.jaspersoft.studio.data.sql.tables" value=""/>
+	<property name="com.jaspersoft.studio.data.defaultdataadapter" value="itaguai_conn"/>
+	<property name="com.jaspersoft.studio.unit." value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.pageHeight" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.pageWidth" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.topMargin" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.bottomMargin" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.leftMargin" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.rightMargin" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.columnWidth" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.columnSpacing" value="pixel"/>
+	<parameter name="idbamLab" class="java.lang.String"/>
+	<queryString language="SQL">
+		<![CDATA[select s.nome, s.cargo, s.corem, a.* from avaliacao a, bam b, servidor s  
+where  b.avaliacao_idavaliacao = a.idavaliacao
+ and s.idservidor = b.servidor_idservidor  
+and   cast(b.idbam as text) =  $P{idbamLab}]]>
+	</queryString>
+	<field name="nome" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="nome"/>
+		<property name="com.jaspersoft.studio.field.label" value="nome"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="servidor"/>
+	</field>
+	<field name="cargo" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="cargo"/>
+		<property name="com.jaspersoft.studio.field.label" value="cargo"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="servidor"/>
+	</field>
+	<field name="corem" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="corem"/>
+		<property name="com.jaspersoft.studio.field.label" value="corem"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="servidor"/>
+	</field>
+	<field name="idavaliacao" class="java.lang.Integer">
+		<property name="com.jaspersoft.studio.field.name" value="idavaliacao"/>
+		<property name="com.jaspersoft.studio.field.label" value="idavaliacao"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="abdome" class="java.lang.Double">
+		<property name="com.jaspersoft.studio.field.name" value="abdome"/>
+		<property name="com.jaspersoft.studio.field.label" value="abdome"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="acianotico" class="java.lang.Boolean">
+		<property name="com.jaspersoft.studio.field.name" value="acianotico"/>
+		<property name="com.jaspersoft.studio.field.label" value="acianotico"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="acordado" class="java.lang.Boolean">
+		<property name="com.jaspersoft.studio.field.name" value="acordado"/>
+		<property name="com.jaspersoft.studio.field.label" value="acordado"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="alergiasoun" class="java.lang.Boolean">
+		<property name="com.jaspersoft.studio.field.name" value="alergiasoun"/>
+		<property name="com.jaspersoft.studio.field.label" value="alergiasoun"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="anamnese" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="anamnese"/>
+		<property name="com.jaspersoft.studio.field.label" value="anamnese"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="anicterico" class="java.lang.Boolean">
+		<property name="com.jaspersoft.studio.field.name" value="anicterico"/>
+		<property name="com.jaspersoft.studio.field.label" value="anicterico"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="anisocorico" class="java.lang.Boolean">
+		<property name="com.jaspersoft.studio.field.name" value="anisocorico"/>
+		<property name="com.jaspersoft.studio.field.label" value="anisocorico"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="avaliado" class="java.lang.Integer">
+		<property name="com.jaspersoft.studio.field.name" value="avaliado"/>
+		<property name="com.jaspersoft.studio.field.label" value="avaliado"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="cabeca" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="cabeca"/>
+		<property name="com.jaspersoft.studio.field.label" value="cabeca"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="cianotico" class="java.lang.Boolean">
+		<property name="com.jaspersoft.studio.field.name" value="cianotico"/>
+		<property name="com.jaspersoft.studio.field.label" value="cianotico"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="comatoso" class="java.lang.Boolean">
+		<property name="com.jaspersoft.studio.field.name" value="comatoso"/>
+		<property name="com.jaspersoft.studio.field.label" value="comatoso"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="comentario" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="comentario"/>
+		<property name="com.jaspersoft.studio.field.label" value="comentario"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="controle" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="controle"/>
+		<property name="com.jaspersoft.studio.field.label" value="controle"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="cor" class="java.lang.Integer">
+		<property name="com.jaspersoft.studio.field.name" value="cor"/>
+		<property name="com.jaspersoft.studio.field.label" value="cor"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="data" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="data"/>
+		<property name="com.jaspersoft.studio.field.label" value="data"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="desidratado" class="java.lang.Boolean">
+		<property name="com.jaspersoft.studio.field.name" value="desidratado"/>
+		<property name="com.jaspersoft.studio.field.label" value="desidratado"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="desorientado" class="java.lang.Boolean">
+		<property name="com.jaspersoft.studio.field.name" value="desorientado"/>
+		<property name="com.jaspersoft.studio.field.label" value="desorientado"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="dispneico" class="java.lang.Boolean">
+		<property name="com.jaspersoft.studio.field.name" value="dispneico"/>
+		<property name="com.jaspersoft.studio.field.label" value="dispneico"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="esperando" class="java.lang.Integer">
+		<property name="com.jaspersoft.studio.field.name" value="esperando"/>
+		<property name="com.jaspersoft.studio.field.label" value="esperando"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="etilismo" class="java.lang.Boolean">
+		<property name="com.jaspersoft.studio.field.name" value="etilismo"/>
+		<property name="com.jaspersoft.studio.field.label" value="etilismo"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="eupneico" class="java.lang.Boolean">
+		<property name="com.jaspersoft.studio.field.name" value="eupneico"/>
+		<property name="com.jaspersoft.studio.field.label" value="eupneico"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="fc" class="java.lang.Double">
+		<property name="com.jaspersoft.studio.field.name" value="fc"/>
+		<property name="com.jaspersoft.studio.field.label" value="fc"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="fr" class="java.lang.Double">
+		<property name="com.jaspersoft.studio.field.name" value="fr"/>
+		<property name="com.jaspersoft.studio.field.label" value="fr"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="hidratado" class="java.lang.Boolean">
+		<property name="com.jaspersoft.studio.field.name" value="hidratado"/>
+		<property name="com.jaspersoft.studio.field.label" value="hidratado"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="hipocorado" class="java.lang.Boolean">
+		<property name="com.jaspersoft.studio.field.name" value="hipocorado"/>
+		<property name="com.jaspersoft.studio.field.label" value="hipocorado"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="hora" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="hora"/>
+		<property name="com.jaspersoft.studio.field.label" value="hora"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="icterico" class="java.lang.Boolean">
+		<property name="com.jaspersoft.studio.field.name" value="icterico"/>
+		<property name="com.jaspersoft.studio.field.label" value="icterico"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="idmedico" class="java.lang.Integer">
+		<property name="com.jaspersoft.studio.field.name" value="idmedico"/>
+		<property name="com.jaspersoft.studio.field.label" value="idmedico"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="idpaciente" class="java.lang.Integer">
+		<property name="com.jaspersoft.studio.field.name" value="idpaciente"/>
+		<property name="com.jaspersoft.studio.field.label" value="idpaciente"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="isocorico" class="java.lang.Boolean">
+		<property name="com.jaspersoft.studio.field.name" value="isocorico"/>
+		<property name="com.jaspersoft.studio.field.label" value="isocorico"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="membro" class="java.lang.Double">
+		<property name="com.jaspersoft.studio.field.name" value="membro"/>
+		<property name="com.jaspersoft.studio.field.label" value="membro"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="midriatico" class="java.lang.Boolean">
+		<property name="com.jaspersoft.studio.field.name" value="midriatico"/>
+		<property name="com.jaspersoft.studio.field.label" value="midriatico"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="miotico" class="java.lang.Boolean">
+		<property name="com.jaspersoft.studio.field.name" value="miotico"/>
+		<property name="com.jaspersoft.studio.field.label" value="miotico"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="normocorado" class="java.lang.Boolean">
+		<property name="com.jaspersoft.studio.field.name" value="normocorado"/>
+		<property name="com.jaspersoft.studio.field.label" value="normocorado"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="orientado" class="java.lang.Boolean">
+		<property name="com.jaspersoft.studio.field.name" value="orientado"/>
+		<property name="com.jaspersoft.studio.field.label" value="orientado"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="padiast" class="java.lang.Double">
+		<property name="com.jaspersoft.studio.field.name" value="padiast"/>
+		<property name="com.jaspersoft.studio.field.label" value="padiast"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="pasist" class="java.lang.Double">
+		<property name="com.jaspersoft.studio.field.name" value="pasist"/>
+		<property name="com.jaspersoft.studio.field.label" value="pasist"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="peso" class="java.lang.Double">
+		<property name="com.jaspersoft.studio.field.name" value="peso"/>
+		<property name="com.jaspersoft.studio.field.label" value="peso"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="pulsocheio" class="java.lang.Boolean">
+		<property name="com.jaspersoft.studio.field.name" value="pulsocheio"/>
+		<property name="com.jaspersoft.studio.field.label" value="pulsocheio"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="pulsofino" class="java.lang.Boolean">
+		<property name="com.jaspersoft.studio.field.name" value="pulsofino"/>
+		<property name="com.jaspersoft.studio.field.label" value="pulsofino"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="rigideznuca" class="java.lang.Boolean">
+		<property name="com.jaspersoft.studio.field.name" value="rigideznuca"/>
+		<property name="com.jaspersoft.studio.field.label" value="rigideznuca"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="risco" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="risco"/>
+		<property name="com.jaspersoft.studio.field.label" value="risco"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="spo" class="java.lang.Double">
+		<property name="com.jaspersoft.studio.field.name" value="spo"/>
+		<property name="com.jaspersoft.studio.field.label" value="spo"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="sudoreico" class="java.lang.Boolean">
+		<property name="com.jaspersoft.studio.field.name" value="sudoreico"/>
+		<property name="com.jaspersoft.studio.field.label" value="sudoreico"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="taquipneico" class="java.lang.Boolean">
+		<property name="com.jaspersoft.studio.field.name" value="taquipneico"/>
+		<property name="com.jaspersoft.studio.field.label" value="taquipneico"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="tax" class="java.lang.Double">
+		<property name="com.jaspersoft.studio.field.name" value="tax"/>
+		<property name="com.jaspersoft.studio.field.label" value="tax"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="torax" class="java.lang.Double">
+		<property name="com.jaspersoft.studio.field.name" value="torax"/>
+		<property name="com.jaspersoft.studio.field.label" value="torax"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="torporoso" class="java.lang.Boolean">
+		<property name="com.jaspersoft.studio.field.name" value="torporoso"/>
+		<property name="com.jaspersoft.studio.field.label" value="torporoso"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="unidade" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="unidade"/>
+		<property name="com.jaspersoft.studio.field.label" value="unidade"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="glasgow" class="java.lang.Integer">
+		<property name="com.jaspersoft.studio.field.name" value="glasgow"/>
+		<property name="com.jaspersoft.studio.field.label" value="glasgow"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="niveldor" class="java.lang.Integer">
+		<property name="com.jaspersoft.studio.field.name" value="niveldor"/>
+		<property name="com.jaspersoft.studio.field.label" value="niveldor"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="peso2" class="java.lang.Double">
+		<property name="com.jaspersoft.studio.field.name" value="peso2"/>
+		<property name="com.jaspersoft.studio.field.label" value="peso2"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band height="2" splitType="Stretch"/>
+	</title>
+	<detail>
+		<band height="468" splitType="Stretch">
+			<rectangle>
+				<reportElement x="0" y="257" width="555" height="211" uuid="8dd0e22a-3d31-48cb-b489-28cedcf6ff41"/>
+			</rectangle>
+			<textField>
+				<reportElement x="5" y="270" width="546" height="194" uuid="9f8de4a8-df0c-47db-852d-f8971b00e02a"/>
+				<textElement verticalAlignment="Top">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{comentario}]]></textFieldExpression>
+			</textField>
+			<line>
+				<reportElement x="1" y="83" width="554" height="1" uuid="417504a3-f5b0-463e-839c-d68aaa334e62"/>
+			</line>
+			<rectangle>
+				<reportElement x="1" y="87" width="552" height="128" uuid="d84a22d8-1db4-4346-86c4-0afdf8a6051e"/>
+			</rectangle>
+			<rectangle>
+				<reportElement x="5" y="91" width="21" height="19" uuid="00af0366-7e93-4386-8194-c3b53cdb0d7d"/>
+			</rectangle>
+			<rectangle>
+				<reportElement x="5" y="115" width="21" height="19" uuid="1f4d1c34-68e2-4818-baf2-7640a06b4622"/>
+			</rectangle>
+			<rectangle>
+				<reportElement x="5" y="139" width="21" height="19" uuid="af2bcc42-6639-436f-8770-22b9a76bac2b"/>
+			</rectangle>
+			<rectangle>
+				<reportElement x="5" y="164" width="21" height="19" uuid="1b7ef7da-7369-4c61-8ee5-22239d06cf29"/>
+			</rectangle>
+			<rectangle>
+				<reportElement x="5" y="189" width="21" height="19" uuid="58d51f59-3f56-4609-87f8-97854d2b2972"/>
+			</rectangle>
+			<rectangle>
+				<reportElement x="101" y="189" width="21" height="19" uuid="455b0c6c-85f9-4f16-8ac5-c769e2034912"/>
+			</rectangle>
+			<rectangle>
+				<reportElement x="101" y="91" width="21" height="19" uuid="33687b5d-deb8-41c5-88c5-751219166c3a"/>
+			</rectangle>
+			<rectangle>
+				<reportElement x="101" y="164" width="21" height="19" uuid="7aa37b81-a163-4c76-be61-8ae60831f1a4"/>
+			</rectangle>
+			<rectangle>
+				<reportElement x="101" y="115" width="21" height="19" uuid="815c5733-fb76-4e58-a2e1-937f806d6273"/>
+			</rectangle>
+			<rectangle>
+				<reportElement x="101" y="139" width="21" height="19" uuid="0b866ff2-588c-4ff1-a391-519fe8b470ee"/>
+			</rectangle>
+			<rectangle>
+				<reportElement x="212" y="189" width="21" height="19" uuid="cac9d1cf-3bde-4ce3-aff1-4e027ea5c76a"/>
+			</rectangle>
+			<rectangle>
+				<reportElement x="212" y="91" width="21" height="19" uuid="71a40177-4ef3-4ef2-b791-745f3a84ec8a"/>
+			</rectangle>
+			<rectangle>
+				<reportElement x="212" y="164" width="21" height="19" uuid="34cd2702-0d5c-411b-b3ab-b3d6422b787f"/>
+			</rectangle>
+			<rectangle>
+				<reportElement x="212" y="115" width="21" height="19" uuid="a1576873-927d-4be5-adfc-7fe9ef6a12aa"/>
+			</rectangle>
+			<rectangle>
+				<reportElement x="212" y="139" width="21" height="19" uuid="99df98cc-9dbf-470c-ad7c-41389faa9589"/>
+			</rectangle>
+			<rectangle>
+				<reportElement x="330" y="189" width="21" height="19" uuid="ff20cd9d-63ec-4085-b775-cb9ccb213566"/>
+			</rectangle>
+			<rectangle>
+				<reportElement x="330" y="91" width="21" height="19" uuid="e2e94434-dd52-4709-8687-977180692e02"/>
+			</rectangle>
+			<rectangle>
+				<reportElement x="330" y="164" width="21" height="19" uuid="2ed84ea5-85d5-4439-a50f-3107dad0b638"/>
+			</rectangle>
+			<rectangle>
+				<reportElement x="330" y="115" width="21" height="19" uuid="a39959a3-e39d-4bd6-bf17-894f179e49ad"/>
+			</rectangle>
+			<rectangle>
+				<reportElement x="330" y="139" width="21" height="19" uuid="2fdae7f1-c5a0-4d3e-9177-e8ba66458873"/>
+			</rectangle>
+			<rectangle>
+				<reportElement x="446" y="189" width="21" height="19" uuid="1b2325bf-9dc5-464d-b697-7dcc2cc128f1"/>
+			</rectangle>
+			<rectangle>
+				<reportElement x="446" y="91" width="21" height="19" uuid="f7e9b15c-e641-4391-bd9e-931871ec8d9c"/>
+			</rectangle>
+			<rectangle>
+				<reportElement x="446" y="164" width="21" height="19" uuid="c6c8807a-af8c-4551-a345-232d80ecc061"/>
+			</rectangle>
+			<rectangle>
+				<reportElement x="446" y="115" width="21" height="19" uuid="28964b6a-b470-4f26-ba6e-704d749ae497"/>
+			</rectangle>
+			<rectangle>
+				<reportElement x="446" y="139" width="21" height="19" uuid="4a37449b-1e50-4ef1-92c6-d3d7db6651b0"/>
+			</rectangle>
+			<staticText>
+				<reportElement x="30" y="93" width="90" height="15" uuid="b79ceada-2e44-4a08-b965-04222a70bc4b"/>
+				<text><![CDATA[EUPNEICO]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="30" y="118" width="90" height="15" uuid="5d52efc5-ef10-4101-af3d-83ef6f82459a"/>
+				<text><![CDATA[HIDRATADO]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="30" y="141" width="90" height="15" uuid="7de1d271-d6f8-47aa-a52c-a40cc6a1a4c5"/>
+				<text><![CDATA[ANICTÓRICO]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="30" y="166" width="90" height="15" uuid="8543ea5c-90d4-4b92-998a-48729864482b"/>
+				<text><![CDATA[ACORDADO]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="30" y="189" width="90" height="15" uuid="f74fa5d8-5259-42e8-9241-bcce951fb9a2"/>
+				<text><![CDATA[ISOCÓRICO]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="126" y="190" width="90" height="15" uuid="d0d05e76-31cc-443f-9b89-08bb1d64e86b"/>
+				<text><![CDATA[ANISOCÓRICO]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="126" y="167" width="90" height="15" uuid="07633f01-8c50-465d-987b-0e17c9ef2c42"/>
+				<text><![CDATA[ORIENTADO]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="126" y="142" width="90" height="15" uuid="c1c888a5-2a95-46cc-b610-852f77b6d95d"/>
+				<text><![CDATA[ICTÉRICO]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="126" y="119" width="90" height="15" uuid="28946bae-b8e8-45da-9b80-d3e873ae53ab"/>
+				<text><![CDATA[DESIDRATADO]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="126" y="94" width="90" height="15" uuid="ff39a8b0-53bf-4527-b967-8bc27722e6de"/>
+				<text><![CDATA[DISPNEICO]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="238" y="142" width="90" height="15" uuid="0a78cefd-dd00-466d-afe6-0b1fd9553c2c"/>
+				<text><![CDATA[PULSO CHEIO]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="238" y="190" width="90" height="15" uuid="dd46bd8f-36e3-4523-97b3-eaa6a4f801c6"/>
+				<text><![CDATA[MIDRIÁTICO]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="238" y="167" width="90" height="15" uuid="6b58ff84-ca5b-4246-9f98-3b6fa047870c"/>
+				<text><![CDATA[DESORIENTADO]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="238" y="94" width="90" height="15" uuid="be78c9f2-9c04-4684-87e5-4119c0a2a4b2"/>
+				<text><![CDATA[TAQUIPNEICO]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="238" y="119" width="104" height="15" uuid="7459c38b-810c-440a-88f9-e26db4f83198"/>
+				<text><![CDATA[NORMOCORADO]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="357" y="166" width="90" height="15" uuid="8aa9fee3-2107-44b1-90d3-6e66e77b6c1e"/>
+				<text><![CDATA[TORPOSO]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="357" y="93" width="90" height="15" uuid="36b7857a-2e3f-43ca-9c96-380a335e34a0"/>
+				<text><![CDATA[ACIANÓTICO]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="357" y="189" width="90" height="15" uuid="68e1a368-d9a6-4952-a775-267e61ccbe8b"/>
+				<text><![CDATA[MIÓTICO]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="357" y="118" width="88" height="15" uuid="93fc8d94-0b9d-4ac5-976f-2bcf53e140d8"/>
+				<text><![CDATA[HIPOCORADO]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="357" y="141" width="90" height="15" uuid="dfc9c9f7-5f72-4b4c-a890-c2f1692d7f49"/>
+				<text><![CDATA[PULSO FINO]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="470" y="142" width="83" height="15" uuid="3dc6a704-4f19-40d8-8304-a69e787615e0"/>
+				<text><![CDATA[ETILISMO]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="470" y="190" width="82" height="15" uuid="d3146f9a-69b2-47e5-a99c-552261780a5c"/>
+				<text><![CDATA[RIGIDEZ NUCA]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="470" y="167" width="82" height="15" uuid="5f57b07d-86ec-4c56-9092-4b6bae5fec70"/>
+				<text><![CDATA[COMATOSO]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="470" y="119" width="82" height="15" uuid="fde6d8e7-0fe2-4541-b3dd-68fb1c435b4b"/>
+				<text><![CDATA[SUDOREICO]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="470" y="94" width="82" height="15" uuid="409ed1f6-f5cd-4771-8fb2-2f54a542705f"/>
+				<text><![CDATA[CIANÓTICO]]></text>
+			</staticText>
+			<rectangle>
+				<reportElement x="1" y="219" width="551" height="31" uuid="07031a00-5d14-4c1b-a2b4-f2dfccd02e69"/>
+			</rectangle>
+			<staticText>
+				<reportElement x="5" y="228" width="74" height="15" uuid="5232351f-0582-4d98-b99a-8eae9a1db57a"/>
+				<text><![CDATA[Possui alergia?]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="83" y="228" width="73" height="15" uuid="078815c0-9888-4e9d-bd1d-801b7a0e803a">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textFieldExpression><![CDATA[($F{alergiasoun}==true?"Sim":"Não")]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="242" y="230" width="299" height="13" isPrintWhenDetailOverflows="true" uuid="d1970509-3b44-463b-b57e-cf9db3ec70f6">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textFieldExpression><![CDATA[($F{alergiasoun}==true?$F{cabeca}:"")]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="5" y="257" width="343" height="15" uuid="a34121e0-3199-4b93-ad3f-9ea81c218189"/>
+				<text><![CDATA[OBSERVAÇÃO DA RECEPÇÃO / ENFERMAGEM :]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="11" y="93" width="20" height="18" uuid="5a6112f2-1662-443d-a05e-a24d855432c3">
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement>
+					<font size="14"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{eupneico}==true?"X":"")]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="106" y="93" width="20" height="18" uuid="e1f8a10f-2b82-4c77-b442-4404ae996314">
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement>
+					<font size="14"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{dispneico}==true?"X":"")]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="217" y="93" width="20" height="18" uuid="d78cbed1-3786-4430-9ef9-b7b66f285ab5">
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement>
+					<font size="14"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{taquipneico}==true?"X":"")]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="337" y="93" width="20" height="18" uuid="4f37d27d-c82b-4438-9eca-a5136efc012e">
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement>
+					<font size="14"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{acianotico}==true?"X":"")]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="452" y="92" width="20" height="18" uuid="1f4b5681-837c-47f8-bbe0-b81d44f91ccd">
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement>
+					<font size="14"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{cianotico}==true?"X":"")]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="452" y="117" width="20" height="18" uuid="f40571e6-ef36-4587-bef9-bb76c1c4bc80">
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement>
+					<font size="14"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{sudoreico}==true?"X":"")]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="452" y="140" width="20" height="18" uuid="5f70fb10-989e-4953-a26e-54585e928a25">
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement>
+					<font size="14"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{etilismo}==true?"X":"")]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="452" y="167" width="20" height="18" uuid="6814f31e-68be-4462-b2b4-2a010c715ad2">
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement>
+					<font size="14"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{comatoso}==true?"X":"")]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="335" y="118" width="20" height="18" uuid="efa09edf-d2d0-4260-baa7-0e33fbd346ea">
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement>
+					<font size="14"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{hipocorado}==true?"X":"")]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="335" y="141" width="20" height="18" uuid="8884af40-893b-49e3-8b00-4d56cf118564">
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement>
+					<font size="14"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{pulsofino}==true?"X":"")]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="336" y="166" width="20" height="18" uuid="561c5e07-f77d-4488-a5f0-83302557b447">
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement>
+					<font size="14"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{torporoso}==true?"X":"")]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="335" y="191" width="20" height="18" uuid="e19a5d6a-7900-4e4b-ad0a-4f3559e491fa">
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement>
+					<font size="14"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{miotico}==true?"X":"")]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="452" y="190" width="20" height="18" uuid="f304c45a-7e3c-4ff1-9d89-75df1c06f5fe">
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement>
+					<font size="14"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{rigideznuca}==true?"X":"")]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="218" y="191" width="20" height="18" uuid="c43f3746-3cc4-4b1d-af4f-b509a4dd11eb">
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement>
+					<font size="14"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{midriatico}==true?"X":"")]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="218" y="166" width="20" height="18" uuid="70333b47-03df-4c78-ad56-c5f41c1e4335">
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement>
+					<font size="14"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{desorientado}==true?"X":"")]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="217" y="140" width="20" height="18" uuid="8552a67f-7e31-41d4-9868-0bd8b74f7741">
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement>
+					<font size="14"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{pulsocheio}==true?"X":"")]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="217" y="116" width="20" height="18" uuid="95132e0d-b14a-4141-af25-2f81fa3501fa">
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement>
+					<font size="14"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{normocorado}==true?"X":"")]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="106" y="118" width="20" height="18" uuid="8e19c290-3a96-4ffb-9ef2-d4871f282e9a">
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement>
+					<font size="14"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{desidratado}==true?"X":"")]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="107" y="142" width="20" height="18" uuid="6b1f1d57-813c-41a6-9950-c78b4514dc3c">
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement>
+					<font size="14"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{icterico}==true?"X":"")]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="107" y="166" width="20" height="18" uuid="7b009a68-54b0-4b92-a91f-4ae72b43a026">
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement>
+					<font size="14"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{orientado}==true?"X":"")]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="107" y="190" width="20" height="18" uuid="2cc41ea7-e718-40f5-ab33-8d5121d1bd45">
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement>
+					<font size="14"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{anisocorico}==true?"X":"")]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="10" y="191" width="20" height="18" uuid="3d3aada2-e598-4dc0-9b5f-eb8a83af7e3c">
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement>
+					<font size="14"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{isocorico}==true?"X":"")]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="11" y="166" width="20" height="18" uuid="f1e3219a-4c76-4bc7-9ef4-e897087ac269">
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement>
+					<font size="14"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{acordado}==true?"X":"")]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="11" y="141" width="20" height="18" uuid="5f09af00-2869-44fd-8351-83404e1d923e">
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement>
+					<font size="14"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{anisocorico}==true?"X":"")]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="11" y="117" width="20" height="18" uuid="740a4e76-d6ce-4195-bd5b-bf4639efd7b0">
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement>
+					<font size="14"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{hidratado}==true?"X":"")]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="170" y="229" width="66" height="14" uuid="c44374cc-146c-42e9-9934-3926f3c03580"/>
+				<textFieldExpression><![CDATA[($F{alergiasoun}==true?"Qual?":"")]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="308" y="69" width="22" height="15" uuid="bfca5320-80cd-4141-a6a2-062ae4263142"/>
+				<text><![CDATA[�C]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="2" y="70" width="38" height="15" uuid="ec22465b-7682-4e37-aa74-b9f41a350b16"/>
+				<text><![CDATA[P.A.:]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="514" y="69" width="39" height="15" uuid="f81ed37f-7431-4f6b-b824-6b959a3350bb">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Center"/>
+				<textFieldExpression><![CDATA[$F{spo}+" %"]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="485" y="69" width="33" height="15" uuid="cff0a12f-d8ed-4881-a092-254aafcdeacb"/>
+				<text><![CDATA[SPO2]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="77" y="69" width="28" height="15" uuid="c2efdd0d-2430-47fe-8511-1e6bf3100414">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textFieldExpression><![CDATA[$F{padiast}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="29" y="69" width="30" height="15" uuid="64a62441-6acf-4ce1-b6ff-014d3d257451">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textFieldExpression><![CDATA[$F{pasist}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="211" y="69" width="38" height="15" uuid="5d62142d-10ad-44bc-8064-5ab426ae87fb"/>
+				<text><![CDATA[bpm]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="415" y="69" width="50" height="15" uuid="c8cb2625-56d8-4ff5-a0bf-d7fabdec5c3b"/>
+				<text><![CDATA[HGT :]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="334" y="69" width="38" height="15" uuid="dc2050c2-c06f-4a77-8a18-edcdbc614bfd"/>
+				<text><![CDATA[FR.:]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="354" y="69" width="36" height="15" uuid="5036937f-da0c-4dfb-8b95-23e1882c2abe">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textFieldExpression><![CDATA[$F{fr}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="108" y="69" width="38" height="15" uuid="bc872bd7-5923-4aaa-b927-b656872d8fb7"/>
+				<text><![CDATA[mmHg]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="271" y="70" width="41" height="15" uuid="850a4820-7dc1-4bdd-9524-c9338a7089dc">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Center"/>
+				<textFieldExpression><![CDATA[$F{tax}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="444" y="70" width="39" height="15" uuid="5cb43048-bca8-4c71-ac92-4d595cb14425">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Center"/>
+				<textFieldExpression><![CDATA[$F{peso}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="151" y="69" width="38" height="15" uuid="32f50a1c-379f-491a-b870-b0b09af18b78"/>
+				<text><![CDATA[F.C:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="392" y="69" width="38" height="15" uuid="95e93b0e-84f1-41c6-a82a-d1a5bf03629d"/>
+				<text><![CDATA[ipm]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="63" y="69" width="14" height="15" uuid="a37bb02d-db50-42ac-bafa-2397eee1d327"/>
+				<text><![CDATA[x]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="173" y="69" width="36" height="15" uuid="2c78d01b-d286-4833-931c-a9c07470b6a5">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Center"/>
+				<textFieldExpression><![CDATA[$F{fc}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="238" y="70" width="44" height="15" uuid="82231dc9-24c3-4e85-8ca7-dd6809d5dbdc"/>
+				<text><![CDATA[T.A.X :]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="0" y="46" width="66" height="13" uuid="275d2a0b-9d07-4087-a99b-b626382c5019">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Center" verticalAlignment="Bottom">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Triado por :]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="77" y="46" width="475" height="13" uuid="a84da614-8f50-4376-93f0-416d34613fbf"/>
+				<textElement verticalAlignment="Middle">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{cargo} + "(a) : " + $F{nome} + " - " + $F{corem}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="2" y="27" width="79" height="13" uuid="57695601-eefb-40e8-88cf-d10a253ff6a3">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Center" verticalAlignment="Bottom">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Classificação :]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="81" y="27" width="75" height="13" uuid="c4e97d73-1451-4675-8710-8925a1702449"/>
+				<textElement verticalAlignment="Middle">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{risco}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="356" y="27" width="44" height="13" uuid="fb837a37-d7be-48e5-a2dd-ea93ab785734">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Center" verticalAlignment="Bottom">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Data :]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="400" y="27" width="61" height="13" uuid="8e0f268c-53cf-4abc-85c0-dc48c3f3c508"/>
+				<textElement verticalAlignment="Middle">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{data}.substring(8,10) + "/" + $F{data}.substring(5,7)+"/"+$F{data}.substring(0,4)]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="464" y="27" width="36" height="13" uuid="a9b3a387-81ec-44f6-b486-cbfb544694a9">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Center" verticalAlignment="Bottom">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Hora :]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="501" y="27" width="51" height="13" uuid="e0377270-26ee-452c-8bbb-6ba12633ec80"/>
+				<textElement verticalAlignment="Middle">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{hora}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="3" y="3" width="80" height="13" uuid="713b1896-e074-497c-8d49-b8a7e2d0178a">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement>
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[* Triagem]]></text>
+			</staticText>
+			<line>
+				<reportElement x="77" y="9" width="471" height="1" uuid="aaad580c-6d78-4776-8467-cdfa95bea110"/>
+			</line>
+			<staticText>
+				<reportElement x="156" y="27" width="68" height="15" uuid="90614222-0537-42fb-9e18-aa40ecfed159"/>
+				<text><![CDATA[GLASGOW:]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="215" y="27" width="34" height="15" uuid="70a60860-22de-46ff-8a34-04c36d35314e"/>
+				<textElement textAlignment="Left">
+					<font isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{glasgow}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="251" y="27" width="84" height="15" uuid="b0518306-706a-4fdd-8309-708a19f25b86"/>
+				<text><![CDATA[NÍVEL DE DOR :]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="329" y="27" width="24" height="15" uuid="cac9aa5a-6b7e-49d6-991d-dae22463ebc0"/>
+				<textElement textAlignment="Left">
+					<font isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{niveldor}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+</jasperReport>

@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Created with Jaspersoft Studio version 6.20.6.final using JasperReports Library version 6.20.6-5c96b6aa8a39ac1dc6b6bea4b81168e16dd39231  -->
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="subevolucao" pageWidth="595" pageHeight="842" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20" uuid="9a6f3194-6e61-44fc-b7e8-6593cac55be0">
+	<property name="com.jaspersoft.studio.data.sql.tables" value=""/>
+	<property name="com.jaspersoft.studio.data.defaultdataadapter" value="conn"/>
+	<queryString language="SQL">
+		<![CDATA[select * from evolucaopaciente where nbam = 54165  order by cast(data as date), cast(horaev as time)]]>
+	</queryString>
+	<field name="idevolucao" class="java.lang.Integer">
+		<property name="com.jaspersoft.studio.field.name" value="idevolucao"/>
+		<property name="com.jaspersoft.studio.field.label" value="idevolucao"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="evolucaopaciente"/>
+	</field>
+	<field name="crm" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="crm"/>
+		<property name="com.jaspersoft.studio.field.label" value="crm"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="evolucaopaciente"/>
+	</field>
+	<field name="data" class="java.sql.Date">
+		<property name="com.jaspersoft.studio.field.name" value="data"/>
+		<property name="com.jaspersoft.studio.field.label" value="data"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="evolucaopaciente"/>
+	</field>
+	<field name="enfermaria" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="enfermaria"/>
+		<property name="com.jaspersoft.studio.field.label" value="enfermaria"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="evolucaopaciente"/>
+	</field>
+	<field name="leito" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="leito"/>
+		<property name="com.jaspersoft.studio.field.label" value="leito"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="evolucaopaciente"/>
+	</field>
+	<field name="local" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="local"/>
+		<property name="com.jaspersoft.studio.field.label" value="local"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="evolucaopaciente"/>
+	</field>
+	<field name="medico" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="medico"/>
+		<property name="com.jaspersoft.studio.field.label" value="medico"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="evolucaopaciente"/>
+	</field>
+	<field name="nbam" class="java.lang.Integer">
+		<property name="com.jaspersoft.studio.field.name" value="nbam"/>
+		<property name="com.jaspersoft.studio.field.label" value="nbam"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="evolucaopaciente"/>
+	</field>
+	<field name="pedido" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="pedido"/>
+		<property name="com.jaspersoft.studio.field.label" value="pedido"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="evolucaopaciente"/>
+	</field>
+	<field name="pedidodomed" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="pedidodomed"/>
+		<property name="com.jaspersoft.studio.field.label" value="pedidodomed"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="evolucaopaciente"/>
+	</field>
+	<field name="pedidolimpo" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="pedidolimpo"/>
+		<property name="com.jaspersoft.studio.field.label" value="pedidolimpo"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="evolucaopaciente"/>
+	</field>
+	<field name="prontuario" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="prontuario"/>
+		<property name="com.jaspersoft.studio.field.label" value="prontuario"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="evolucaopaciente"/>
+	</field>
+	<field name="relato" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="relato"/>
+		<property name="com.jaspersoft.studio.field.label" value="relato"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="evolucaopaciente"/>
+	</field>
+	<field name="horaev" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="horaev"/>
+		<property name="com.jaspersoft.studio.field.label" value="horaev"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="evolucaopaciente"/>
+	</field>
+	<field name="alta" class="java.lang.Boolean">
+		<property name="com.jaspersoft.studio.field.name" value="alta"/>
+		<property name="com.jaspersoft.studio.field.label" value="alta"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="evolucaopaciente"/>
+	</field>
+	<field name="unidade" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="unidade"/>
+		<property name="com.jaspersoft.studio.field.label" value="unidade"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="evolucaopaciente"/>
+	</field>
+	<field name="qtde" class="java.lang.Integer">
+		<property name="com.jaspersoft.studio.field.name" value="qtde"/>
+		<property name="com.jaspersoft.studio.field.label" value="qtde"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="evolucaopaciente"/>
+	</field>
+	<group name="Group1">
+		<groupExpression><![CDATA[$F{data}]]></groupExpression>
+		<groupHeader>
+			<band height="14">
+				<textField>
+					<reportElement x="0" y="0" width="60" height="13" uuid="4daffd28-1133-4ee9-892c-da7f32786283"/>
+					<textFieldExpression><![CDATA[$F{data}]]></textFieldExpression>
+				</textField>
+				<textField>
+					<reportElement x="60" y="0" width="60" height="13" uuid="059396c0-6245-44fc-94c0-bab5c043cf43"/>
+					<textFieldExpression><![CDATA[$F{horaev}]]></textFieldExpression>
+				</textField>
+				<textField>
+					<reportElement x="120" y="-1" width="100" height="15" uuid="d30685c2-3416-4c07-81f7-3f384439753f"/>
+					<textFieldExpression><![CDATA[$F{enfermaria}]]></textFieldExpression>
+				</textField>
+				<textField>
+					<reportElement x="220" y="0" width="100" height="14" uuid="7df7a789-38ed-4492-9740-918c5f692d52"/>
+					<textFieldExpression><![CDATA[$F{leito}]]></textFieldExpression>
+				</textField>
+			</band>
+		</groupHeader>
+	</group>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band height="12" splitType="Stretch"/>
+	</title>
+	<detail>
+		<band height="13" splitType="Stretch">
+			<textField>
+				<reportElement stretchType="ContainerHeight" x="0" y="0" width="550" height="13" uuid="443c325a-f65b-4611-8e62-c210a157a120">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textFieldExpression><![CDATA[$F{relato}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+</jasperReport>

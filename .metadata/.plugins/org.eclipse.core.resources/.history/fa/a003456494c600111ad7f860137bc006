@@ -1,0 +1,2 @@
+ALTER TABLE logs
+    ADD COLUMN IF NOT EXISTS dados TEXT;

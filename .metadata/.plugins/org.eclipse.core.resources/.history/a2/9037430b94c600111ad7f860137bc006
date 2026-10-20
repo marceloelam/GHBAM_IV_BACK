@@ -1,0 +1,2 @@
+ALTER TABLE servidor2
+    ADD COLUMN IF NOT EXISTS personalizacaovisual BOOLEAN NOT NULL DEFAULT FALSE;

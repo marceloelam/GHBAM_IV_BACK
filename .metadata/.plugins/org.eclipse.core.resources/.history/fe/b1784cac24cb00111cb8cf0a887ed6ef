@@ -1,0 +1,7 @@
+CREATE TABLE IF NOT EXISTS unidade_video_config (
+    sigla VARCHAR(15) PRIMARY KEY,
+    tipo_transicao VARCHAR(20) NOT NULL DEFAULT 'corte',
+    duracao_transicao DOUBLE PRECISION NOT NULL DEFAULT 1.0,
+    mudo BOOLEAN NOT NULL DEFAULT FALSE,
+    volume INTEGER NOT NULL DEFAULT 80
+);

@@ -1,0 +1,11 @@
+-- Suporte a multiplos municipios, cada um com varias unidades (visao de produto:
+-- sistema na internet, atendendo varios municipios). No credenciamento oficial do
+-- DATASUS (Portal de Servicos), o certificado fica associado a um "estabelecimento
+-- cessionario" (o municipio/gestor), com as unidades penduradas como "estabelecimentos
+-- filhos" do mesmo credenciamento - nao um certificado por unidade.
+--
+-- codigo_gestor agrupa as unidades do mesmo municipio/gestor: quando preenchido, a
+-- credencial da integracao SUS (IntegracaoSusCredencial) e compartilhada por todas as
+-- unidades com o mesmo codigo, em vez de duplicada uma por uma. Vazio (padrao) preserva
+-- o comportamento atual - cada unidade e "gestora de si mesma".
+ALTER TABLE configurarunidade ADD COLUMN codigo_gestor VARCHAR(30);

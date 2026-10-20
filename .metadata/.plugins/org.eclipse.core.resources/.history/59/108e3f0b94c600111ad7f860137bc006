@@ -1,0 +1,257 @@
+# ========================
+# SERVIDOR
+# ========================
+quarkus.dev-ui.hosts=0.0.0.0
+quarkus.http.host=0.0.0.0
+quarkus.http.port=8080
+# Habilita leitura dos headers X-Forwarded-For / X-Real-IP enviados pelo proxy reverso (Nginx)
+quarkus.http.proxy.proxy-address-forwarding=true
+quarkus.http.proxy.allow-forwarded=true
+
+# ========================
+# APP
+# ========================
+app.version=4.0.0
+quarkus.jvm.args=-Duser.timezone=America/Sao_Paulo
+# HuggingFace proxy configuration via featherless-ai provider
+# Obs: o token NÃO fica aqui — está em AppSecrets.java (HF_API_TOKEN)
+# Provider usado: featherless-ai (confirmado funcional via testes)
+# URL: POST /v1/chat/completions com {"model":"...","messages":[...]} no body
+hf.router.url=${HF_ROUTER_URL:https://router.huggingface.co/featherless-ai}
+# Mapeamento de nomes amigáveis para IDs reais: formato alias:real,alias2:real2
+hf.model.map=${HF_MODEL_MAP:}
+# Modelos disponíveis via featherless-ai provider (verificados via inferenceProviderMapping)
+hf.available.models=${HF_AVAILABLE_MODELS:Qwen/Qwen2.5-1.5B-Instruct,HuggingFaceH4/zephyr-7b-beta,Qwen/Qwen2.5-7B-Instruct,Qwen/Qwen3-1.7B}
+# Modelo de fallback: Qwen2.5-1.5B-Instruct (menor, mais rápido, confirmado funcional)
+hf.fallback.model=${HF_FALLBACK_MODEL:Qwen/Qwen2.5-1.5B-Instruct}
+# Request settings
+hf.request.timeout.ms=${HF_REQUEST_TIMEOUT_MS:30000}
+hf.request.retries=${HF_REQUEST_RETRIES:2}
+
+# ========================
+# BANCO DE DADOS - CONFIGURAÇÃO OTIMIZADA E ROBUSTA
+# ========================
+quarkus.datasource.db-kind=postgresql
+quarkus.datasource.username=${DB_USER:postgres}
+# SEGURANÇA: senha fornecida exclusivamente via variável de ambiente DB_PASSWORD (sem valor padrão)
+quarkus.datasource.password=${DB_PASSWORD}
+quarkus.datasource.jdbc.url=jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}?tcpKeepAlive=true&loginTimeout=30&connectTimeout=30&socketTimeout=120&applicationName=ghbam-app&reWriteBatchedInserts=true&options=-c%20statement_timeout=60000%20-c%20idle_in_transaction_session_timeout=120000
+
+# Pool de Conexões - Configuração inspirada no C3P0 do JSF
+quarkus.datasource.jdbc.min-size=5
+quarkus.datasource.jdbc.initial-size=5
+quarkus.datasource.jdbc.max-size=50
+
+# Timeouts mais tolerantes (alinhados com JSF)
+quarkus.datasource.jdbc.acquisition-timeout=PT60S
+quarkus.datasource.jdbc.max-lifetime=PT30M
+quarkus.datasource.jdbc.idle-removal-interval=PT5M
+quarkus.datasource.jdbc.connection-timeout=PT30S
+
+# Validação aprimorada de conexões
+quarkus.datasource.jdbc.validation-query=SELECT 1
+quarkus.datasource.jdbc.validate-on-borrow=true
+quarkus.datasource.jdbc.validate-on-connect=true
+quarkus.datasource.jdbc.background-validation-interval=PT2M
+
+# Detecção e remoção de conexões vazadas
+quarkus.datasource.jdbc.leak-detection-interval=PT1M
+
+# Pool preparado para statements (otimização)
+quarkus.datasource.jdbc.prepared-statement-cache-size=50
+quarkus.datasource.jdbc.prepared-statement-cache-lru-size=100
+
+# Health check do banco
+quarkus.datasource.health.enabled=true
+quarkus.datasource.jdbc.health.enabled=true
+
+# ========================
+# HIBERNATE
+# ========================
+%dev.quarkus.hibernate-orm.database.generation=update
+%prod.quarkus.hibernate-orm.database.generation=none
+quarkus.hibernate-orm.log.sql=false
+
+# Configurações adicionais do Hibernate
+quarkus.hibernate-orm.jdbc.statement-batch-size=20
+quarkus.hibernate-orm.jdbc.batch-versioned-data=true
+quarkus.hibernate-orm.fetch.batch-size=16
+
+# ========================
+# LDAP / ACTIVE DIRECTORY
+# ========================
+quarkus.security.ldap.dir-context.url=${LDAP_SERVER_URI}
+quarkus.security.ldap.dir-context.principal=${LDAP_BIND_DN}
+# SEGURANÇA: senha fornecida exclusivamente via variável de ambiente LDAP_BIND_PASSWORD
+quarkus.security.ldap.dir-context.password=${LDAP_BIND_PASSWORD}
+
+quarkus.security.ldap.identity-mapping.search-base-dn=${LDAP_USER_SEARCH_BASE}
+quarkus.security.ldap.identity-mapping.search-filter=${LDAP_USER_SEARCH_FILTER:(sAMAccountName={0})}
+quarkus.security.ldap.identity-mapping.rdn-identifier=${LDAP_RDN_IDENTIFIER:sAMAccountName}
+
+# Configurações adicionais para verificação de status de usuário no AD
+ldap.admin.user=${LDAP_ADMIN_USER}
+# SEGURANÇA: senha fornecida exclusivamente via variável de ambiente LDAP_ADMIN_PASSWORD
+ldap.admin.password=${LDAP_ADMIN_PASSWORD}
+ldap.domain=${LDAP_DOMAIN}
+
+# ========================
+# COOKIES
+# ========================
+quarkus.http.cookie.same-site=None
+quarkus.http.cookie.secure=true
+
+# ========================
+# LOG - INCLUINDO DEBUG DO POOL DE CONEXÕES
+# ========================
+quarkus.log.console.level=INFO
+%dev.quarkus.log.console.level=DEBUG
+
+# Logs específicos para diagnóstico de conexões (remover em produção após resolver)
+%dev.quarkus.log.category."io.agroal".level=DEBUG
+%dev.quarkus.log.category."org.postgresql".level=DEBUG
+%dev.quarkus.log.category."org.hibernate.engine.jdbc.connections".level=DEBUG
+
+# Logs para o proxy que captura setAutoCommit (classe br.gov.secure.DataSourceProxyProducer)
+# 1) Ative o flag em `AppSecrets` editando:
+#      public static final boolean ENABLE_SET_AUTOCOMMIT_LOG = true;
+#    e recompile/reinicie a aplicação (é uma constante em Java).
+# 2) Habilite log DEBUG no perfil de desenvolvimento para ver mensagens FINE/DEBUG:
+%dev.quarkus.log.category."br.gov.secure".level=DEBUG
+
+
+quarkus.log.async=true
+quarkus.log.async.queue-length=10000
+quarkus.log.async.overflow=block
+
+# ========================
+# SWAGGER
+# ========================
+quarkus.swagger-ui.always-include=true
+
+# ========================
+# WEBSOCKET
+# ========================
+quarkus.websocket.max-frame-size=1048576
+
+# ========================
+# RELATÓRIOS (JASPER)
+# ========================
+%dev.reports.directory=${REPORTS_DIR}
+%prod.reports.directory=${REPORTS_DIR:/opt/app/reports}
+reports.directory=${REPORTS_DIR:reports}
+
+# Cache de relatórios
+reports.cache.enabled=true
+reports.cache.max-size=50
+reports.cache.ttl.minutes=60
+
+# Jasper otimizações
+net.sf.jasperreports.virtualizer.enabled=true
+net.sf.jasperreports.virtualizer.max.size=100
+net.sf.jasperreports.virtualizer.initial.size=10
+net.sf.jasperreports.print.keep.full.text=false
+net.sf.jasperreports.export.pdf.compressed=true
+
+# ========================
+# SEGURANÇA / JWT
+# ========================
+smallrye.jwt.sign.key.location=classpath:jwt/privateKey.pem
+mp.jwt.verify.publickey.location=classpath:jwt/publicKey.pem
+mp.jwt.verify.issuer=ghbam-iv
+
+# ========================
+# CORS (Safari / iOS compatível)
+# ========================
+quarkus.http.cors=true
+quarkus.http.cors.origins=https://ghbam-iv.itaguai.rj.gov.br,http://localhost:3000,http://localhost:3003,http://${DB_HOST}:3000,http://${DB_HOST}:8080,http://localhost:4567
+quarkus.http.cors.methods=GET,PUT,POST,DELETE,PATCH,OPTIONS
+quarkus.http.cors.headers=Content-Type,Authorization,X-Requested-With,Accept,X-GHBAM-USER-ID,X-GHBAM-USER-NAME,X-GHBAM-MATRICULA,X-GHBAM-ROLE,X-GHBAM-UNIT,X-GHBAM-PERMISSIONS,X-GHBAM-REQUEST-ID
+quarkus.http.cors.exposed-headers=Content-Disposition
+quarkus.http.cors.access-control-allow-credentials=true
+quarkus.http.cors.access-control-max-age=PT24H
+
+# ========================
+# SSL (PRODUÇÃO)
+# ========================
+%prod.quarkus.http.ssl.certificate.files=/etc/letsencrypt/live/ghbam-iv.itaguai.rj.gov.br/fullchain.pem
+%prod.quarkus.http.ssl.certificate.key-files=/etc/letsencrypt/live/ghbam-iv.itaguai.rj.gov.br/privkey.pem
+%prod.quarkus.http.ssl.port=8443
+%prod.quarkus.http.insecure-requests=redirect
+
+# ========================
+# BUILD / RECURSOS
+# ========================
+quarkus.package.resources-includes=reports/**
+quarkus.native.resources.includes=reports/.*\.jrxml,reports/.*\.jasper,reports/.*\.jpg,reports/.*\.png
+
+# JNI
+quarkus.jni.enable=true
+quarkus.jni.library-paths=${NITGEN_LIB}:/usr/local/lib:/usr/lib/x86_64-linux-gnu/jni
+
+# ========================
+# THREADS / PERFORMANCE
+# ========================
+quarkus.thread-pool.max-threads=25
+quarkus.thread-pool.queue-size=1000
+quarkus.thread-pool.growth-resistance=0.5
+quarkus.vertx.event-loops-pool-size=4
+
+# ========================
+# NATIVE IMAGE (se aplicável)
+# ========================
+quarkus.native.native-image-xmx=4g
+quarkus.native.additional-build-args=-R:MaxHeapSize=4g,-R:MinHeapSize=1g
+
+# ========================
+# TRANSACTION MANAGER
+# ========================
+# Deve ser MAIOR que o statement_timeout do PostgreSQL (60s) para evitar
+# race condition: se ambos expirarem juntos, o JTA cancela a transação antes
+# da exceção do DB se propagar, causando ARJUNA016102 no commit.
+quarkus.transaction-manager.default-transaction-timeout=PT120S
+quarkus.transaction-manager.enable-recovery=true
+
+# ========================
+# MICROMETER / MÉTRICAS (opcional para monitoramento)
+# ========================
+quarkus.micrometer.export.prometheus.enabled=true
+quarkus.micrometer.binder.jdbc.enabled=true
+quarkus.micrometer.binder.http-client.enabled=true
+quarkus.micrometer.binder.http-server.enabled=true
+
+# ========================
+# DEV
+# ========================
+%dev.quarkus.log.console.format=%d{HH:mm:ss} %-5p [%c{2.}] (%t) %s%e%n
+%dev.quarkus.log.console.color=true
+quarkus.http.auth.form.error-page=/error.html
+
+# ========================
+# SECURE CONFIG (br.gov.secure.SecureConfig)
+# Propriedades lidas pela classe SecureConfig via @ConfigMapping(prefix="secure.app").
+# Os valores devem ser fornecidos exclusivamente via variáveis de ambiente.
+# Para desenvolvimento local, defina essas variáveis no arquivo .env (gitignored).
+# ========================
+secure.app.database.password=${DB_PASSWORD}
+secure.app.database.host=${DB_HOST}
+secure.app.database.port=${DB_PORT:5432}
+secure.app.database.name=${DB_NAME:hospitalit}
+secure.app.database.username=${DB_USER:postgres}
+
+secure.app.ldap.server-uri=${LDAP_SERVER_URI:ldap://itg.rio:389}
+secure.app.ldap.bind-dn=${LDAP_BIND_DN:itadeskAuth@itg.rio}
+secure.app.ldap.bind-password=${LDAP_BIND_PASSWORD}
+secure.app.ldap.search-base-dn=${LDAP_USER_SEARCH_BASE:DC=itg,DC=rio}
+secure.app.ldap.admin-user=${LDAP_ADMIN_USER:itadeskAuth@itg.rio}
+secure.app.ldap.admin-password=${LDAP_ADMIN_PASSWORD}
+secure.app.ldap.domain=${LDAP_DOMAIN:itg.rio}
+
+secure.app.app.reports-dir=${REPORTS_DIR:reports}
+secure.app.app.jwt-issuer=ghbam-iv
+
+# Jackson: serializar datas java.time como strings ISO-8601 (evita problema de timezone com LocalDate)
+quarkus.jackson.write-dates-as-timestamps=false
+
+# Hibernate: usar UTC no JDBC para evitar convers�o de fuso com LocalDate
+quarkus.hibernate-orm.jdbc.timezone=UTC

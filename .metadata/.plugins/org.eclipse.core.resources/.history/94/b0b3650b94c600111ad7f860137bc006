@@ -1,0 +1,235 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Created with Jaspersoft Studio version 6.18.1.final using JasperReports Library version 6.18.1-9d75d1969e774d4f179fb3be8401e98a0e6d1611  -->
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="graficoatendimentos" pageWidth="595" pageHeight="842" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20" uuid="199d6a17-8670-44dc-a36f-8d3ec47a618d">
+	<property name="com.jaspersoft.studio.data.sql.tables" value=""/>
+	<property name="com.jaspersoft.studio.data.defaultdataadapter" value="teste"/>
+	<property name="com.jaspersoft.studio.unit." value="cm"/>
+	<property name="com.jaspersoft.studio.unit.pageHeight" value="cm"/>
+	<property name="com.jaspersoft.studio.unit.pageWidth" value="cm"/>
+	<property name="com.jaspersoft.studio.unit.topMargin" value="cm"/>
+	<property name="com.jaspersoft.studio.unit.bottomMargin" value="cm"/>
+	<property name="com.jaspersoft.studio.unit.leftMargin" value="cm"/>
+	<property name="com.jaspersoft.studio.unit.rightMargin" value="cm"/>
+	<property name="com.jaspersoft.studio.unit.columnWidth" value="cm"/>
+	<property name="com.jaspersoft.studio.unit.columnSpacing" value="cm"/>
+	<parameter name="datainicial" class="java.lang.String"/>
+	<parameter name="datafinal" class="java.lang.String"/>
+	<parameter name="setor" class="java.lang.String"/>
+	<parameter name="logo" class="java.lang.String"/>
+	<parameter name="hospital" class="java.lang.String"/>
+	<parameter name="ssigla" class="java.lang.String"/>
+	<parameter name="prefeitura" class="java.lang.String"/>
+	<parameter name="complemento" class="java.lang.String"/>
+	<queryString language="SQL">
+		<![CDATA[SELECT cast( avaliacao.data as date)	,avaliacao.cor, count(avaliacao.cor ) as total
+ FROM avaliacao, registro, bam
+	 	WHERE
+bam.avaliacao_idavaliacao = avaliacao.idavaliacao
+and bam.registro_idregistro = registro.idregistro  and bam.unidade =  $P{ssigla}
+and cast(avaliacao.data as date)  between  cast($P{datainicial} as date)  and cast($P{datafinal} as date)
+group by cast(avaliacao.data as date), avaliacao.cor
+ORDER BY cast(avaliacao.data as date), avaliacao.cor]]>
+	</queryString>
+	<field name="data" class="java.sql.Date">
+		<property name="com.jaspersoft.studio.field.name" value="data"/>
+		<property name="com.jaspersoft.studio.field.label" value="data"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="cor" class="java.lang.Integer">
+		<property name="com.jaspersoft.studio.field.name" value="cor"/>
+		<property name="com.jaspersoft.studio.field.label" value="cor"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
+	</field>
+	<field name="total" class="java.lang.Long">
+		<property name="com.jaspersoft.studio.field.name" value="total"/>
+		<property name="com.jaspersoft.studio.field.label" value="total"/>
+	</field>
+	<variable name="total1" class="java.lang.Long" resetType="Group" resetGroup="Group1" calculation="Sum">
+		<variableExpression><![CDATA[$F{total}]]></variableExpression>
+	</variable>
+	<variable name="total2" class="java.lang.Integer" resetType="Group" resetGroup="Group1" calculation="Count">
+		<variableExpression><![CDATA[$F{total}]]></variableExpression>
+	</variable>
+	<variable name="total3" class="java.lang.Long" resetType="Group" resetGroup="Group1" calculation="Sum">
+		<variableExpression><![CDATA[$F{total}]]></variableExpression>
+	</variable>
+	<variable name="total4" class="java.lang.Long" resetType="Page" calculation="Sum">
+		<variableExpression><![CDATA[$F{total}]]></variableExpression>
+	</variable>
+	<variable name="cor1" class="java.lang.Integer" resetType="Group" resetGroup="Group1" calculation="Count">
+		<variableExpression><![CDATA[$F{cor}]]></variableExpression>
+	</variable>
+	<variable name="total5" class="java.lang.Long" resetType="Group" resetGroup="Group2" calculation="Sum">
+		<variableExpression><![CDATA[$F{total}]]></variableExpression>
+	</variable>
+	<variable name="azul1" class="java.lang.Integer" resetType="Page" calculation="Sum">
+		<variableExpression><![CDATA[($F{cor}==1?$F{total}:0)]]></variableExpression>
+	</variable>
+	<variable name="verde1" class="java.lang.Integer" calculation="Sum">
+		<variableExpression><![CDATA[($F{cor}==2?$F{total}:0)]]></variableExpression>
+	</variable>
+	<variable name="amarelo1" class="java.lang.Integer" calculation="Sum">
+		<variableExpression><![CDATA[($F{cor}==3?$F{total}:0)]]></variableExpression>
+	</variable>
+	<variable name="laranja1" class="java.lang.Integer" calculation="Sum">
+		<variableExpression><![CDATA[($F{cor}==4?$F{total}:0)]]></variableExpression>
+	</variable>
+	<variable name="vermelho1" class="java.lang.Integer" calculation="Sum">
+		<variableExpression><![CDATA[($F{cor}==5?$F{total}:0)]]></variableExpression>
+	</variable>
+	<variable name="total6" class="java.lang.Long" resetType="Page" calculation="Sum">
+		<variableExpression><![CDATA[$F{total}]]></variableExpression>
+	</variable>
+	<variable name="azul" class="java.lang.Integer" calculation="Sum">
+		<variableExpression><![CDATA[($F{cor}==1?$F{total}:0)]]></variableExpression>
+	</variable>
+	<group name="Group2">
+		<groupExpression><![CDATA[$F{data}]]></groupExpression>
+		<groupHeader>
+			<band height="21">
+				<rectangle>
+					<reportElement mode="Opaque" x="0" y="0" width="555" height="21" backcolor="#E8E6E6" uuid="21506abf-08b0-4284-932a-7333ef8f1be1"/>
+					<graphicElement>
+						<pen lineColor="rgba(0, 0, 0, 0.0)"/>
+					</graphicElement>
+				</rectangle>
+				<textField pattern="dd/MM/yyyy">
+					<reportElement x="2" y="0" width="128" height="20" uuid="2ffc458b-9544-44b7-83b3-a170c8947f55"/>
+					<textElement>
+						<font size="14" isBold="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$F{data}]]></textFieldExpression>
+				</textField>
+			</band>
+		</groupHeader>
+		<groupFooter>
+			<band height="25">
+				<textField>
+					<reportElement x="418" y="7" width="100" height="14" uuid="128f5886-0e5b-4643-9ea6-d1c32289d071"/>
+					<textFieldExpression><![CDATA["Total : " + $V{total5}]]></textFieldExpression>
+				</textField>
+				<line>
+					<reportElement x="370" y="3" width="132" height="1" uuid="99e37f5f-e4b1-47b6-a3b5-5cd249ec6c9c"/>
+				</line>
+			</band>
+		</groupFooter>
+	</group>
+	<group name="Group1">
+		<groupExpression><![CDATA[$F{cor}]]></groupExpression>
+		<groupHeader>
+			<band height="17">
+				<textField>
+					<reportElement x="20" y="2" width="475" height="15" uuid="79194542-5f02-4f9e-9a77-e59a553048c9"/>
+					<textElement textAlignment="Right" verticalAlignment="Middle"/>
+					<textFieldExpression><![CDATA[($F{cor}==1?"Azul":$F{cor}==2?"Verde":$F{cor}==3?"Amarelo":$F{cor}==4?"Laranja":"Vermelho") + " - " + $F{total}  +  " atendimento(s)"]]></textFieldExpression>
+				</textField>
+			</band>
+		</groupHeader>
+	</group>
+	<title>
+		<band height="78" splitType="Stretch">
+			<property name="com.jaspersoft.studio.unit.height" value="cm"/>
+			<staticText>
+				<reportElement x="98" y="10" width="211" height="20" uuid="d7413680-5133-43d4-b627-ac4e67dd5a1f"/>
+				<text><![CDATA[ESTADO DO RIO DE JANEIRO]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="98" y="41" width="211" height="20" uuid="c178ca9b-2773-44b2-ba89-551e2ac767af"/>
+				<text><![CDATA[Secretaria Municipal de Saúde]]></text>
+			</staticText>
+			<textField pattern="dd/MM/yyyy">
+				<reportElement x="457" y="10" width="100" height="30" uuid="b84c504d-9527-44fe-8b5b-711ca5138c11"/>
+				<textElement textAlignment="Right"/>
+				<textFieldExpression><![CDATA[new java.util.Date()]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="97" y="25" width="433" height="16" uuid="c893e127-5ad6-4298-84b0-217a305b85d4"/>
+				<textElement>
+					<font isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{prefeitura}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="-11" y="57" width="563" height="21" uuid="05a35001-f6f6-45bd-b6da-5e827dbf4345"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="11" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["CLASSIFICAÇÃO DE RISCO  ( " + ($P{setor} == null?"TODOS OS SETORES":$P{setor}) + " )"]]></textFieldExpression>
+			</textField>
+			<image hAlign="Center" vAlign="Middle" onErrorType="Blank">
+				<reportElement stretchType="RelativeToTallestObject" x="1" y="3" width="90" height="50" uuid="da91d033-b90c-4ce0-bfce-8584fbb53f14"/>
+				<imageExpression><![CDATA[new ByteArrayInputStream(org.apache.commons.codec.binary.Base64.decodeBase64($P{logo}.getBytes()))]]></imageExpression>
+			</image>
+		</band>
+	</title>
+	<pageHeader>
+		<band splitType="Stretch"/>
+	</pageHeader>
+	<pageFooter>
+		<band height="22"/>
+	</pageFooter>
+	<lastPageFooter>
+		<band height="140">
+			<rectangle>
+				<reportElement x="3" y="3" width="549" height="91" uuid="b86561e7-4fc8-49a6-adcc-dbebab4a6273"/>
+			</rectangle>
+			<textField>
+				<reportElement x="177" y="9" width="370" height="14" uuid="f869bf9c-aa97-4dc5-b07e-c2a39d65f6ba"/>
+				<textElement textAlignment="Right"/>
+				<textFieldExpression><![CDATA["A classificação AZUL teve um total de " + $V{azul} + " atendimento(s)"]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="177" y="25" width="371" height="14" uuid="eac54f69-182d-4fd7-bfc1-3f08de5a30a1"/>
+				<textElement textAlignment="Right"/>
+				<textFieldExpression><![CDATA["A classificação VERDE teve um total de " + $V{verde1} + " atendimento(s)"]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="177" y="41" width="371" height="14" uuid="cde9502f-7c1f-4466-a180-bf2f1e7a2f39"/>
+				<textElement textAlignment="Right"/>
+				<textFieldExpression><![CDATA["A classificação AMARELO teve um total de " + $V{amarelo1} + " atendimento(s)"]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="177" y="57" width="372" height="14" uuid="ce93c4c4-a5ff-4afa-b949-4d4d0a55aa77"/>
+				<textElement textAlignment="Right"/>
+				<textFieldExpression><![CDATA["A classificação LARANJA teve um total de " + $V{laranja1} + " atendimento(s)"]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="177" y="73" width="373" height="14" uuid="16efefc2-b6ca-4eeb-a2ed-22baad0d04fa"/>
+				<textElement textAlignment="Right"/>
+				<textFieldExpression><![CDATA["A classificação VERMELHO teve um total de " + $V{vermelho1} + " atendimento(s)"]]></textFieldExpression>
+			</textField>
+			<line>
+				<reportElement x="311" y="101" width="241" height="1" uuid="f880d067-0e6d-48ca-9de3-fe4031a303c7"/>
+			</line>
+			<textField>
+				<reportElement x="374" y="109" width="52" height="13" uuid="8d42592f-58e4-4cac-a4f1-0ebd255ed26a"/>
+				<box>
+					<topPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{azul} + $V{verde1}  + $V{amarelo1} + $V{laranja1} + $V{vermelho1}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="214" y="109" width="160" height="13" uuid="4a379160-20c8-4f14-b0fe-4e199e5fe320">
+					<property name="com.jaspersoft.studio.unit.height" value="cm"/>
+				</reportElement>
+				<textElement textAlignment="Right">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Total geral de ]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="426" y="109" width="126" height="13" uuid="6f071208-73e8-4c96-bd73-ce66c056dfbf">
+					<property name="com.jaspersoft.studio.unit.height" value="cm"/>
+				</reportElement>
+				<textElement>
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[paciente(s) classificado(s)]]></text>
+			</staticText>
+		</band>
+	</lastPageFooter>
+</jasperReport>

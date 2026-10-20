@@ -1,0 +1,5 @@
+ALTER TABLE servidor2
+    ADD COLUMN IF NOT EXISTS aihauditar BOOLEAN DEFAULT FALSE;
+
+ALTER TABLE servidor2
+    ADD COLUMN IF NOT EXISTS faturamentosusimportarretorno BOOLEAN DEFAULT FALSE;

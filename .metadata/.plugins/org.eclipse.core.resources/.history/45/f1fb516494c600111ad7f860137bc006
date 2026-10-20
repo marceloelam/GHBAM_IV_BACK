@@ -1,0 +1,341 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Created with Jaspersoft Studio version 6.18.1.final using JasperReports Library version 6.18.1-9d75d1969e774d4f179fb3be8401e98a0e6d1611  -->
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="evolucao" pageWidth="595" pageHeight="842" columnWidth="595" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0" isFloatColumnFooter="true" uuid="f90ae1c5-b6cd-4c8c-a958-50b845e718d3">
+	<property name="com.jaspersoft.studio.data.sql.tables" value=""/>
+	<property name="com.jaspersoft.studio.data.defaultdataadapter" value="itaguai_conn"/>
+	<property name="com.jaspersoft.studio.unit." value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.pageHeight" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.pageWidth" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.topMargin" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.bottomMargin" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.leftMargin" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.rightMargin" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.columnWidth" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.columnSpacing" value="pixel"/>
+	<parameter name="pbam" class="java.lang.String"/>
+	<parameter name="logo" class="java.lang.String"/>
+	<parameter name="hospital" class="java.lang.String"/>
+	<parameter name="ssigla" class="java.lang.String"/>
+	<parameter name="prefeitura" class="java.lang.String"/>
+	<parameter name="complemento" class="java.lang.String"/>
+	<parameter name="dt1" class="java.lang.String"/>
+	<queryString language="SQL">
+		<![CDATA[SELECT  p.*,	 	
+	 	(
+        select sum(sa.volumeml)
+        from balanco_hidrico_saidas sa
+        where cast(sa.bam as integer) = cast(s.bam as integer)
+          and sa.tipo = 'URINA'
+          and cast(sa.dataregistro as date )= cast($P{dt1} as date)
+    ) as soma_urina
+    ,
+    (
+        select sum(sa.volumeml)
+        from balanco_hidrico_saidas sa
+        where cast(sa.bam as integer) = cast(s.bam as integer)
+          and cast(sa.dataregistro as date )= cast($P{dt1} as date)
+          and cast(sa.bam as text) = $P{pbam}
+    ) as soma_Total_saida
+    ,(
+        select sum(e.volumeml)
+        from balanco_hidrico_entradas e
+        where cast(e.bam as integer) = cast(s.bam as integer)
+          and cast(e.dataregistro as date )= cast($P{dt1} as date)
+          and cast(e.bam as text) = $P{pbam}
+    ) as soma_Total_entrada
+    
+    from  balanco_hidrico_saidas s  
+left join prescricaocont p 
+    on cast(p.bam as integer) = cast(s.bam as integer)
+where cast(s.bam as text) = $P{pbam}
+  and cast(s.dataregistro as date) = cast($P{dt1} as date)
+  order by p.idprescricaocontinuacao desc limit 1]]>
+	</queryString>
+	<field name="idprescricaocontinuacao" class="java.lang.Integer">
+		<property name="com.jaspersoft.studio.field.name" value="idprescricaocontinuacao"/>
+		<property name="com.jaspersoft.studio.field.label" value="idprescricaocontinuacao"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="prescricaocont"/>
+	</field>
+	<field name="bam" class="java.lang.Integer">
+		<property name="com.jaspersoft.studio.field.name" value="bam"/>
+		<property name="com.jaspersoft.studio.field.label" value="bam"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="prescricaocont"/>
+	</field>
+	<field name="checado" class="java.lang.Boolean">
+		<property name="com.jaspersoft.studio.field.name" value="checado"/>
+		<property name="com.jaspersoft.studio.field.label" value="checado"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="prescricaocont"/>
+	</field>
+	<field name="data" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="data"/>
+		<property name="com.jaspersoft.studio.field.label" value="data"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="prescricaocont"/>
+	</field>
+	<field name="enfermeiro" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="enfermeiro"/>
+		<property name="com.jaspersoft.studio.field.label" value="enfermeiro"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="prescricaocont"/>
+	</field>
+	<field name="fc" class="java.lang.Double">
+		<property name="com.jaspersoft.studio.field.name" value="fc"/>
+		<property name="com.jaspersoft.studio.field.label" value="fc"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="prescricaocont"/>
+	</field>
+	<field name="feito" class="java.lang.Boolean">
+		<property name="com.jaspersoft.studio.field.name" value="feito"/>
+		<property name="com.jaspersoft.studio.field.label" value="feito"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="prescricaocont"/>
+	</field>
+	<field name="fr" class="java.lang.Double">
+		<property name="com.jaspersoft.studio.field.name" value="fr"/>
+		<property name="com.jaspersoft.studio.field.label" value="fr"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="prescricaocont"/>
+	</field>
+	<field name="hora" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="hora"/>
+		<property name="com.jaspersoft.studio.field.label" value="hora"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="prescricaocont"/>
+	</field>
+	<field name="idprescricao" class="java.lang.Integer">
+		<property name="com.jaspersoft.studio.field.name" value="idprescricao"/>
+		<property name="com.jaspersoft.studio.field.label" value="idprescricao"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="prescricaocont"/>
+	</field>
+	<field name="localsolicitante" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="localsolicitante"/>
+		<property name="com.jaspersoft.studio.field.label" value="localsolicitante"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="prescricaocont"/>
+	</field>
+	<field name="observacao" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="observacao"/>
+		<property name="com.jaspersoft.studio.field.label" value="observacao"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="prescricaocont"/>
+	</field>
+	<field name="observacao2" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="observacao2"/>
+		<property name="com.jaspersoft.studio.field.label" value="observacao2"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="prescricaocont"/>
+	</field>
+	<field name="padiast" class="java.lang.Double">
+		<property name="com.jaspersoft.studio.field.name" value="padiast"/>
+		<property name="com.jaspersoft.studio.field.label" value="padiast"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="prescricaocont"/>
+	</field>
+	<field name="pasist" class="java.lang.Double">
+		<property name="com.jaspersoft.studio.field.name" value="pasist"/>
+		<property name="com.jaspersoft.studio.field.label" value="pasist"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="prescricaocont"/>
+	</field>
+	<field name="peso" class="java.lang.Double">
+		<property name="com.jaspersoft.studio.field.name" value="peso"/>
+		<property name="com.jaspersoft.studio.field.label" value="peso"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="prescricaocont"/>
+	</field>
+	<field name="spo" class="java.lang.Double">
+		<property name="com.jaspersoft.studio.field.name" value="spo"/>
+		<property name="com.jaspersoft.studio.field.label" value="spo"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="prescricaocont"/>
+	</field>
+	<field name="tax" class="java.lang.Double">
+		<property name="com.jaspersoft.studio.field.name" value="tax"/>
+		<property name="com.jaspersoft.studio.field.label" value="tax"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="prescricaocont"/>
+	</field>
+	<field name="tecnico" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="tecnico"/>
+		<property name="com.jaspersoft.studio.field.label" value="tecnico"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="prescricaocont"/>
+	</field>
+	<field name="uuid" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="uuid"/>
+		<property name="com.jaspersoft.studio.field.label" value="uuid"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="prescricaocont"/>
+	</field>
+	<field name="peso2" class="java.lang.Double">
+		<property name="com.jaspersoft.studio.field.name" value="peso2"/>
+		<property name="com.jaspersoft.studio.field.label" value="peso2"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="prescricaocont"/>
+	</field>
+	<field name="soma_urina" class="java.lang.Double">
+		<property name="com.jaspersoft.studio.field.name" value="soma_urina"/>
+		<property name="com.jaspersoft.studio.field.label" value="soma_urina"/>
+	</field>
+	<field name="soma_total_saida" class="java.lang.Double">
+		<property name="com.jaspersoft.studio.field.name" value="soma_total_saida"/>
+		<property name="com.jaspersoft.studio.field.label" value="soma_total_saida"/>
+	</field>
+	<field name="soma_total_entrada" class="java.lang.Double">
+		<property name="com.jaspersoft.studio.field.name" value="soma_total_entrada"/>
+		<property name="com.jaspersoft.studio.field.label" value="soma_total_entrada"/>
+	</field>
+	<variable name="pam" class="java.lang.Double">
+		<variableExpression><![CDATA[($F{pasist} <= 0 || $F{padiast} <= 0) 
+    ? 0 
+    : new java.math.BigDecimal(($F{pasist} + 2 * $F{padiast}) / 3.0)
+        .setScale(1, java.math.RoundingMode.HALF_UP)
+        .doubleValue()]]></variableExpression>
+	</variable>
+	<variable name="totalsaidas" class="java.lang.Double" calculation="Sum"/>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band splitType="Stretch"/>
+	</title>
+	<detail>
+		<band height="41" splitType="Stretch">
+			<rectangle>
+				<reportElement mode="Opaque" x="0" y="0" width="552" height="41" backcolor="#F7F7F7" uuid="e0f0348d-92c9-42eb-ae46-317033a1629d">
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+				</reportElement>
+				<graphicElement>
+					<pen lineWidth="0.0" lineColor="#FCFAFA"/>
+				</graphicElement>
+			</rectangle>
+			<rectangle radius="9">
+				<reportElement mode="Opaque" x="252" y="26" width="101" height="13" backcolor="#E8DEAE" uuid="0a88292e-df4c-4a27-8c8a-f63b591a9f05">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<printWhenExpression><![CDATA[$F{spo} < 92]]></printWhenExpression>
+				</reportElement>
+				<graphicElement>
+					<pen lineWidth="0.0" lineColor="#E6E6E6"/>
+				</graphicElement>
+			</rectangle>
+			<rectangle radius="9">
+				<reportElement mode="Opaque" x="355" y="26" width="65" height="13" backcolor="#E8DEAE" uuid="a191c6a2-19c8-4f48-9be8-fd1165379aa1">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<printWhenExpression><![CDATA[($F{soma_total_saida} /$F{peso2} / 24)<0.5]]></printWhenExpression>
+				</reportElement>
+				<graphicElement>
+					<pen lineWidth="0.0" lineColor="#E6E6E6"/>
+				</graphicElement>
+			</rectangle>
+			<rectangle radius="9">
+				<reportElement mode="Opaque" x="148" y="26" width="101" height="13" backcolor="#E8DEAE" uuid="17333f79-459a-403e-926e-37a851fe1757">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<printWhenExpression><![CDATA[($F{tax} < 35 || $F{tax} >= 38)]]></printWhenExpression>
+				</reportElement>
+				<graphicElement>
+					<pen lineWidth="0.0" lineColor="#E6E6E6"/>
+				</graphicElement>
+			</rectangle>
+			<rectangle radius="9">
+				<reportElement mode="Opaque" x="331" y="10" width="67" height="13" backcolor="#E8DEAE" uuid="0539b167-e4b7-4245-acd5-a7f32c6a6b5e">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<printWhenExpression><![CDATA[($F{fr} < 50 || $F{fr} > 100)]]></printWhenExpression>
+				</reportElement>
+				<graphicElement>
+					<pen lineWidth="0.0" lineColor="#E6E6E6"/>
+				</graphicElement>
+			</rectangle>
+			<rectangle radius="9">
+				<reportElement mode="Opaque" x="261" y="10" width="67" height="13" backcolor="#E8DEAE" uuid="35177546-b4fc-4303-a597-d416020b8190">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+				</reportElement>
+				<graphicElement>
+					<pen lineWidth="0.0" lineColor="#E6E6E6"/>
+				</graphicElement>
+			</rectangle>
+			<rectangle radius="9">
+				<reportElement mode="Opaque" x="166" y="10" width="91" height="13" backcolor="#E8DEAE" uuid="500eeadc-5fed-4177-804b-2cd830f1a644">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<printWhenExpression><![CDATA[$V{pam} < 65]]></printWhenExpression>
+				</reportElement>
+				<graphicElement>
+					<pen lineWidth="0.0" lineColor="#E6E6E6"/>
+				</graphicElement>
+			</rectangle>
+			<staticText>
+				<reportElement x="6" y="1" width="41" height="12" forecolor="#8A8888" uuid="f160747f-9c02-408d-9b4f-3c709fe987ce">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement>
+					<font size="8" isBold="true"/>
+				</textElement>
+				<text><![CDATA[PAM]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="5" y="11" width="104" height="12" uuid="bf1edc2e-a217-459a-bf7e-e30e6ebad370">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement>
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{pam} + "mmHg"]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="false">
+				<reportElement mode="Transparent" x="167" y="11" width="99" height="11" backcolor="#F0E190" uuid="396d84bf-c3b8-44a9-bb89-7e6cfba86ea8"/>
+				<textElement>
+					<font size="8" isBold="true" isItalic="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{pam} != 0 && $V{pam} < 65 ? "PAM baixa (<65 mmHg)":""]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="false">
+				<reportElement mode="Transparent" x="272" y="11" width="54" height="11" backcolor="#F0E190" uuid="4b22797f-c551-49f0-8b91-56da8f97f775"/>
+				<textElement>
+					<font size="8" isBold="true" isItalic="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{fc} < 50 || $F{fc} > 100) ? "FC alterada" : ""]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="false">
+				<reportElement mode="Transparent" x="264" y="27" width="99" height="11" backcolor="#F0E190" uuid="210b562f-0f30-4049-aa5d-3b0ab03a1de2"/>
+				<textElement>
+					<font size="8" isBold="true" isItalic="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{spo} < 92 ?"SpO₂ baixa (<92%)":""]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="false">
+				<reportElement mode="Transparent" x="366" y="26" width="46" height="11" backcolor="#F0E190" uuid="485a2a25-1fe5-4964-b314-0819cd1730af"/>
+				<textElement>
+					<font size="8" isBold="true" isItalic="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{peso2} > 0?($F{soma_total_saida} /$F{peso2} / 24)<0.5?"Oligúria":"":""]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="false">
+				<reportElement mode="Transparent" x="341" y="10" width="55" height="11" backcolor="#F0E190" uuid="95024199-432c-44c3-88fd-b0f5926d36e9"/>
+				<textElement>
+					<font size="8" isBold="true" isItalic="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{fr} < 50 || $F{fr} > 100)?"FR alterada":""]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="false">
+				<reportElement mode="Transparent" x="156" y="26" width="91" height="11" backcolor="#F0E190" uuid="fd6b621e-8dea-4632-84df-ca171f48c955"/>
+				<textElement>
+					<font size="8" isBold="true" isItalic="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{tax} < 35 || $F{tax} >= 38)?"Temperatura alterada":""]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="false">
+				<reportElement mode="Transparent" x="436" y="26" width="84" height="11" backcolor="#F0E190" uuid="53f4712a-31dd-4629-aaff-4ea0d09b100a"/>
+				<textElement verticalAlignment="Bottom">
+					<font size="7" isBold="true" isItalic="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{soma_total_entrada} - $F{soma_total_saida})<0?"negativo":"positivo"]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="436" y="14" width="30" height="12" forecolor="#8A8888" uuid="23c6fd87-9f62-4dc4-bb16-93e211afcf6f">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Bottom">
+					<font size="8" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Saldo :]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="138" y="1" width="40" height="12" forecolor="#8A8888" uuid="593c7218-d871-4623-88a1-0d181f7d0237">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement>
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[STATUS]]></text>
+			</staticText>
+		</band>
+	</detail>
+</jasperReport>

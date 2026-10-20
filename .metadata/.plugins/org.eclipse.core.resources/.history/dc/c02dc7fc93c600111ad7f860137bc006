@@ -1,0 +1,750 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Created with Jaspersoft Studio version 6.18.1.final using JasperReports Library version 6.18.1-9d75d1969e774d4f179fb3be8401e98a0e6d1611  -->
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="escaladeenfermagem" pageWidth="595" pageHeight="842" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20" uuid="b9964f66-7b92-41d5-86cb-8072313480dc">
+	<property name="com.jaspersoft.studio.data.defaultdataadapter" value="itaguai_conn"/>
+	<property name="com.jaspersoft.studio.data.sql.tables" value=""/>
+	<property name="com.jaspersoft.studio.data.sql.SQLQueryDesigner.sash.w1" value="177"/>
+	<property name="com.jaspersoft.studio.data.sql.SQLQueryDesigner.sash.w2" value="817"/>
+	<parameter name="nbam" class="java.lang.String"/>
+	<parameter name="dt1" class="java.lang.String"/>
+	<parameter name="logo" class="java.lang.String"/>
+	<parameter name="hospital" class="java.lang.String"/>
+	<parameter name="ssigla" class="java.lang.String"/>
+	<parameter name="prefeitura" class="java.lang.String"/>
+	<parameter name="complemento" class="java.lang.String"/>
+	<parameter name="subbalancoentrada" class="java.lang.String"/>
+	<parameter name="subbalancosaida" class="java.lang.String"/>
+	<parameter name="subsinaisbalanco" class="java.lang.String"/>
+	<parameter name="totaisbalanco" class="java.lang.String"/>
+	<parameter name="alertas" class="java.lang.String"/>
+	<parameter name="resumoCalc" class="java.lang.String"/>
+	<parameter name="resumobal" class="java.lang.String"/>
+	<queryString>
+		<![CDATA[SELECT * FROM escaladeenfermagem where bam =  $P{nbam}  and cast(data as date) = cast( $P{dt1}  as date) order by id desc limit 1]]>
+	</queryString>
+	<field name="id" class="java.lang.Integer">
+		<property name="com.jaspersoft.studio.field.name" value="id"/>
+		<property name="com.jaspersoft.studio.field.label" value="id"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="escaladeenfermagem"/>
+	</field>
+	<field name="alimentacao" class="java.lang.Integer">
+		<property name="com.jaspersoft.studio.field.name" value="alimentacao"/>
+		<property name="com.jaspersoft.studio.field.label" value="alimentacao"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="escaladeenfermagem"/>
+	</field>
+	<field name="atividade" class="java.lang.Integer">
+		<property name="com.jaspersoft.studio.field.name" value="atividade"/>
+		<property name="com.jaspersoft.studio.field.label" value="atividade"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="escaladeenfermagem"/>
+	</field>
+	<field name="atividadebraden" class="java.lang.Integer">
+		<property name="com.jaspersoft.studio.field.name" value="atividadebraden"/>
+		<property name="com.jaspersoft.studio.field.label" value="atividadebraden"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="escaladeenfermagem"/>
+	</field>
+	<field name="auxilio" class="java.lang.Boolean">
+		<property name="com.jaspersoft.studio.field.name" value="auxilio"/>
+		<property name="com.jaspersoft.studio.field.label" value="auxilio"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="escaladeenfermagem"/>
+	</field>
+	<field name="bam" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="bam"/>
+		<property name="com.jaspersoft.studio.field.label" value="bam"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="escaladeenfermagem"/>
+	</field>
+	<field name="bradenrisco" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="bradenrisco"/>
+		<property name="com.jaspersoft.studio.field.label" value="bradenrisco"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="escaladeenfermagem"/>
+	</field>
+	<field name="bradentotal" class="java.lang.Integer">
+		<property name="com.jaspersoft.studio.field.name" value="bradentotal"/>
+		<property name="com.jaspersoft.studio.field.label" value="bradentotal"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="escaladeenfermagem"/>
+	</field>
+	<field name="comunicacao" class="java.lang.Integer">
+		<property name="com.jaspersoft.studio.field.name" value="comunicacao"/>
+		<property name="com.jaspersoft.studio.field.label" value="comunicacao"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="escaladeenfermagem"/>
+	</field>
+	<field name="createdat" class="java.sql.Timestamp">
+		<property name="com.jaspersoft.studio.field.name" value="createdat"/>
+		<property name="com.jaspersoft.studio.field.label" value="createdat"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="escaladeenfermagem"/>
+	</field>
+	<field name="cuidados" class="java.lang.Integer">
+		<property name="com.jaspersoft.studio.field.name" value="cuidados"/>
+		<property name="com.jaspersoft.studio.field.label" value="cuidados"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="escaladeenfermagem"/>
+	</field>
+	<field name="data" class="java.sql.Date">
+		<property name="com.jaspersoft.studio.field.name" value="data"/>
+		<property name="com.jaspersoft.studio.field.label" value="data"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="escaladeenfermagem"/>
+	</field>
+	<field name="diagnosticos" class="java.lang.Integer">
+		<property name="com.jaspersoft.studio.field.name" value="diagnosticos"/>
+		<property name="com.jaspersoft.studio.field.label" value="diagnosticos"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="escaladeenfermagem"/>
+	</field>
+	<field name="eliminacao" class="java.lang.Integer">
+		<property name="com.jaspersoft.studio.field.name" value="eliminacao"/>
+		<property name="com.jaspersoft.studio.field.label" value="eliminacao"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="escaladeenfermagem"/>
+	</field>
+	<field name="enfermaria" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="enfermaria"/>
+		<property name="com.jaspersoft.studio.field.label" value="enfermaria"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="escaladeenfermagem"/>
+	</field>
+	<field name="estadoemocional" class="java.lang.Integer">
+		<property name="com.jaspersoft.studio.field.name" value="estadoemocional"/>
+		<property name="com.jaspersoft.studio.field.label" value="estadoemocional"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="escaladeenfermagem"/>
+	</field>
+	<field name="friccao" class="java.lang.Integer">
+		<property name="com.jaspersoft.studio.field.name" value="friccao"/>
+		<property name="com.jaspersoft.studio.field.label" value="friccao"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="escaladeenfermagem"/>
+	</field>
+	<field name="fugulingrau" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="fugulingrau"/>
+		<property name="com.jaspersoft.studio.field.label" value="fugulingrau"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="escaladeenfermagem"/>
+	</field>
+	<field name="fugulintotal" class="java.lang.Integer">
+		<property name="com.jaspersoft.studio.field.name" value="fugulintotal"/>
+		<property name="com.jaspersoft.studio.field.label" value="fugulintotal"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="escaladeenfermagem"/>
+	</field>
+	<field name="higiene" class="java.lang.Integer">
+		<property name="com.jaspersoft.studio.field.name" value="higiene"/>
+		<property name="com.jaspersoft.studio.field.label" value="higiene"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="escaladeenfermagem"/>
+	</field>
+	<field name="historiaquedas" class="java.lang.Boolean">
+		<property name="com.jaspersoft.studio.field.name" value="historiaquedas"/>
+		<property name="com.jaspersoft.studio.field.label" value="historiaquedas"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="escaladeenfermagem"/>
+	</field>
+	<field name="leito" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="leito"/>
+		<property name="com.jaspersoft.studio.field.label" value="leito"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="escaladeenfermagem"/>
+	</field>
+	<field name="marchainsegura" class="java.lang.Boolean">
+		<property name="com.jaspersoft.studio.field.name" value="marchainsegura"/>
+		<property name="com.jaspersoft.studio.field.label" value="marchainsegura"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="escaladeenfermagem"/>
+	</field>
+	<field name="mobilidade" class="java.lang.Integer">
+		<property name="com.jaspersoft.studio.field.name" value="mobilidade"/>
+		<property name="com.jaspersoft.studio.field.label" value="mobilidade"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="escaladeenfermagem"/>
+	</field>
+	<field name="mobilidadebraden" class="java.lang.Integer">
+		<property name="com.jaspersoft.studio.field.name" value="mobilidadebraden"/>
+		<property name="com.jaspersoft.studio.field.label" value="mobilidadebraden"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="escaladeenfermagem"/>
+	</field>
+	<field name="morserisco" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="morserisco"/>
+		<property name="com.jaspersoft.studio.field.label" value="morserisco"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="escaladeenfermagem"/>
+	</field>
+	<field name="morsetotal" class="java.lang.Integer">
+		<property name="com.jaspersoft.studio.field.name" value="morsetotal"/>
+		<property name="com.jaspersoft.studio.field.label" value="morsetotal"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="escaladeenfermagem"/>
+	</field>
+	<field name="nutricional" class="java.lang.Integer">
+		<property name="com.jaspersoft.studio.field.name" value="nutricional"/>
+		<property name="com.jaspersoft.studio.field.label" value="nutricional"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="escaladeenfermagem"/>
+	</field>
+	<field name="paciente" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="paciente"/>
+		<property name="com.jaspersoft.studio.field.label" value="paciente"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="escaladeenfermagem"/>
+	</field>
+	<field name="sensorial" class="java.lang.Integer">
+		<property name="com.jaspersoft.studio.field.name" value="sensorial"/>
+		<property name="com.jaspersoft.studio.field.label" value="sensorial"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="escaladeenfermagem"/>
+	</field>
+	<field name="umidade" class="java.lang.Integer">
+		<property name="com.jaspersoft.studio.field.name" value="umidade"/>
+		<property name="com.jaspersoft.studio.field.label" value="umidade"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="escaladeenfermagem"/>
+	</field>
+	<field name="updatedat" class="java.sql.Timestamp">
+		<property name="com.jaspersoft.studio.field.name" value="updatedat"/>
+		<property name="com.jaspersoft.studio.field.label" value="updatedat"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="escaladeenfermagem"/>
+	</field>
+	<field name="usomedicacao" class="java.lang.Boolean">
+		<property name="com.jaspersoft.studio.field.name" value="usomedicacao"/>
+		<property name="com.jaspersoft.studio.field.label" value="usomedicacao"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="escaladeenfermagem"/>
+	</field>
+	<field name="usosonda" class="java.lang.Boolean">
+		<property name="com.jaspersoft.studio.field.name" value="usosonda"/>
+		<property name="com.jaspersoft.studio.field.label" value="usosonda"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="escaladeenfermagem"/>
+	</field>
+	<field name="ventilacao" class="java.lang.Integer">
+		<property name="com.jaspersoft.studio.field.name" value="ventilacao"/>
+		<property name="com.jaspersoft.studio.field.label" value="ventilacao"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="escaladeenfermagem"/>
+	</field>
+	<field name="servidor" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="servidor"/>
+		<property name="com.jaspersoft.studio.field.label" value="servidor"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="escaladeenfermagem"/>
+	</field>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band height="148" splitType="Stretch">
+			<image hAlign="Center" vAlign="Middle" onErrorType="Blank">
+				<reportElement stretchType="RelativeToTallestObject" x="1" y="3" width="90" height="50" uuid="517cab4f-8d39-4a25-b358-8e957b14556a"/>
+				<imageExpression><![CDATA[new ByteArrayInputStream(org.apache.commons.codec.binary.Base64.decodeBase64($P{logo}.getBytes()))]]></imageExpression>
+			</image>
+			<staticText>
+				<reportElement x="98" y="10" width="211" height="20" uuid="29e5c517-2c49-4ce7-98e6-2fa54d85870b"/>
+				<text><![CDATA[ESTADO DO RIO DE JANEIRO]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="97" y="25" width="433" height="16" uuid="6b772392-12ca-4ecd-bba3-3a14756abd3f"/>
+				<textElement>
+					<font isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{prefeitura}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="99" y="40" width="433" height="16" uuid="6b6fdb3b-6991-495d-a074-6be14e8e1ffb"/>
+				<textElement>
+					<font isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{hospital}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="98" y="56" width="211" height="20" uuid="c6771aaf-ca07-4b01-b7ae-278a79a99061"/>
+				<text><![CDATA[Secretaria Municipal de Saúde]]></text>
+			</staticText>
+			<textField pattern="dd/MM/yyyy">
+				<reportElement x="457" y="10" width="100" height="30" uuid="5e3437c7-ffd9-4895-81e0-02193b014f66"/>
+				<textElement textAlignment="Right"/>
+				<textFieldExpression><![CDATA[new java.util.Date()]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement mode="Opaque" x="1" y="86" width="556" height="20" backcolor="#B6C7FC" uuid="b50321ef-33b6-46ca-aa67-7208847f89a1"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="12" isBold="true"/>
+				</textElement>
+				<text><![CDATA[ESCALA DE ENFERMAGEM]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="68" y="133" width="193" height="11" uuid="315cbec3-0860-4484-9312-9ad68fa4339c"/>
+				<textElement textAlignment="Center">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{paciente}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="1" y="133" width="60" height="11" uuid="a41e1f4f-cd16-4f8d-a771-2d5a234c31d7">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Center">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{bam}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="261" y="133" width="100" height="11" uuid="86d9d28f-4e69-4e05-91ef-09fab51c32ca"/>
+				<textElement textAlignment="Center">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{enfermaria}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="366" y="133" width="100" height="11" uuid="c918ccea-1ca8-49f0-b1cb-3d55b5955cfd"/>
+				<textElement textAlignment="Center">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{leito}]]></textFieldExpression>
+			</textField>
+			<textField pattern="dd-MM-yyyy">
+				<reportElement x="469" y="132" width="87" height="11" uuid="60f30514-328b-4b74-bc7a-b2ce456a2446"/>
+				<textElement textAlignment="Center">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{data}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="2" y="120" width="59" height="11" uuid="ae12b302-5817-4b18-9a73-248cc5a9d9ac"/>
+				<textElement textAlignment="Center">
+					<font size="8" isBold="true"/>
+				</textElement>
+				<text><![CDATA[BAM]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="70" y="120" width="191" height="11" uuid="df41e077-02e9-4e4f-8641-3d5b9677139e"/>
+				<textElement textAlignment="Center">
+					<font size="8" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Paciente]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="261" y="120" width="100" height="11" uuid="eb4eaf65-f8eb-42ba-870a-5b8a5b1071d0"/>
+				<textElement textAlignment="Center">
+					<font size="8" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Enfermaria]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="366" y="118" width="97" height="11" uuid="173acbb2-0a59-4c6e-b126-83b9ea5b0b47"/>
+				<textElement textAlignment="Center">
+					<font size="8" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Leito]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="469" y="118" width="87" height="11" uuid="313995b7-c62d-46de-ad03-b4a693f6179d"/>
+				<textElement textAlignment="Center">
+					<font size="8" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Data]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="1" y="106" width="556" height="11" backcolor="#D6DFFF" uuid="40639825-d07f-4320-acde-4f7eace4a4bc"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Informação do(a) paciente]]></text>
+			</staticText>
+			<line>
+				<reportElement x="0" y="147" width="556" height="1" uuid="59861ac6-5937-471a-ad8a-73bcfd7c5ac4">
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+				</reportElement>
+			</line>
+		</band>
+	</title>
+	<detail>
+		<band height="330" splitType="Stretch">
+			<staticText>
+				<reportElement mode="Opaque" x="0" y="0" width="556" height="11" backcolor="#D6DFFF" uuid="2e1546f1-19ce-4462-a6e5-7e768df5c6c8"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Fugulin - Grau de dependência]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="2" y="26" width="56" height="13" uuid="e08ee616-62df-48a8-a2cf-94decaf0eeb2">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Center"/>
+				<textFieldExpression><![CDATA[$F{higiene}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="0" y="13" width="56" height="13" uuid="8d52b80f-c943-4b00-8690-bf7b15317b09">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Center">
+					<font size="8" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Higiene]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="60" y="26" width="56" height="13" uuid="3fe5b37c-9949-491a-95a6-60db9a6a45f1">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Center"/>
+				<textFieldExpression><![CDATA[$F{alimentacao}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="62" y="13" width="56" height="13" uuid="c2b0f045-b7e9-4ede-b409-620affaf40df">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Center">
+					<font size="8" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Alimentação]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="122" y="26" width="56" height="13" uuid="de517bc0-883d-4c1a-8393-e8c7a740946d">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Center"/>
+				<textFieldExpression><![CDATA[$F{eliminacao}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="120" y="13" width="56" height="13" uuid="f3643864-e329-41ce-97b4-f04d9d4dd08b">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Center">
+					<font size="8" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Eliminação]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="182" y="26" width="56" height="13" uuid="1e112b72-ab37-479e-943c-dd033d292c76">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Center"/>
+				<textFieldExpression><![CDATA[$F{ventilacao}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="182" y="13" width="56" height="13" uuid="8467c2fa-23d5-4c9c-9cca-f3e0d5e49465">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Center">
+					<font size="8" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Ventilação]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="240" y="25" width="56" height="13" uuid="fec58d9b-d740-4732-9c74-8edfd75782c8">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Center"/>
+				<textFieldExpression><![CDATA[$F{mobilidade}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="240" y="12" width="56" height="13" uuid="e79dfbd9-42b3-476a-abda-9594c82c1af7">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Center">
+					<font size="8" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Mobilidade]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="300" y="25" width="56" height="13" uuid="f6afa1c8-3e27-4bfa-882e-e54f170214a8">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Center"/>
+				<textFieldExpression><![CDATA[$F{atividade}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="300" y="12" width="56" height="13" uuid="4e7f2db9-3360-4c1d-a0a9-020d66f28132">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Center">
+					<font size="8" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Atividade]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="360" y="25" width="74" height="13" uuid="9785abaa-68d4-4cb0-a966-67e407cead35">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Center"/>
+				<textFieldExpression><![CDATA[$F{estadoemocional}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="360" y="13" width="74" height="13" uuid="48781ca2-a4e2-4b5d-9e8f-691c0ce37368">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Center">
+					<font size="8" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Estado emocional]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="434" y="25" width="56" height="13" uuid="8e89be90-e4ed-48de-8021-0bc3aa4b6c7b">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Center"/>
+				<textFieldExpression><![CDATA[$F{comunicacao}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="434" y="12" width="56" height="13" uuid="fdbfa702-cc43-4394-a00c-fa9d74810081">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Center">
+					<font size="8" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Comunicação]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="494" y="25" width="56" height="13" uuid="f39f045d-0338-4c03-bb9e-7d35a6fbc167">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Center"/>
+				<textFieldExpression><![CDATA[$F{cuidados}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="494" y="13" width="56" height="13" uuid="98eafa41-964f-42e5-af76-938a6e2cded8">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Center">
+					<font size="8" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Cuidados]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="0" y="43" width="556" height="11" backcolor="#D6DFFF" uuid="c5062665-439c-45d6-bd75-bbe5760f7214"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Morse - Risco de Quedas]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="92" y="60" width="30" height="13" uuid="44748d2f-4c33-469b-809f-789f7227477a">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textFieldExpression><![CDATA[$F{historiaquedas} == true?"( X )": " (   ) "]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="2" y="60" width="100" height="13" uuid="91f1fd75-2ab4-43d6-94a6-6631e2fcb14b">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<text><![CDATA[Historia de quedas:]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="505" y="60" width="50" height="13" uuid="607d8f5f-3330-41fe-9a3b-1f769f4ff53a">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textFieldExpression><![CDATA[$F{historiaquedas} == true?"( X )": " (   ) "]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="366" y="60" width="130" height="13" uuid="c1ef09a3-1aa2-4b7b-bf18-c1492933b0ad">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<text><![CDATA[Usa auxilio para ambulação :]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="80" y="79" width="42" height="13" uuid="7762ab8f-3c2a-4ea6-b67c-c20b8fd7b0f1">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textFieldExpression><![CDATA[$F{usosonda}  == true?"( X )": " (   ) "]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="2" y="79" width="78" height="13" uuid="df1626ff-de81-491d-9635-41a878c40308">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<text><![CDATA[Uso de sonda ?]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="236" y="78" width="100" height="13" uuid="7f28d309-2359-420e-9724-1dab664836a6">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textFieldExpression><![CDATA[$F{marchainsegura} == true?"( X )": " (   ) "]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="132" y="78" width="100" height="13" uuid="f14c589c-cb1f-498c-b67c-298449966536">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<text><![CDATA[Marcha insegura ?]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="313" y="60" width="50" height="13" uuid="d8962c74-4587-45c5-a160-a8c4c7332a23">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textFieldExpression><![CDATA[$F{historiaquedas} == true?"( X )": " (   ) "]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="130" y="60" width="178" height="13" uuid="aad482dd-52fc-47e1-83da-d3e5476a4b95">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<text><![CDATA[Uso de medicação que aumenta risco ?]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="465" y="77" width="90" height="13" uuid="34a1ce49-f969-4a7a-8a83-fa218dacda4d">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textFieldExpression><![CDATA[$F{diagnosticos}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="365" y="76" width="90" height="13" uuid="ad47038d-49f7-4cbe-af9f-ab7fd5b2c585">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<text><![CDATA[Diagnósticos :]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="0" y="95" width="556" height="11" backcolor="#D6DFFF" uuid="7d69e013-815a-4808-b4ab-cff5715fcf26"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Braden - Risco de Lesões por Pressão]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="2" y="123" width="80" height="13" uuid="bc8312a8-82cb-45e8-bee6-fd14612956df">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Center"/>
+				<textFieldExpression><![CDATA[$F{sensorial}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="2" y="110" width="80" height="13" uuid="46a68077-e240-43ba-9687-5b95da8dc09c">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Center"/>
+				<text><![CDATA[Sensorial]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="94" y="123" width="80" height="13" uuid="9c054410-ac12-4e19-ace6-7d25f0c9ec99">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Center"/>
+				<textFieldExpression><![CDATA[$F{umidade}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="94" y="110" width="80" height="13" uuid="ebe3ec41-345a-4738-bfaf-9c3bfb640ba1">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Center"/>
+				<text><![CDATA[Umidade]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="190" y="123" width="80" height="13" uuid="29594fa9-5a50-4d97-bbb3-190ccb1bcdde">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Center"/>
+				<textFieldExpression><![CDATA[$F{atividadebraden}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="190" y="110" width="80" height="13" uuid="acd31363-cdeb-424b-9b81-f71dccf1c16a">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Center"/>
+				<text><![CDATA[Atividade]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="291" y="123" width="80" height="13" uuid="34db21b9-47a5-4a1a-b093-5f70bd87a011">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Center"/>
+				<textFieldExpression><![CDATA[$F{mobilidadebraden}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="291" y="110" width="80" height="13" uuid="ece0fff8-bd2e-4d69-8dac-400625cf7613">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Center"/>
+				<text><![CDATA[Mobilidade]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="390" y="122" width="80" height="13" uuid="4454eb41-3446-4b2c-b517-b912bd93a7d6">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Center"/>
+				<textFieldExpression><![CDATA[$F{nutricional}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="390" y="107" width="80" height="13" uuid="cd7ab12c-ddcb-448e-bcf1-aa3a7ff2a0f6">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Center"/>
+				<text><![CDATA[Nutricional]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="485" y="122" width="70" height="13" uuid="6c0f6227-1d1a-46c4-891b-f14b960d6365">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Center"/>
+				<textFieldExpression><![CDATA[$F{friccao}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="485" y="107" width="70" height="13" uuid="00c73869-56b0-4ff9-b07b-67ae16f7571c">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Center"/>
+				<text><![CDATA[Fricção]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="0" y="145" width="556" height="11" backcolor="#D6DFFF" uuid="2a34984f-f78e-4865-9a41-0d5ff944135e"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Resultados]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="74" y="160" width="28" height="13" uuid="ef7c5499-e435-4680-a2b4-f0ce8dbc6482">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Center"/>
+				<textFieldExpression><![CDATA[$F{fugulintotal}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="10" y="160" width="70" height="13" uuid="13d42ccb-b555-44ca-9238-be3e2efbfc0b">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<text><![CDATA[* Fugulin total :]]></text>
+			</staticText>
+			<line>
+				<reportElement x="106" y="161" width="1" height="10" uuid="49b921d4-420f-4ff3-9d03-57f6ddd13e51"/>
+			</line>
+			<textField>
+				<reportElement x="110" y="159" width="270" height="13" uuid="e3f04c17-eed3-41b6-a182-0e68bcfbe86c">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textFieldExpression><![CDATA[$F{fugulingrau}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="74" y="175" width="28" height="13" uuid="92097c7d-61b2-47fd-8a55-9937ca43c5f5">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Center"/>
+				<textFieldExpression><![CDATA[$F{morsetotal}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="10" y="175" width="70" height="13" uuid="ae1b8ede-262f-48c8-addd-59255c0070e8">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<text><![CDATA[* Mose total :]]></text>
+			</staticText>
+			<line>
+				<reportElement x="106" y="176" width="1" height="10" uuid="c14d93e2-c743-4d22-852d-420903a33752"/>
+			</line>
+			<textField>
+				<reportElement x="110" y="174" width="270" height="13" uuid="df611b0c-a6ac-48e8-b0f8-5e3b1d62d875">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textFieldExpression><![CDATA["Risco : "  + $F{morserisco}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="10" y="190" width="70" height="13" uuid="9f9d40f4-fb79-43e7-84a9-3fed10456340">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<text><![CDATA[* Braden total :]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="74" y="190" width="28" height="13" uuid="95481aae-748e-4ab4-88cd-8302a8b6f4d3">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Center"/>
+				<textFieldExpression><![CDATA[$F{bradentotal}]]></textFieldExpression>
+			</textField>
+			<line>
+				<reportElement x="106" y="191" width="1" height="10" uuid="02e6ceaf-6dd6-4c9d-bb57-28b2b2084cec"/>
+			</line>
+			<textField>
+				<reportElement x="110" y="189" width="270" height="13" uuid="6831cd3d-d071-41e2-8c26-baebb171909b">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textFieldExpression><![CDATA["Risco : "  + $F{bradenrisco}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="280" y="317" width="274" height="13" uuid="8b2de721-3be0-415d-be89-19c72621c60a">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Center">
+					<font size="8" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{servidor}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="280" y="303" width="270" height="13" uuid="9a3692e6-f311-4045-b560-ca8e12aaa762">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Center" verticalAlignment="Bottom">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[Atualizado por:]]></text>
+			</staticText>
+		</band>
+	</detail>
+</jasperReport>
