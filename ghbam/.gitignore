@@ -39,6 +39,8 @@ nb-configuration.xml
 # Local environment
 .env
 config/ghbam-secrets.properties
+config/ghbam-secrets.properties.bak*
+.venv-embedding/
 
 # Segredos, chaves e cópias locais de configuração
 **/jwt.txt

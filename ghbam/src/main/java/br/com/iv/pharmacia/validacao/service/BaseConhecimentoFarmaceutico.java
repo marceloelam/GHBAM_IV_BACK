@@ -9,6 +9,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -40,6 +42,8 @@ public class BaseConhecimentoFarmaceutico {
         public Double doseMaximaMgKgDia;
         /** Motivo de nao haver teto diario fixo (titulado, topico, UI...); null quando ha limite. */
         public String semTetoFixo;
+        /** Dose maxima diaria por kg abaixo de 18 anos; o teto de adulto continua valendo. */
+        public Double pediatriaMgKgDia;
         public boolean altaVigilancia;
         public boolean antimicrobiano;
         public boolean exigePeso;
@@ -52,6 +56,8 @@ public class BaseConhecimentoFarmaceutico {
         public String notaGeral;
         public Double renalLimiteTfg;
         public String renalConduta;
+        /** Limite de dose ainda nao validado com CRF/CRM: o alerta de dose vira aviso, sem bloquear. */
+        public boolean limitePendente;
     }
 
     public static class Interacao {
@@ -79,13 +85,13 @@ public class BaseConhecimentoFarmaceutico {
     }
 
     private String versao = "indisponivel";
-    private final List<Medicamento> medicamentos = new ArrayList<>();
+    private final List<Medicamento> medicamentos = new CopyOnWriteArrayList<>();
     private final List<Interacao> interacoes = new ArrayList<>();
     private final List<AlergiaCruzada> alergiasCruzadas = new ArrayList<>();
     private final List<Duplicidade> duplicidades = new ArrayList<>();
     /** Termo normalizado para medicamento. Termos mais longos sao testados primeiro no casamento. */
-    private final Map<String, Medicamento> porTermo = new HashMap<>();
-    private final List<String> termosOrdenados = new ArrayList<>();
+    private final Map<String, Medicamento> porTermo = new ConcurrentHashMap<>();
+    private volatile List<String> termosOrdenados = List.of();
 
     @PostConstruct
     void carregar() {
@@ -115,6 +121,7 @@ public class BaseConhecimentoFarmaceutico {
                 m.doseMaximaDiaMg = decimal(no.get("doseMaximaDiaMg"));
                 m.doseMaximaMgKgDia = decimal(no.get("doseMaximaMgKgDia"));
                 m.semTetoFixo = texto(no.get("semTetoFixo"));
+                m.pediatriaMgKgDia = decimal(no.get("pediatriaMgKgDia"));
                 m.altaVigilancia = no.path("altaVigilancia").asBoolean(false);
                 m.antimicrobiano = no.path("antimicrobiano").asBoolean(false);
                 m.exigePeso = no.path("exigePeso").asBoolean(false);
@@ -166,8 +173,7 @@ public class BaseConhecimentoFarmaceutico {
                 duplicidades.add(d);
             }
 
-            termosOrdenados.addAll(porTermo.keySet());
-            termosOrdenados.sort((x, y) -> Integer.compare(y.length(), x.length()));
+            reindexarTermos();
 
             System.out.println("[ValidacaoFarmaceutica] Base " + versao + " carregada: " + medicamentos.size()
                     + " medicamentos, " + interacoes.size() + " interacoes, " + duplicidades.size() + " duplicidades.");
@@ -197,6 +203,39 @@ public class BaseConhecimentoFarmaceutico {
             }
         }
         return null;
+    }
+
+    /**
+     * Inclui (ou substitui pelo nome) uma substancia cadastrada pela tela de
+     * limites de dose; passa a valer na hora, sem reiniciar.
+     */
+    public synchronized void adicionar(Medicamento m) {
+        medicamentos.removeIf(x -> x.nome.equals(m.nome));
+        medicamentos.add(m);
+        reindexarTermos();
+    }
+
+    /** Retira uma substancia incluida pela tela. */
+    public synchronized boolean remover(String nome) {
+        boolean removido = medicamentos.removeIf(x -> x.nome.equals(nome));
+        if (removido) {
+            reindexarTermos();
+        }
+        return removido;
+    }
+
+    private synchronized void reindexarTermos() {
+        Map<String, Medicamento> indice = new HashMap<>();
+        for (Medicamento m : medicamentos) {
+            for (String termo : m.termos) {
+                indice.putIfAbsent(termo, m);
+            }
+        }
+        porTermo.keySet().retainAll(indice.keySet());
+        porTermo.putAll(indice);
+        List<String> ordenados = new ArrayList<>(indice.keySet());
+        ordenados.sort((x, y) -> Integer.compare(y.length(), x.length()));
+        termosOrdenados = List.copyOf(ordenados);
     }
 
     public String getVersao() { return versao; }

@@ -15,6 +15,9 @@ import br.com.iv.cdss.dto.ConferenciaMedicamentoRequest;
 import br.com.iv.cdss.dto.ReconciliacaoDecisaoRequest;
 import br.com.iv.cdss.service.ReconciliacaoMedicamentosService;
 import br.com.iv.cdss.service.CdssBaseFarmaceuticaRegras;
+import br.com.iv.cdss.service.PlantaoEnfermagemService;
+import br.com.iv.cdss.dto.PassagemPlantaoRequest;
+import br.com.iv.cdss.dto.DispositivoInvasivoRequest;
 import br.com.iv.security.AuthenticatedUser;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.Consumes;
@@ -47,6 +50,18 @@ public class CdssResource {
 
     @Inject
     CdssBaseFarmaceuticaRegras regrasBaseFarmaceutica;
+
+    @Inject
+    PlantaoEnfermagemService plantaoService;
+
+    @Inject
+    br.com.iv.cdss.service.DispositivoInvasivoService dispositivoService;
+
+    @Inject
+    br.com.iv.cdss.service.IndicadoresSegurancaService indicadoresService;
+
+    @Inject
+    br.com.iv.cdss.service.CdssRegraDoseService regraDoseService;
 
     @POST
     @Path("prescricao/avaliar")
@@ -119,6 +134,160 @@ public class CdssResource {
         } catch (IllegalArgumentException e) {
             return Response.status(Response.Status.BAD_REQUEST).entity(Map.of("erro", e.getMessage())).build();
         }
+    }
+
+    @GET
+    @Path("plantao")
+    public Response plantaoEnfermagem(@Context ContainerRequestContext context) {
+        Object value = context == null ? null : context.getProperty("ghbam.user");
+        AuthenticatedUser usuario = value instanceof AuthenticatedUser user ? user : null;
+        try {
+            // Unidade sempre da sessao: nunca aceita unidade vinda do cliente.
+            return Response.ok(plantaoService.montar(usuario == null ? null : usuario.unidade())).build();
+        } catch (SecurityException e) {
+            return Response.status(Response.Status.UNAUTHORIZED).entity(Map.of("erro", e.getMessage())).build();
+        }
+    }
+
+    @POST
+    @Path("plantao/passagem")
+    public Response registrarPassagemPlantao(PassagemPlantaoRequest request, @Context ContainerRequestContext context) {
+        try {
+            return Response.status(Response.Status.CREATED)
+                    .entity(plantaoService.registrarPassagem(request, usuarioDaSessao(context))).build();
+        } catch (SecurityException e) {
+            return Response.status(Response.Status.UNAUTHORIZED).entity(Map.of("erro", e.getMessage())).build();
+        } catch (IllegalArgumentException e) {
+            return Response.status(Response.Status.BAD_REQUEST).entity(Map.of("erro", e.getMessage())).build();
+        }
+    }
+
+    @POST
+    @Path("plantao/passagem/{id}/receber")
+    public Response receberPassagemPlantao(@PathParam("id") long id, @Context ContainerRequestContext context) {
+        try {
+            return Response.ok(plantaoService.receberPassagem(id, usuarioDaSessao(context))).build();
+        } catch (SecurityException e) {
+            return Response.status(Response.Status.UNAUTHORIZED).entity(Map.of("erro", e.getMessage())).build();
+        } catch (IllegalArgumentException e) {
+            return Response.status(Response.Status.BAD_REQUEST).entity(Map.of("erro", e.getMessage())).build();
+        }
+    }
+
+    @GET
+    @Path("plantao/passagens")
+    public Response passagensDoDia(@jakarta.ws.rs.QueryParam("data") String data, @Context ContainerRequestContext context) {
+        try {
+            return Response.ok(plantaoService.passagensDoDia(data, usuarioDaSessao(context))).build();
+        } catch (SecurityException e) {
+            return Response.status(Response.Status.UNAUTHORIZED).entity(Map.of("erro", e.getMessage())).build();
+        } catch (IllegalArgumentException e) {
+            return Response.status(Response.Status.BAD_REQUEST).entity(Map.of("erro", e.getMessage())).build();
+        }
+    }
+
+    @POST
+    @Path("plantao/dispositivo")
+    public Response inserirDispositivo(DispositivoInvasivoRequest request, @Context ContainerRequestContext context) {
+        return executar(() -> Response.status(Response.Status.CREATED)
+                .entity(dispositivoService.inserir(request, usuarioDaSessao(context))).build());
+    }
+
+    @POST
+    @Path("plantao/dispositivo/{id}/retirar")
+    public Response retirarDispositivo(@PathParam("id") long id, Map<String, String> corpo,
+            @Context ContainerRequestContext context) {
+        String motivo = corpo == null ? null : corpo.get("motivo");
+        return executar(() -> Response.ok(dispositivoService.retirar(id, motivo, usuarioDaSessao(context))).build());
+    }
+
+    @GET
+    @Path("plantao/dispositivos/indicadores")
+    public Response indicadoresDispositivos(@jakarta.ws.rs.QueryParam("inicio") String inicio,
+            @jakarta.ws.rs.QueryParam("fim") String fim, @Context ContainerRequestContext context) {
+        return executar(() -> Response.ok(dispositivoService.indicadores(inicio, fim, usuarioDaSessao(context))).build());
+    }
+
+    @GET
+    @Path("indicadores-seguranca")
+    public Response indicadoresSeguranca(@jakarta.ws.rs.QueryParam("inicio") String inicio,
+            @jakarta.ws.rs.QueryParam("fim") String fim, @Context ContainerRequestContext context) {
+        return executar(() -> Response.ok(indicadoresService.montar(inicio, fim, usuarioDaSessao(context))).build());
+    }
+
+    @GET
+    @Path("regras-dose/gestao")
+    public Response gestaoRegrasDose() {
+        return Response.ok(regraDoseService.listar()).build();
+    }
+
+    @GET
+    @Path("regras-dose/historico")
+    public Response historicoRegraDose(@jakarta.ws.rs.QueryParam("nome") String nome) {
+        return Response.ok(regraDoseService.historico(nome)).build();
+    }
+
+    @POST
+    @Path("regras-dose/editar")
+    public Response editarRegraDose(Map<String, Object> corpo, @Context ContainerRequestContext context) {
+        return executar(() -> Response.ok(regraDoseService.salvar(corpo == null ? Map.of() : corpo,
+                usuarioDaSessao(context))).build());
+    }
+
+    @POST
+    @Path("regras-dose/sugerir")
+    public Response sugerirRegraDose(Map<String, Object> corpo, @Context ContainerRequestContext context) {
+        return executar(() -> Response.status(Response.Status.CREATED)
+                .entity(regraDoseService.sugerir(corpo == null ? Map.of() : corpo, usuarioDaSessao(context))).build());
+    }
+
+    @GET
+    @Path("regras-dose/sugestoes")
+    public Response sugestoesRegraDose(@jakarta.ws.rs.QueryParam("status") String status) {
+        return Response.ok(regraDoseService.sugestoes(status)).build();
+    }
+
+    @POST
+    @Path("regras-dose/sugestoes/decidir")
+    public Response decidirSugestaoRegraDose(Map<String, Object> corpo, @Context ContainerRequestContext context) {
+        return executar(() -> Response.ok(regraDoseService.decidirSugestao(corpo == null ? Map.of() : corpo,
+                usuarioDaSessao(context))).build());
+    }
+
+    @POST
+    @Path("regras-dose/incluir")
+    public Response incluirRegraDose(Map<String, Object> corpo, @Context ContainerRequestContext context) {
+        return executar(() -> Response.status(Response.Status.CREATED)
+                .entity(regraDoseService.incluir(corpo == null ? Map.of() : corpo, usuarioDaSessao(context))).build());
+    }
+
+    @POST
+    @Path("regras-dose/excluir")
+    public Response excluirRegraDose(Map<String, Object> corpo, @Context ContainerRequestContext context) {
+        return executar(() -> Response.ok(regraDoseService.excluir(corpo == null ? Map.of() : corpo,
+                usuarioDaSessao(context))).build());
+    }
+
+    @POST
+    @Path("regras-dose/restaurar")
+    public Response restaurarRegraDose(Map<String, Object> corpo, @Context ContainerRequestContext context) {
+        return executar(() -> Response.ok(regraDoseService.restaurar(corpo == null ? Map.of() : corpo,
+                usuarioDaSessao(context))).build());
+    }
+
+    private Response executar(java.util.function.Supplier<Response> acao) {
+        try {
+            return acao.get();
+        } catch (SecurityException e) {
+            return Response.status(Response.Status.UNAUTHORIZED).entity(Map.of("erro", e.getMessage())).build();
+        } catch (IllegalArgumentException e) {
+            return Response.status(Response.Status.BAD_REQUEST).entity(Map.of("erro", e.getMessage())).build();
+        }
+    }
+
+    private AuthenticatedUser usuarioDaSessao(ContainerRequestContext context) {
+        Object value = context == null ? null : context.getProperty("ghbam.user");
+        return value instanceof AuthenticatedUser user ? user : null;
     }
 
     @GET

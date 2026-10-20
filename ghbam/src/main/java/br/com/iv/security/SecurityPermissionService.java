@@ -312,6 +312,7 @@ public class SecurityPermissionService {
         put(p, "pfarmaciaoperacoes", s2 != null && Boolean.TRUE.equals(s2.getFarmaciaoperacoes()));
         put(p, "pfarmaciaavaliacao", s2 != null && Boolean.TRUE.equals(s2.getFarmaciaavaliacao()));
         put(p, "pfarmaciarelatorios", s2 != null && Boolean.TRUE.equals(s2.getFarmaciarelatorios()));
+        put(p, "pregrasdose", s2 != null && Boolean.TRUE.equals(s2.getRegrasdose()));
         put(p, "pnir", s2 != null && Boolean.TRUE.equals(s2.getNir()));
         put(p, "ppainelnir", s2 != null && Boolean.TRUE.equals(s2.getPainelnir()));
         put(p, "plocalcenso", s2 != null && Boolean.TRUE.equals(s2.getLocalcenso()));

@@ -111,6 +111,21 @@ class CdssBaseFarmaceuticaRegrasTest {
     }
 
     @Test
+    void limitePendenteDeValidacaoAvisaSemBloquear() {
+        BaseConhecimentoFarmaceutico.Medicamento tramadol = regras.base.identificar("tramadol");
+        tramadol.limitePendente = true;
+        try {
+            CdssAlertDto a = avaliar(req("Tramadol 100mg", "100 mg", "4/4h")).stream()
+                    .filter(x -> "CDSS_DOSE_MAXIMA_DIA".equals(x.getCodigo())).findFirst().orElseThrow();
+            assertFalse(a.isBloqueante());
+            assertEquals("MAJOR", a.getSeveridade());
+            assertTrue(a.getTitulo().contains("pendente"));
+        } finally {
+            tramadol.limitePendente = false;
+        }
+    }
+
+    @Test
     void doseDentroDoLimiteNaoAlerta() {
         assertFalse(tem(avaliar(req("Tramadol 50mg", "50 mg", "6/6h")), "CDSS_DOSE_MAXIMA_DIA"));
     }
@@ -158,6 +173,60 @@ class CdssBaseFarmaceuticaRegrasTest {
         assertFalse(tem(avaliar(req("Morfina 10mg/ml", "1000 mg", "4/4h")), "CDSS_DOSE_MAXIMA_DIA"));
         assertTrue(regras.possuiDoseMaxima("Morfina"));
         assertTrue(regras.regrasDose().size() > 200);
+    }
+
+    @Test
+    void limitePediatricoPorPeso() {
+        // 20 kg: paracetamol 75 mg/kg/dia = 1500 mg/dia.
+        CdssAvaliacaoPrescricaoRequest crianca = req("Paracetamol 200mg/ml", "500 mg", "6/6h");
+        crianca.setIdadeAnos(6);
+        crianca.setPesoKg(20d);
+        assertTrue(tem(avaliar(crianca), "CDSS_DOSE_MAXIMA_PEDIATRICA"));
+
+        crianca.setDose("300 mg");
+        assertFalse(tem(avaliar(crianca), "CDSS_DOSE_MAXIMA_PEDIATRICA"));
+
+        // Dose escrita em mg/kg: amoxicilina 60 mg/kg 12/12h = 120 mg/kg/dia > 100.
+        CdssAvaliacaoPrescricaoRequest amox = req("Amoxicilina", "60 mg/kg", "12/12h");
+        amox.setIdadeAnos(3);
+        amox.setPesoKg(14d);
+        assertTrue(tem(avaliar(amox), "CDSS_DOSE_MAXIMA_PEDIATRICA"));
+    }
+
+    @Test
+    void adolescentePesadoLimitadoAoTetoDeAdulto() {
+        // 70 kg x 75 = 5250, mas o teto de adulto (4000) prevalece.
+        CdssAvaliacaoPrescricaoRequest r = req("Paracetamol", "1 g", "6/6h");
+        r.setIdadeAnos(16);
+        r.setPesoKg(70d);
+        assertFalse(tem(avaliar(r), "CDSS_DOSE_MAXIMA_PEDIATRICA"));
+        r.setFrequencia("4/4h"); // 6 g/dia: o motor fixo de adulto ja barra antes do pediatrico
+        List<CdssAlertDto> alertas = avaliar(r);
+        List<CdssAlertDto> todos = new java.util.ArrayList<>(motor.avaliarPrescricao(r).getAlertas());
+        todos.addAll(alertas);
+        assertTrue(tem(todos, "CDSS_DOSE_MAXIMA_DIA") || tem(todos, "CDSS_DOSE_MAXIMA_PEDIATRICA"));
+    }
+
+    @Test
+    void revisaoNomesParecidosNaoTrocamDeSubstancia() {
+        // Ciprofloxacino 500 mg 12/12h e dose usual de adulto: nada de alerta de dose.
+        assertFalse(tem(avaliar(req("Ciprofloxacino 500mg", "500 mg", "12/12h")), "CDSS_DOSE_MAXIMA_DIA"));
+        // Ciprofibrato tem limite proprio (200 mg), nao o do ciprofloxacino.
+        assertEquals("ciprofibrato", regras.base.identificar("CIPROFIBRATO 100MG").nome);
+        assertTrue(tem(avaliar(req("Ciprofibrato 100mg", "100 mg", "12/12h")) , "CDSS_DOSE_MAXIMA_DIA") == false);
+        assertTrue(tem(avaliar(req("Ciprofibrato 100mg", "300 mg", "1x ao dia")), "CDSS_DOSE_MAXIMA_DIA"));
+        // Decanoato (deposito) nao e comparado ao teto do haloperidol oral.
+        assertFalse(tem(avaliar(req("HALOPERIDOL (DECANOATO) 50MG/ML", "200 mg", "dose unica")), "CDSS_DOSE_MAXIMA_DIA"));
+        // Adrenalina e titulada: sem limite de anestesico local.
+        assertFalse(tem(avaliar(req("Epinefrina 1mg/ml", "1 mg", "4/4h")), "CDSS_DOSE_MAXIMA_DIA"));
+    }
+
+    @Test
+    void azitromicinaDoseUnicaDeOtiteNaoBloqueia() {
+        CdssAvaliacaoPrescricaoRequest r = req("Azitromicina 200mg/5ml", "30 mg/kg", "dose unica");
+        r.setIdadeAnos(4);
+        r.setPesoKg(16d);
+        assertFalse(tem(avaliar(r), "CDSS_DOSE_MAXIMA_PEDIATRICA"));
     }
 
     @Test

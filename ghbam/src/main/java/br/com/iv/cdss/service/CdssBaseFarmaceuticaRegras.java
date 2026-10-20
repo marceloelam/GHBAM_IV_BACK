@@ -93,6 +93,8 @@ public class CdssBaseFarmaceuticaRegras {
             r.put("doseMaximaDiaMg", m.doseMaximaDiaMg);
             r.put("doseMaximaMgKgDia", m.doseMaximaMgKgDia);
             r.put("semTetoFixo", temTeto ? m.semTetoFixo : null);
+            r.put("pediatriaMgKgDia", m.pediatriaMgKgDia);
+            r.put("validado", !m.limitePendente);
             regras.add(r);
         }
         return regras;
@@ -197,7 +199,30 @@ public class CdssBaseFarmaceuticaRegras {
         }
     }
 
+    /**
+     * Limite pendente de validacao (sem CRF/CRM) avisa sem bloquear: valores de
+     * referencia ainda nao conferidos pela farmacia/pediatria nao travam a prescricao.
+     */
     private void avaliarDose(CdssAvaliacaoPrescricaoRequest request, Medicamento med, List<CdssAlertDto> existentes,
+            List<CdssAlertDto> novos) {
+        int antes = novos.size();
+        avaliarLimitesDose(request, med, existentes, novos);
+        if (!med.limitePendente) {
+            return;
+        }
+        for (int i = antes; i < novos.size(); i++) {
+            CdssAlertDto a = novos.get(i);
+            if (a.getCodigo() != null && a.getCodigo().startsWith("CDSS_DOSE_MAXIMA")) {
+                a.setSeveridade("MAJOR");
+                a.setBloqueante(false);
+                a.setTitulo(a.getTitulo() + " (limite pendente de validacao)");
+                a.setRecomendacao("Conferir a dose. Limite de referencia ainda nao validado pela farmacia/pediatria: alerta sem bloqueio.");
+                a.getFatores().add("limite_pendente");
+            }
+        }
+    }
+
+    private void avaliarLimitesDose(CdssAvaliacaoPrescricaoRequest request, Medicamento med, List<CdssAlertDto> existentes,
             List<CdssAlertDto> novos) {
         boolean semPeso = request.getPesoKg() == null || request.getPesoKg() <= 0;
         if (med.exigePeso && semPeso && !existe(existentes, "CDSS_PESO_OBRIGATORIO")
@@ -220,6 +245,9 @@ public class CdssBaseFarmaceuticaRegras {
         String prefixo = tomadas == null ? "Dose prescrita de " : "Dose diaria estimada de ";
 
         boolean porKg = dose.contains("/kg") || dose.contains("/ kg");
+        if (avaliarDosePediatrica(request, med, doseDia, porKg, prefixo, novos)) {
+            return;
+        }
         if (porKg) {
             // Dose escrita em mg/kg: compara direto com o limite por peso.
             if (med.doseMaximaMgKgDia != null && doseDia > med.doseMaximaMgKgDia) {
@@ -245,6 +273,48 @@ public class CdssBaseFarmaceuticaRegras {
                             + " kg: " + formatar(limite) + " mg/dia (" + formatar(med.doseMaximaMgKgDia) + " mg/kg/dia).",
                     "Ajuste a dose ou registre justificativa clinica para override.", true, List.of("dose", "peso")));
         }
+    }
+
+    /**
+     * Abaixo de 18 anos com peso conhecido: limite por kg da pediatria, nunca
+     * acima do teto de adulto. Devolve true quando emitiu alerta (encerra a dose).
+     */
+    private boolean avaliarDosePediatrica(CdssAvaliacaoPrescricaoRequest request, Medicamento med, double doseDia,
+            boolean porKg, String prefixo, List<CdssAlertDto> novos) {
+        Integer idade = request.getIdadeAnos();
+        Double peso = request.getPesoKg();
+        if (med.pediatriaMgKgDia == null || idade == null || idade >= 18) {
+            return false;
+        }
+        if (porKg) {
+            if (doseDia > med.pediatriaMgKgDia) {
+                novos.add(alerta("CDSS_DOSE_MAXIMA_PEDIATRICA", "CRITICAL", "DOSE", "Dose pediatrica acima do limite",
+                        prefixo + formatar(doseDia) + " mg/kg de " + med.nome + "; limite pediatrico de referencia: "
+                                + formatar(med.pediatriaMgKgDia) + " mg/kg/dia.",
+                        "Conferir peso, dose e intervalo; registrar justificativa se mantida.", true,
+                        List.of("dose", "pediatria")));
+                return true;
+            }
+            return false;
+        }
+        if (peso == null || peso <= 0) {
+            return false; // sem peso o motor fixo ja exige peso pediatrico
+        }
+        double limite = med.pediatriaMgKgDia * peso;
+        if (med.doseMaximaDiaMg != null) {
+            limite = Math.min(limite, med.doseMaximaDiaMg);
+        }
+        if (doseDia > limite) {
+            novos.add(alerta("CDSS_DOSE_MAXIMA_PEDIATRICA", "CRITICAL", "DOSE", "Dose pediatrica acima do limite",
+                    prefixo + formatar(doseDia) + " mg de " + med.nome + "; limite para " + formatar(peso) + " kg: "
+                            + formatar(limite) + " mg/dia (" + formatar(med.pediatriaMgKgDia) + " mg/kg/dia"
+                            + (med.doseMaximaDiaMg != null && limite == med.doseMaximaDiaMg ? ", limitado ao teto de adulto" : "")
+                            + ").",
+                    "Conferir peso, dose e intervalo; registrar justificativa se mantida.", true,
+                    List.of("dose", "pediatria")));
+            return true;
+        }
+        return false;
     }
 
     private void avaliarPaciente(CdssAvaliacaoPrescricaoRequest request, Medicamento med, List<CdssAlertDto> novos) {
