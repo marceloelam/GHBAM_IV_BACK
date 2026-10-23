@@ -396,8 +396,16 @@ public Response xlistarPacientesDiretoSetor(@PathParam("unidade") String unidade
 
 @POST
 @Path("/diretosetor/finalizar/{idbam}")
-public Response xfinalizarExameDiretoSetor(@PathParam("idbam") int idbam) {
-	pedidoMedico2Service.finalizarExameDiretoSetor(idbam);
+public Response xfinalizarExameDiretoSetor(@PathParam("idbam") int idbam,
+		@jakarta.ws.rs.QueryParam("local") String local,
+		@jakarta.ws.rs.QueryParam("procedimento") String procedimento,
+		@jakarta.ws.rs.QueryParam("descricao") String descricao) {
+	// local/procedimento/descricao sao opcionais (telas antigas nao mandam): sem eles so finaliza.
+	try {
+		pedidoMedico2Service.finalizarExameDiretoSetor(idbam, local, procedimento, descricao);
+	} catch (IllegalArgumentException e) {
+		return Response.status(Response.Status.BAD_REQUEST).entity(e.getMessage()).build();
+	}
 	return Response.ok().build();
 }
 

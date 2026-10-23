@@ -60,6 +60,8 @@ public class RbacRequestFilter implements ContainerRequestFilter {
 
     private static final Set<String> PUBLIC_GET_PATHS = Set.of(
             "tema-visual",
+            // Nome do sistema exibido na tela de login (antes da sessao).
+            "sistema/identidade",
             // CatÃƒÆ’Ã‚Â¡logos necessÃƒÆ’Ã‚Â¡rios para compor a tela de entrada e os
             // seletores de atendimento. SÃƒÆ’Ã‚Â£o exclusivamente leituras de
             // referÃƒÆ’Ã‚Âªncia; criaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o/ediÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o continua passando pelo RBAC.

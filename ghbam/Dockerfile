@@ -6,4 +6,6 @@ COPY target/*-runner.jar app.jar
 
 EXPOSE 8080
 
-CMD ["java", "-jar", "app.jar"]
+ENV JAVA_OPTS="-XX:MaxRAMPercentage=70 -XX:+UseG1GC"
+
+CMD ["sh", "-c", "exec java $JAVA_OPTS -jar app.jar"]

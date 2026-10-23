@@ -84,7 +84,13 @@ public class ConfiguracaoUnidade  extends PanacheEntityBase implements Serializa
 	private String brasaoprefeitura;
 	@Column(columnDefinition = "TEXT")
 	private String linkvideopainel;
-	
+	@Column(name = "monai_habilitado")
+	private Boolean monaiHabilitado;
+	@Column(name = "monai_url", length = 120)
+	private String monaiUrl;
+	@Column(name = "orthanc_url", length = 200)
+	private String orthancUrl;
+
 	public ConfiguracaoUnidade() {
 
 		limpar();
@@ -121,6 +127,9 @@ public class ConfiguracaoUnidade  extends PanacheEntityBase implements Serializa
 		this.userConexao = "";
 		this.pwdConexao = "";
 		this.linkvideopainel= "";
+		this.monaiHabilitado = false;
+		this.monaiUrl = "";
+		this.orthancUrl = "";
 		
 		
 		

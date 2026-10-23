@@ -14,6 +14,7 @@
 	<parameter name="r1medicacao" class="java.lang.String"/>
 	<parameter name="tea" class="java.lang.String"/>
 	<parameter name="pcd" class="java.lang.String"/>
+	<parameter name="NOME_SISTEMA" class="java.lang.String"><defaultValueExpression><![CDATA["GHBAM"]]></defaultValueExpression></parameter>
 	<queryString language="SQL">
 		<![CDATA[SELECT distinct on (public.bam.paciente_idpaciente) public.bam.paciente_idpaciente,  public.bam.idbam,
 	public.bam.controle,
@@ -2232,7 +2233,7 @@ WHERE
 					<textElement verticalAlignment="Middle">
 						<font size="6"/>
 					</textElement>
-					<textFieldExpression><![CDATA["BAM: " + $F{idbam} + " | Assinaturas clinicas registradas no GHBAM: " + $F{assinaturas_clinicas_total} + " | Adendos: " + $F{adendos_clinicos_total}]]></textFieldExpression>
+					<textFieldExpression><![CDATA["BAM: " + $F{idbam} + " | Assinaturas clinicas registradas no " + $P{NOME_SISTEMA} + ": " + $F{assinaturas_clinicas_total} + " | Adendos: " + $F{adendos_clinicos_total}]]></textFieldExpression>
 				</textField>
 				<staticText>
 					<reportElement x="5" y="22" width="545" height="8" uuid="226a096f-ad5a-4065-84ef-292b4a377597"/>

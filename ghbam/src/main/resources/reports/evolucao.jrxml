@@ -13,6 +13,7 @@
 	<parameter name="complemento" class="java.lang.String"/>
 	<parameter name="dt1" class="java.lang.String"/>
 	<parameter name="dt2" class="java.lang.String"/>
+	<parameter name="NOME_SISTEMA" class="java.lang.String"><defaultValueExpression><![CDATA["GHBAM"]]></defaultValueExpression></parameter>
 	<queryString language="SQL">
 		<![CDATA[SELECT DISTINCT ON ( relato , cast(evolucaopaciente.data as date), idevolucao, qtde )
 relato,
@@ -839,7 +840,7 @@ FROM public.bam
 					<textElement verticalAlignment="Middle">
 						<font size="5"/>
 					</textElement>
-					<textFieldExpression><![CDATA[$F{assinatura_id} == null ? "Documento ainda sem assinatura clinica localizada no GHBAM." : "Documento: EVOLUCAO_MEDICA #" + $F{idevolucao} + " | Hash SHA-256: " + ($F{assinatura_hash} == null ? "" : $F{assinatura_hash})]]></textFieldExpression>
+					<textFieldExpression><![CDATA[$F{assinatura_id} == null ? "Documento ainda sem assinatura clinica localizada no " + $P{NOME_SISTEMA} + "." : "Documento: EVOLUCAO_MEDICA #" + $F{idevolucao} + " | Hash SHA-256: " + ($F{assinatura_hash} == null ? "" : $F{assinatura_hash})]]></textFieldExpression>
 				</textField>
 			</frame>
 		</band>

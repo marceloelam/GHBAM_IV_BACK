@@ -1,7 +1,11 @@
 package br.gov.secure;
 
 import java.io.IOException;
-import java.io.InputStream;
+import java.io.StringReader;
+import java.nio.ByteBuffer;
+import java.nio.charset.CharacterCodingException;
+import java.nio.charset.CodingErrorAction;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
@@ -87,8 +91,22 @@ public final class AppSecrets {
         if (!Files.isRegularFile(path)) {
             throw new IllegalStateException("Arquivo de segredos invalido: " + path);
         }
-        try (InputStream input = Files.newInputStream(path)) {
-            properties.load(input);
+        // Valores com acento (ex.: descricao do sistema): aceita UTF-8 e, se o
+        // editor salvou em Windows-1252/ISO-8859-1 (padrao do Eclipse no Windows),
+        // cai para ISO-8859-1 em vez de derrubar o startup.
+        try {
+            byte[] bytes = Files.readAllBytes(path);
+            String text;
+            try {
+                text = StandardCharsets.UTF_8.newDecoder()
+                        .onMalformedInput(CodingErrorAction.REPORT)
+                        .onUnmappableCharacter(CodingErrorAction.REPORT)
+                        .decode(ByteBuffer.wrap(bytes))
+                        .toString();
+            } catch (CharacterCodingException e) {
+                text = new String(bytes, StandardCharsets.ISO_8859_1);
+            }
+            properties.load(new StringReader(text));
             return properties;
         } catch (IOException e) {
             throw new IllegalStateException("Nao foi possivel ler o arquivo de segredos: " + path, e);
