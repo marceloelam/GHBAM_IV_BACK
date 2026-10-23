@@ -50,15 +50,23 @@ public class VigilanciaEpidemiologicaController {
     public Response analisar(@QueryParam("unidade") String unidade) {
         try {
         garantirEstrutura();
-        List<Map<String, Object>> regras = regras(unidade);
+        // A varredura de texto custava ~13 s por abertura; o resultado vale por 10 min e a fila SINAN segue sempre atual.
+        String chaveCache = LocalDate.now() + "|" + texto(unidade);
+        Object[] cache = ANALISE_CACHE.get(chaveCache);
+        if (cache != null && System.currentTimeMillis() - (Long) cache[0] < ALERTA_CACHE_MS) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> resposta = new LinkedHashMap<>((Map<String, Object>) cache[1]);
+            carregarPendenciasSinan(resposta, unidade);
+            return Response.ok(resposta).build();
+        }
+        List<Map<String, Object>> regras = regras(unidade).stream().filter(r -> Boolean.TRUE.equals(r.get("ativo"))).toList();
+        Map<Map<String, Object>, long[]> contagens = contarPorJanela(unidade, regras);
         List<Map<String, Object>> sinais = new ArrayList<>();
         for (Map<String, Object> regra : regras) {
-            if (!Boolean.TRUE.equals(regra.get("ativo"))) continue;
-            int janela = numero(regra.get("janelaDias"), 7);
             int minimo = numero(regra.get("minimoCasos"), 3);
             double fator = decimal(regra.get("fatorAlerta"), 2d);
-            long atual = contar(unidade, texto(regra.get("termos")), LocalDate.now().minusDays(janela - 1), LocalDate.now());
-            long base = contar(unidade, texto(regra.get("termos")), LocalDate.now().minusDays(janela * 5L), LocalDate.now().minusDays(janela));
+            long atual = contagens.get(regra)[0];
+            long base = contagens.get(regra)[1];
             double media = base / 4d;
             boolean alerta = atual >= minimo && (media == 0 ? atual >= minimo : atual >= media * fator);
             Map<String, Object> item = new LinkedHashMap<>(regra);
@@ -75,8 +83,9 @@ public class VigilanciaEpidemiologicaController {
         resposta.put("geradoEm", LocalDate.now().toString());
         resposta.put("unidade", texto(unidade));
         resposta.put("sinais", sinais);
-        carregarPendenciasSinan(resposta, unidade);
         resposta.put("aviso", "Os resultados sao sinais estatisticos e exigem validacao humana pela vigilancia epidemiologica.");
+        ANALISE_CACHE.put(chaveCache, new Object[] { System.currentTimeMillis(), new LinkedHashMap<>(resposta) });
+        carregarPendenciasSinan(resposta, unidade);
         return Response.ok(resposta).build();
         } catch (Exception e) {
             LOG.error("Falha ao analisar vigilancia epidemiologica", e);
@@ -122,6 +131,7 @@ public class VigilanciaEpidemiologicaController {
     private static void limparCaches() {
         MAPA_CACHE.clear();
         ALERTA_CACHE.clear();
+        ANALISE_CACHE.clear();
     }
 
     /**
@@ -522,6 +532,7 @@ public class VigilanciaEpidemiologicaController {
 
     private static final long ALERTA_CACHE_MS = 10 * 60 * 1000L;
     private static final Map<String, Object[]> ALERTA_CACHE = new java.util.concurrent.ConcurrentHashMap<>();
+    private static final Map<String, Object[]> ANALISE_CACHE = new java.util.concurrent.ConcurrentHashMap<>();
 
     /**
      * Resumo para o alerta do cabecalho (medico/enfermagem): regioes e diagnosticos
@@ -777,6 +788,25 @@ public class VigilanciaEpidemiologicaController {
             if (idx >= 0 && idx < contagem.length) contagem[idx] = ((Number) row[1]).longValue();
         }
         return contagem;
+    }
+
+    /** [casos atuais, casos das 4 janelas anteriores] por regra; duas consultas por janela distinta, nao duas por regra. */
+    private Map<Map<String, Object>, long[]> contarPorJanela(String unidade, List<Map<String, Object>> regras) {
+        Map<Map<String, Object>, long[]> resultado = new java.util.IdentityHashMap<>();
+        Map<Integer, List<Map<String, Object>>> porJanela = new LinkedHashMap<>();
+        for (Map<String, Object> regra : regras) {
+            resultado.put(regra, new long[2]);
+            if (texto(regra.get("termos")).isBlank()) continue;
+            porJanela.computeIfAbsent(numero(regra.get("janelaDias"), 7), j -> new ArrayList<>()).add(regra);
+        }
+        LocalDate hoje = LocalDate.now();
+        porJanela.forEach((janela, grupo) -> {
+            List<String> termos = grupo.stream().map(r -> texto(r.get("termos"))).toList();
+            long[] atual = contarPorRegra(unidade, termos, hoje.minusDays(janela - 1), hoje, false);
+            long[] base = contarPorRegra(unidade, termos, hoje.minusDays(janela * 5L), hoje.minusDays(janela), false);
+            for (int i = 0; i < grupo.size(); i++) resultado.put(grupo.get(i), new long[] { atual[i], base[i] });
+        });
+        return resultado;
     }
 
     private long contar(String unidade, String termos, LocalDate inicio, LocalDate fim) {

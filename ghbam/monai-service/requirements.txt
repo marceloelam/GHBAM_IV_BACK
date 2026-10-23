@@ -1,0 +1,8 @@
+# Dependencias do modo stub (fluxo ponta a ponta, sem modelo clinico).
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+pydicom==3.0.1
+
+# Modo bundle (inferencia MONAI real): instalar separadamente quando ligar um
+# modelo, de preferencia na imagem com a versao de CUDA/torch do servidor.
+#   pip install "monai[all]==1.4.0" torch

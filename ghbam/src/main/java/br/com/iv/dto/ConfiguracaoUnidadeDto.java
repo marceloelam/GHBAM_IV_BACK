@@ -67,6 +67,9 @@ public class ConfiguracaoUnidadeDto   implements Serializable {
 	private String brasaoprefeitura;
 	@Column(columnDefinition = "TEXT")
 	private String linkvideopainel;
+	private Boolean monaiHabilitado;
+	private String monaiUrl;
+	private String orthancUrl;
 	
 
 }

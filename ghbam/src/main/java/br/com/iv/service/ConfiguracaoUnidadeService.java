@@ -95,6 +95,9 @@ public class ConfiguracaoUnidadeService implements Serializable {
 	    configuracaoUnidade.setBrasaoprefeitura(dto.getBrasaoprefeitura());
 		configuracaoUnidade.setUrlconexaolaudopacs(dto.getUrlconexaolaudopacs());
 		configuracaoUnidade.setUrlconexaoimagempacs(dto.getUrlconexaoimagempacs());
+		configuracaoUnidade.setMonaiHabilitado(dto.getMonaiHabilitado());
+		configuracaoUnidade.setMonaiUrl(dto.getMonaiUrl());
+		configuracaoUnidade.setOrthancUrl(dto.getOrthancUrl());
 		if (dto.getTokenlaudopacs() != null && !dto.getTokenlaudopacs().isBlank()) {
 			configuracaoUnidade.setTokenlaudopacs(dto.getTokenlaudopacs());
 		}
@@ -146,6 +149,9 @@ public class ConfiguracaoUnidadeService implements Serializable {
 		configuracaoUnidade.setBrasaoprefeitura(dto.getBrasaoprefeitura());
 		configuracaoUnidade.setUrlconexaolaudopacs(dto.getUrlconexaolaudopacs());
 		configuracaoUnidade.setUrlconexaoimagempacs(dto.getUrlconexaoimagempacs());
+		configuracaoUnidade.setMonaiHabilitado(dto.getMonaiHabilitado());
+		configuracaoUnidade.setMonaiUrl(dto.getMonaiUrl());
+		configuracaoUnidade.setOrthancUrl(dto.getOrthancUrl());
 		if (dto.getTokenlaudopacs() != null && !dto.getTokenlaudopacs().isBlank()) {
 			configuracaoUnidade.setTokenlaudopacs(dto.getTokenlaudopacs());
 		}

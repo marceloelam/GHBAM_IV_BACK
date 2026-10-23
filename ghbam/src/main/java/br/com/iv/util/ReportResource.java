@@ -55,6 +55,14 @@ public class ReportResource {
     @ConfigProperty(name = "reports.directory", defaultValue = "reports")
     String reportsDirectory;
 
+    /** Nome do sistema impresso nos relatorios ($P{NOME_SISTEMA}). */
+    @ConfigProperty(name = "ghbam.sistema.nome", defaultValue = "GHBAM")
+    String nomeSistema;
+
+    /** Descricao do sistema disponivel aos relatorios ($P{DESCRICAO_SISTEMA}). */
+    @ConfigProperty(name = "ghbam.sistema.descricao", defaultValue = "Gestão Hospitalar de Boletim de Atendimento Médico")
+    String descricaoSistema;
+
     /** Fonte oficial da aplicação para a geração de relatórios. */
     @Inject
     DataSource dataSource;
@@ -101,14 +109,16 @@ public class ReportResource {
             // **MÉTODO OTIMIZADO: Usa try-with-resources com a nova Conexao**
             JasperPrint jasperPrint;
             String unidade = unidadeDaSessao();
-            if (unidade.isBlank()) {
-                // Compatibilidade com chamadas legadas sem JWT; sessões válidas usam a unidade do token.
+            ConfiguracaoUnidade configuracao = unidade.isBlank() ? null : configuracaoUnidadeRepository
+                .find("upper(sigla) = upper(?1)", unidade).firstResult();
+            // Sem JWT (chamada legada) ou unidade apontando para 127.0.0.1/localhost (valor
+            // padrão do cadastro): usa o banco da aplicação. Em servidor sem Postgres local
+            // o localhost da unidade recusa a conexão.
+            if (unidade.isBlank() || (configuracao != null && apontaParaHostLocal(configuracao.getUrlConexao()))) {
                 try (Connection connection = dataSource.getConnection()) {
                     jasperPrint = JasperFillManager.fillReport(jasperReport, parameters, connection);
                 }
             } else {
-                ConfiguracaoUnidade configuracao = configuracaoUnidadeRepository
-                    .find("upper(sigla) = upper(?1)", unidade).firstResult();
                 if (configuracao == null || configuracao.getUrlConexao() == null
                         || !configuracao.getUrlConexao().startsWith("jdbc:postgresql://")
                         || configuracao.getUserConexao() == null || configuracao.getUserConexao().isBlank()
@@ -154,6 +164,14 @@ public class ReportResource {
     
     private String unidadeDaSessao() {
         return securityPermissionService.unidadeDaSessao(requestContext).split(":")[0].trim();
+    }
+
+    static boolean apontaParaHostLocal(String urlConexao) {
+        if (urlConexao == null) return false;
+        String url = urlConexao.trim().toLowerCase();
+        return url.startsWith("jdbc:postgresql://127.0.0.1")
+            || url.startsWith("jdbc:postgresql://localhost")
+            || url.startsWith("jdbc:postgresql://[::1]");
     }
 
     // ========== MÉTODOS DE CACHE (mantenha os que você já tem) ==========
@@ -256,7 +274,9 @@ public class ReportResource {
     
     private Map<String, Object> prepareParameters(Map<String, String> params, String d1, String d2, String xprontuario) {
         Map<String, Object> parameters = new HashMap<>(40);
-        
+        parameters.put("NOME_SISTEMA", nomeSistema);
+        parameters.put("DESCRICAO_SISTEMA", descricaoSistema);
+
         // Logo 1
         String logoBase64 = params.get("logo");
         if (logoBase64 != null && logoBase64.startsWith("data:image/")) {

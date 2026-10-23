@@ -159,6 +159,25 @@ public class PedidoMedico2Service implements Serializable {
 		pedidoMedico2Repository.finalizarExameDiretoSetor(idbam);
 	}
 
+	/**
+	 * Finaliza o paciente que veio direto da recepcao e, sendo RAIO X/TOMOGRAFIA, cria o
+	 * exame em imagens com o procedimento escolhido na finalizacao: e a confirmacao do
+	 * setor que libera o exame para a worklist do aparelho (worklist_orthanc_v).
+	 */
+	@Transactional
+	public void finalizarExameDiretoSetor(int idbam, String local, String procedimento, String descricao) {
+		String l = local == null ? "" : local.trim().toUpperCase(Locale.ROOT);
+		// RAIO X/TOMOGRAFIA: o procedimento e obrigatorio (vira o exame da worklist); sem ele nada e finalizado.
+		if (LOCAIS_IMAGEM.contains(l) && (procedimento == null || procedimento.isBlank())) {
+			throw new IllegalArgumentException("Informe o procedimento realizado para finalizar o exame de " + l + ".");
+		}
+		pedidoMedico2Repository.finalizarExameDiretoSetor(idbam);
+		if (LOCAIS_IMAGEM.contains(l)) {
+			String d = descricao == null || descricao.isBlank() ? l : descricao;
+			inserirImagem(idbam, l, procedimento, d, 0);
+		}
+	}
+
 
 	
 /*
@@ -254,8 +273,58 @@ public class PedidoMedico2Service implements Serializable {
 
 		entityManager.persist(pedidoMedico2);
 		entityManager.flush();
+		registrarExameDeImagem(pedidoMedico2);
 
 		return pedidoMedico2;
+	}
+
+	private static final java.util.Set<String> LOCAIS_IMAGEM = java.util.Set.of("RAIO X", "TOMOGRAFIA");
+
+	/**
+	 * Porta o salvarNoImagem do GHBAM antigo (JSF, AtendimentoMedicoBean): pedido de
+	 * RAIO X/TOMOGRAFIA cria a linha em imagens, que e o exame do setor de imagem
+	 * (idimagens = AccessionNumber das views worklist_v/worklist_orthanc_v). Sem ela o
+	 * exame nao aparece na worklist dos equipamentos. Formatos iguais aos do legado:
+	 * data dd/MM/yyyy e controleid yyyyMdHms sem zeros. Mesma transacao do pedido.
+	 */
+	void registrarExameDeImagem(PedidoMedico2 pedido) {
+		String local = pedido.getLocal() == null ? "" : pedido.getLocal().trim().toUpperCase(Locale.ROOT);
+		if (!LOCAIS_IMAGEM.contains(local)) {
+			return;
+		}
+		inserirImagem(pedido.getBam(), local, pedido.getCod(), pedido.getPedido(), pedido.getPosicao());
+	}
+
+	private void inserirImagem(int bam, String local, String procedimento, String descricaoExame, int posicao) {
+		java.time.LocalDateTime agora = java.time.LocalDateTime.now();
+		String controle = "" + agora.getYear() + agora.getMonthValue() + agora.getDayOfMonth()
+				+ agora.getHour() + agora.getMinute() + agora.getSecond();
+		String descricao = descricaoExame == null ? "" : descricaoExame.trim().toUpperCase(Locale.ROOT);
+
+		entityManager.createNativeQuery(
+				"INSERT INTO imagens (idbam, idpacientes, idregistro, idtratamento, cbo, atendidopor, posicao, idunico, "
+				+ "controleid, procedimento, descricao, data, entrada, local, tecnico, liberacao, obs, laudo, link) "
+				+ "SELECT b.idbam, b.paciente_idpaciente, b.registro_idregistro, b.tratamento_idtratamento, "
+				+ "COALESCE(LEFT((SELECT s.cbo FROM servidor s WHERE s.matricula = r.matriculaatendidopor "
+				+ "AND r.matriculaatendidopor <> '' LIMIT 1), 12), ''), "
+				+ "COALESCE(LEFT(r.atendidopor, 55), ''), :posicao, :idunico, :controle, :procedimento, :descricao, "
+				+ ":data, :entrada, :local, '', '', '', '', '' "
+				+ "FROM bam b LEFT JOIN registro r ON r.idregistro = b.registro_idregistro WHERE b.idbam = :bam")
+				.setParameter("posicao", posicao)
+				.setParameter("idunico", new GerarIdUnico().gerarId())
+				.setParameter("controle", controle)
+				.setParameter("procedimento", limitar(procedimento, 13))
+				.setParameter("descricao", limitar(descricao, 95))
+				.setParameter("data", agora.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")))
+				.setParameter("entrada", agora.format(java.time.format.DateTimeFormatter.ofPattern("HH:mm")))
+				.setParameter("local", local)
+				.setParameter("bam", bam)
+				.executeUpdate();
+	}
+
+	private static String limitar(String valor, int max) {
+		String v = valor == null ? "" : valor.trim();
+		return v.length() > max ? v.substring(0, max) : v;
 	}
 
 	@Transactional

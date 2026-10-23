@@ -18,8 +18,12 @@ if [[ ! -f "$APP_DIR/ghbam-4.0.0-runner.jar" ]]; then
     exit 1
 fi
 
+# Sem limite explicito a JVM usa so 25% da RAM; JAVA_OPTS sobrescreve.
+JAVA_OPTS="${JAVA_OPTS:--XX:MaxRAMPercentage=70 -XX:+UseG1GC}"
+
 # O Nginx encerra o TLS; o backend aceita HTTP somente na rede interna.
-exec java -Duser.timezone=America/Sao_Paulo \
+# shellcheck disable=SC2086
+exec java $JAVA_OPTS -Duser.timezone=America/Sao_Paulo \
     -Dquarkus.http.insecure-requests=ENABLED \
     -Dghbam.secrets.file="$APP_DIR/config/ghbam-secrets.properties" \
     -jar "$APP_DIR/ghbam-4.0.0-runner.jar"

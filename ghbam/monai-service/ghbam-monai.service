@@ -1,0 +1,36 @@
+# MODELO DE REFERENCIA. Em producao use `sudo ./instalar.sh ...`, que gera este
+# arquivo ja com os modelos escolhidos, limite de memoria e pesos conferidos.
+# Servico systemd do MONAI do GHBAM (Ubuntu de producao, sem docker).
+# Instalar em: /etc/systemd/system/ghbam-monai.service
+# Depois:
+#   sudo useradd -r -s /usr/sbin/nologin ghbam || true
+#   sudo mkdir -p /opt/ghbam-monai && sudo cp app.py requirements.txt /opt/ghbam-monai/
+#   cd /opt/ghbam-monai && sudo python3 -m venv .venv
+#   sudo /opt/ghbam-monai/.venv/bin/pip install -r requirements.txt
+#   sudo systemctl daemon-reload && sudo systemctl enable --now ghbam-monai
+#   curl http://127.0.0.1:8000/health
+[Unit]
+Description=GHBAM MONAI (inferencia de imagem medica)
+After=network.target
+
+[Service]
+Type=simple
+User=ghbam
+WorkingDirectory=/opt/ghbam-monai
+# Modo stub por padrao. Para ligar um modelo real, descomente e aponte o bundle:
+# Environment=MONAI_BUNDLE_DIR=/opt/ghbam-monai/bundles/meu-modelo
+Environment=MONAI_MODELO=stub
+Environment=MONAI_VERSAO=0.1.0
+# Modelos de pesquisa (ver README, secao Tomografia). Cada um liga sozinho:
+# Environment=XRV_HABILITADO=true
+# Environment=ICH_HABILITADO=true
+# Environment=ICH_MODELO_DIR=/opt/ghbam-monai/modelos/ich
+# Environment=NODULO_HABILITADO=true
+# Environment=NODULO_MODELO_DIR=/opt/ghbam-monai/modelos/lung_nodule_ct_detection
+Environment=PYTHONUTF8=1
+ExecStart=/opt/ghbam-monai/.venv/bin/uvicorn app:app --host 127.0.0.1 --port 8000 --log-level warning
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

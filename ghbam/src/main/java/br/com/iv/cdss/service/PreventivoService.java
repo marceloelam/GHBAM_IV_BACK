@@ -129,14 +129,20 @@ public class PreventivoService {
         else query.setParameter("desde", LocalDate.now().minusDays(2));
         List<Object[]> rows = query.getResultList();
 
+        // Em lote: eram 7 consultas por paciente (~280 por abertura, ~2,8 s).
+        List<Integer> idsFila = rows.stream().map(row -> numero(row[0])).filter(java.util.Objects::nonNull).distinct().toList();
+        Map<Integer, List<ProntuarioClinicoItem>> acompanhamentosLote = alertasDosPacientes(idsFila, user);
+        Map<Integer, List<Fonte>> fontesLote = fontesPacientes(idsFila, user);
+        Map<Integer, List<Vital>> vitaisLote = vitaisPacientes(idsFila, user);
+
         List<FilaPreventivaItem> itens = new ArrayList<>();
         for (Object[] row : rows) {
             Integer idpaciente = numero(row[0]);
             if (idpaciente == null) continue;
-            List<ProntuarioClinicoItem> acompanhamentos = alertasDoPaciente(idpaciente, user);
+            List<ProntuarioClinicoItem> acompanhamentos = acompanhamentosLote.getOrDefault(idpaciente, List.of());
             List<String> codigosJaTratados = acompanhamentos.stream().map(ProntuarioClinicoItem::getCodigo).filter(c -> !texto(c).isBlank()).toList();
-            List<Fonte> fontesPaciente = fontesPaciente(idpaciente, user);
-            List<Vital> vitaisPaciente = vitaisPaciente(idpaciente, user);
+            List<Fonte> fontesPaciente = fontesLote.getOrDefault(idpaciente, List.of());
+            List<Vital> vitaisPaciente = vitaisLote.getOrDefault(idpaciente, List.of());
             List<AlertaPreventivo> alertas = avaliarAutomaticamente(fontesPaciente, vitaisPaciente).stream()
                     .filter(alerta -> !codigosJaTratados.contains(alerta.codigo()))
                     .toList();
@@ -409,6 +415,78 @@ public class PreventivoService {
         if (!redeCompleta) query.setParameter("unidade", user.unidade());
         List<Object[]> rows = query.getResultList();
         return rows.stream().map(r -> new Vital(texto(r[0]), texto(r[1]), numeroDouble(r[2]), numeroDouble(r[3]), numeroDouble(r[4]), numeroDouble(r[5]), numeroDouble(r[6]), numeroDouble(r[7]), numeroDouble(r[8]), texto(r[9]))).toList();
+    }
+
+    // Versoes em lote de alertasDoPaciente/fontesPaciente/vitaisPaciente para a fila:
+    // mesmos filtros, mesma ordem e o mesmo limite de 201 linhas por paciente.
+    private static final int LIMITE_POR_PACIENTE = 201;
+
+    private Map<Integer, List<ProntuarioClinicoItem>> alertasDosPacientes(List<Integer> ids, AuthenticatedUser user) {
+        Map<Integer, List<ProntuarioClinicoItem>> porPaciente = new LinkedHashMap<>();
+        if (ids.isEmpty()) return porPaciente;
+        em.createQuery(
+            "from ProntuarioClinicoItem where idpaciente in :ids and tipo = :tipo and unidade = :unidade order by criadoEm desc", ProntuarioClinicoItem.class)
+            .setParameter("ids", ids).setParameter("tipo", TIPO).setParameter("unidade", user.unidade()).getResultList()
+            .forEach(item -> porPaciente.computeIfAbsent(item.getIdpaciente(), k -> new ArrayList<>()).add(item));
+        return porPaciente;
+    }
+
+    private Map<Integer, List<Fonte>> fontesPacientes(List<Integer> ids, AuthenticatedUser user) {
+        Map<Integer, List<Fonte>> porPaciente = new LinkedHashMap<>();
+        if (ids.isEmpty()) return porPaciente;
+        boolean redeCompleta = escopoRedeCompleta(user);
+        String filtroBam = redeCompleta ? "" : " AND b.unidade = :unidade";
+        String filtroUnidade = redeCompleta ? "" : " AND unidade = :unidade";
+        String filtroLaboratorio = redeCompleta ? "" : " AND b.unidade = :unidade AND l.unidade = :unidade";
+        fontesEmLote(porPaciente, ids, redeCompleta, user, "PACS", "b.paciente_idpaciente", "i.idimagens",
+            "i.idimagens, i.idbam, i.data, i.atendidopor, i.laudo, b.unidade FROM imagens i JOIN bam b ON b.idbam = i.idbam WHERE b.paciente_idpaciente IN (:ids) AND i.idpacientes = b.paciente_idpaciente" + filtroBam);
+        fontesEmLote(porPaciente, ids, redeCompleta, user, "LABORATORIO", "b.paciente_idpaciente", "l.idpedidoresultado",
+            "l.idpedidoresultado, l.bam, l.dt, l.medico, concat_ws(' - ', l.descricao, l.grupopedidos), coalesce(l.unidade, b.unidade) FROM pedidoresultadolaboratorio l JOIN bam b ON b.idbam = l.bam WHERE b.paciente_idpaciente IN (:ids)" + filtroLaboratorio);
+        fontesEmLote(porPaciente, ids, redeCompleta, user, "MULTIDISCIPLINAR", "idpaciente", "id",
+            "id, idbam, dataatendimento, profissional, concat_ws(E'\\n', queixaprincipal, historiaatual, riscosidentificados, evolucao, condutas), unidade FROM atendimentomultidisciplinar WHERE idpaciente IN (:ids)" + filtroUnidade + " AND ativo = true");
+        fontesEmLote(porPaciente, ids, redeCompleta, user, "ANAMNESE", "b.paciente_idpaciente", "b.idbam",
+            "b.idbam, b.idbam, b.data, t.medicoecrm, concat_ws(E'\\n', a.anamnese, a.hpp, a.comentario), b.unidade FROM bam b JOIN avaliacao a ON a.idavaliacao = b.avaliacao_idavaliacao JOIN tratamento t ON t.idtratamento = b.tratamento_idtratamento WHERE b.paciente_idpaciente IN (:ids)" + filtroBam);
+        fontesEmLote(porPaciente, ids, redeCompleta, user, "TRIAGEM", "b.paciente_idpaciente", "b.idbam",
+            "b.idbam, b.idbam, b.data, t.medicoecrm, concat_ws(E'\\n', a.pasist, a.padiast, a.fc, a.fr, a.spo, a.tax, a.peso, a.risco), b.unidade FROM bam b JOIN avaliacao a ON a.idavaliacao = b.avaliacao_idavaliacao JOIN tratamento t ON t.idtratamento = b.tratamento_idtratamento WHERE b.paciente_idpaciente IN (:ids)" + filtroBam);
+        return porPaciente;
+    }
+
+    /** colunasEFiltro: as 6 colunas de Fonte seguidas de FROM/WHERE (com :ids). */
+    @SuppressWarnings("unchecked")
+    private void fontesEmLote(Map<Integer, List<Fonte>> porPaciente, List<Integer> ids, boolean redeCompleta, AuthenticatedUser user,
+            String tipo, String colunaPaciente, String colunaOrdem, String colunasEFiltro) {
+        String sql = "SELECT * FROM (SELECT " + colunaPaciente + " AS pid_lote, ROW_NUMBER() OVER (PARTITION BY " + colunaPaciente
+                + " ORDER BY " + colunaOrdem + " DESC) AS rn_lote, " + colunasEFiltro + ") x WHERE rn_lote <= " + LIMITE_POR_PACIENTE
+                + " ORDER BY pid_lote, rn_lote";
+        var query = em.createNativeQuery(sql).setParameter("ids", ids);
+        if (!redeCompleta) query.setParameter("unidade", user.unidade());
+        for (Object[] r : (List<Object[]>) query.getResultList()) {
+            Integer pid = numero(r[0]);
+            if (pid == null) continue;
+            porPaciente.computeIfAbsent(pid, k -> new ArrayList<>())
+                .add(new Fonte(tipo, texto(r[2]), texto(r[3]), texto(r[4]), texto(r[5]), texto(r[6]), texto(r[7])));
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<Integer, List<Vital>> vitaisPacientes(List<Integer> ids, AuthenticatedUser user) {
+        Map<Integer, List<Vital>> porPaciente = new LinkedHashMap<>();
+        if (ids.isEmpty()) return porPaciente;
+        boolean redeCompleta = escopoRedeCompleta(user);
+        String filtroBam = redeCompleta ? "" : " AND b.unidade = :unidade";
+        String sql = "SELECT * FROM (SELECT b.paciente_idpaciente AS pid_lote, ROW_NUMBER() OVER (PARTITION BY b.paciente_idpaciente ORDER BY b.idbam DESC) AS rn_lote, " +
+                "b.idbam, b.data, a.pasist, a.padiast, a.fc, a.fr, a.spo, a.peso, a.tax, b.unidade " +
+                "FROM bam b JOIN avaliacao a ON a.idavaliacao = b.avaliacao_idavaliacao " +
+                "WHERE b.paciente_idpaciente IN (:ids)" + filtroBam + ") x WHERE rn_lote <= " + LIMITE_POR_PACIENTE + " ORDER BY pid_lote, rn_lote";
+        var query = em.createNativeQuery(sql).setParameter("ids", ids);
+        if (!redeCompleta) query.setParameter("unidade", user.unidade());
+        for (Object[] r : (List<Object[]>) query.getResultList()) {
+            Integer pid = numero(r[0]);
+            if (pid == null) continue;
+            porPaciente.computeIfAbsent(pid, k -> new ArrayList<>())
+                .add(new Vital(texto(r[2]), texto(r[3]), numeroDouble(r[4]), numeroDouble(r[5]), numeroDouble(r[6]), numeroDouble(r[7]), numeroDouble(r[8]), numeroDouble(r[9]), numeroDouble(r[10]), texto(r[11])));
+        }
+        return porPaciente;
     }
 
     private static Double numeroDouble(Object valor) {

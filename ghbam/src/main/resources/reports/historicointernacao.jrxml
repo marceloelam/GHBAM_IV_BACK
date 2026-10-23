@@ -9,6 +9,7 @@
 	<parameter name="ssigla" class="java.lang.String"/>
 	<parameter name="prefeitura" class="java.lang.String"/>
 	<parameter name="complemento" class="java.lang.String"/>
+	<parameter name="NOME_SISTEMA" class="java.lang.String"><defaultValueExpression><![CDATA["GHBAM"]]></defaultValueExpression></parameter>
 	<queryString language="SQL">
 		<![CDATA[SELECT
 (select count(*) from assinatura_clinica ac where ac.idbam = b.idbam and upper(ac.status) = 'ASSINADO') as assinaturas_clinicas_total,
@@ -916,7 +917,7 @@ ORDER BY i.datainternacao DESC NULLS LAST, i.idninternado DESC]]>
 					<textElement verticalAlignment="Middle">
 						<font size="6"/>
 					</textElement>
-					<textFieldExpression><![CDATA["BAM: " + $F{idbam} + " | Assinaturas clinicas registradas no GHBAM: " + $F{assinaturas_clinicas_total} + " | Adendos: " + $F{adendos_clinicos_total}]]></textFieldExpression>
+					<textFieldExpression><![CDATA["BAM: " + $F{idbam} + " | Assinaturas clinicas registradas no " + $P{NOME_SISTEMA} + ": " + $F{assinaturas_clinicas_total} + " | Adendos: " + $F{adendos_clinicos_total}]]></textFieldExpression>
 				</textField>
 				<staticText>
 					<reportElement x="5" y="22" width="542" height="8" uuid="ffec08ff-9aac-412c-9af1-e9fefb0228ae"/>

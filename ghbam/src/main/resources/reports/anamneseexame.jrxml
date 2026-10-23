@@ -19,6 +19,7 @@
 	<parameter name="prefeitura" class="java.lang.String"/>
 	<parameter name="complemento" class="java.lang.String"/>
 	<parameter name="origem" class="java.lang.String"/>
+	<parameter name="NOME_SISTEMA" class="java.lang.String"><defaultValueExpression><![CDATA["GHBAM"]]></defaultValueExpression></parameter>
 	<queryString language="SQL">
 		<![CDATA[select  anamneseinternacao.data as dt_anamnese,
 assinatura.assinado_por AS assinatura_assinado_por,
@@ -626,7 +627,7 @@ where cast(anamneseinternacao.nbam as text)= $P{numerodeinternado} and bam.unida
 					<textElement verticalAlignment="Middle">
 						<font size="4"/>
 					</textElement>
-					<textFieldExpression><![CDATA[$F{assinatura_id} == null ? "Documento ainda sem assinatura clinica localizada no GHBAM." : "Documento: ANAMNESE_INTERNACAO #" + $F{idanamneseinternacao} + " | Hash SHA-256: " + ($F{assinatura_hash} == null ? "" : $F{assinatura_hash})]]></textFieldExpression>
+					<textFieldExpression><![CDATA[$F{assinatura_id} == null ? "Documento ainda sem assinatura clinica localizada no " + $P{NOME_SISTEMA} + "." : "Documento: ANAMNESE_INTERNACAO #" + $F{idanamneseinternacao} + " | Hash SHA-256: " + ($F{assinatura_hash} == null ? "" : $F{assinatura_hash})]]></textFieldExpression>
 				</textField>
 			</frame>
 		</band>

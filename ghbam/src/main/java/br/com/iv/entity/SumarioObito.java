@@ -32,4 +32,9 @@ public class SumarioObito extends PanacheEntityBase {
     @Column(length=120) private String medicoAssistente, revisor;
     @Column(length=30) private String crmAssistente, crmRevisor;
     @Column(length=20) private String dataAssinaturaAssistente, dataAssinaturaRevisor;
+    // Cancelamento preserva o registro; o documento passa a imprimir com marca d'água "CANCELADO".
+    @Column(length=20, nullable=false) private String status = "ATIVO";
+    private java.time.LocalDateTime canceladoEm;
+    @Column(length=120) private String canceladoPor;
+    @Column(columnDefinition = "TEXT") private String motivoCancelamento;
 }

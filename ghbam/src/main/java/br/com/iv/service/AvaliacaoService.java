@@ -210,20 +210,56 @@ public class AvaliacaoService implements Serializable {
 		return avaliacaoRepository.contagemDeAtendimentosHoje(unidade, data);
 	}
 
+	// Contadores de painel por setor: to_date(a.data) nao usa indice (~1,4 s por chamada) e o
+	// painel repete a consulta a cada poucos segundos; segundos de atraso nao mudam a leitura.
+	private static final long SETOR_CACHE_CURTO_MS = 60 * 1000L;
+	private static final long SETOR_CACHE_LONGO_MS = 5 * 60 * 1000L;
+	private static final Map<String, Object[]> SETOR_CACHE = new java.util.concurrent.ConcurrentHashMap<>();
+
+	@SuppressWarnings("unchecked")
+	private List<Map<String, Object>> porSetorEmCache(String periodo, String unidade, String data, long validadeMs,
+			java.util.function.Supplier<List<Map<String, Object>>> consulta) {
+		String chave = periodo + "|" + unidade + "|" + data;
+		Object[] cache = SETOR_CACHE.get(chave);
+		long agora = System.currentTimeMillis();
+		if (cache != null && agora - (Long) cache[0] < validadeMs) return (List<Map<String, Object>>) cache[1];
+		List<Map<String, Object>> resultado = consulta.get();
+		if (SETOR_CACHE.size() > 2000) SETOR_CACHE.clear();
+		SETOR_CACHE.put(chave, new Object[] { agora, resultado });
+		return resultado;
+	}
+
+	// O Dashboard pede este contador para cada dia do mes (~30 chamadas por abertura);
+	// dia ja encerrado praticamente nao muda e fica 1 h em cache.
+	private static final long SETOR_CACHE_DIA_ENCERRADO_MS = 60 * 60 * 1000L;
+
+	private static long validadePorDia(String data) {
+		try {
+			return java.time.LocalDate.parse(data.replace('/', '-')).isBefore(java.time.LocalDate.now())
+					? SETOR_CACHE_DIA_ENCERRADO_MS : SETOR_CACHE_CURTO_MS;
+		} catch (RuntimeException e) {
+			return SETOR_CACHE_CURTO_MS;
+		}
+	}
+
 	public List<Map<String, Object>> contagemDeAtendimentosHojePorSetor(String unidade, String data) {
-		return avaliacaoRepository.contagemDeAtendimentosHojePorSetor(unidade, data);
+		return porSetorEmCache("hoje", unidade, data, validadePorDia(data),
+				() -> avaliacaoRepository.contagemDeAtendimentosHojePorSetor(unidade, data));
 	}
 
 	public List<Map<String, Object>> contagemDeAtendimentosSemanaPorSetor(String unidade, String data) {
-		return avaliacaoRepository.contagemDeAtendimentosSemanaPorSetor(unidade, data);
+		return porSetorEmCache("semana", unidade, data, SETOR_CACHE_CURTO_MS,
+				() -> avaliacaoRepository.contagemDeAtendimentosSemanaPorSetor(unidade, data));
 	}
 
 	public List<Map<String, Object>> contagemDeAtendimentosMesPorSetor(String unidade, String data) {
-		return avaliacaoRepository.contagemDeAtendimentosMesPorSetor(unidade, data);
+		return porSetorEmCache("mes", unidade, data, SETOR_CACHE_LONGO_MS,
+				() -> avaliacaoRepository.contagemDeAtendimentosMesPorSetor(unidade, data));
 	}
 
 	public List<Map<String, Object>> contagemDeAtendimentosAnoPorSetor(String unidade, String data) {
-		return avaliacaoRepository.contagemDeAtendimentosAnoPorSetor(unidade, data);
+		return porSetorEmCache("ano", unidade, data, SETOR_CACHE_LONGO_MS,
+				() -> avaliacaoRepository.contagemDeAtendimentosAnoPorSetor(unidade, data));
 	}
 	
 	

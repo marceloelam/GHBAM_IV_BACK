@@ -59,6 +59,13 @@ public class RoutePermissionCatalog {
             // Conferencia da embalagem na checagem a beira-leito: quem administra e,
             // na maioria das vezes, o tecnico de enfermagem (so leitura do catalogo).
             entry("cdss/conferencia-medicamento", "kenfermagem", "ktcenfermagem", "kmedico", "kadm"),
+            // Analise de imagem por IA (MONAI): a IA sugere, o medico da ciencia.
+            // Desligado por padrao; so medico/enfermagem analisam e consultam.
+            entry("imagem-ia/analisar", "kmedico", "krx", "ktomografia", "kadm"),
+            entry("imagem-ia/analisar-exame", "kmedico", "krx", "ktomografia", "kadm"),
+            entry("imagem-ia/ciencia", "kmedico", "kenfermagem", "kadm"),
+            entry("imagem-ia/status", "kadm"),
+            entry("imagem-ia", "kmedico", "kenfermagem", "ktcenfermagem", "krx", "ktomografia", "kadm"),
             // Painel do plantao: so leitura, internados da unidade da sessao.
             entry("cdss/plantao", "kenfermagem", "ktcenfermagem", "kmedico", "pnir", "penfermariaseleitos", "kadm"),
             // Dispositivos-dia (denominador de IRAS): enfermagem e CCIH.
