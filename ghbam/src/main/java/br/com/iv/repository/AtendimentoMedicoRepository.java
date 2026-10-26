@@ -47,7 +47,7 @@ public class AtendimentoMedicoRepository implements PanacheRepository<Atendiment
 
 		String subConsulta = "(SELECT DISTINCT ON (setoresunidade.setor) setoresunidade.setor FROM setoresunidade "
 				+ "INNER JOIN registro ON registro.setor = setoresunidade.setor "
-				+ "WHERE setoresunidade.triar = true AND setoresunidade.siglaunidade = '" + unidade + "')";
+				+ "WHERE setoresunidade.triar = true AND setoresunidade.siglaunidade = :unidade)";
 
 		// Odontologia e os setores multidisciplinares tem fila propria (AtendimentoOdontologico /
 		// AtendimentoMultidisciplinar) — nao devem aparecer tambem na fila generica do medico.
@@ -72,18 +72,22 @@ public class AtendimentoMedicoRepository implements PanacheRepository<Atendiment
 				+ "e.idescalapaciente, e.medico, r.atendidopor, "
 				+ "r.temlabo, r.temrx, r.temtomo, r.temmed, r.temenfe, (b.transferido OR NULLIF(TRIM(COALESCE(b.transorigem, '')), '') IS NOT NULL) AS transferido "
 				+ "FROM tratamento t, avaliacao a, pacientes p, bam b, registro r, escalapaciente e "
-				+ "WHERE b.idbam = e.agbam AND e.agenda = false AND CASE WHEN r.atendidopor = '" + atendidopor
-				+ "' THEN r.resultadoexamec19 = 3 ELSE b.ematendimento = false END "
+				+ "WHERE b.idbam = e.agbam AND e.agenda = false AND CASE WHEN r.atendidopor = :atendidopor"
+				+ " THEN r.resultadoexamec19 = 3 ELSE b.ematendimento = false END "
 				+ "AND b.registro_idregistro = r.idregistro AND b.tratamento_idtratamento = t.idtratamento "
 				+ "AND b.paciente_idpaciente = p.idpaciente AND b.avaliacao_idavaliacao = a.idavaliacao "
 				+ "AND t.tratado = 0 AND t.tipo_alta NOT IN ('internacao', 'obs') AND r.eletivo = false "
 				+ "AND a.esperando = 0 AND CASE WHEN (r.setor IN " + subConsulta
-				+ ") THEN a.avaliado = 1 ELSE a.avaliado = 0 END AND r.setor = '" + atenderHoje
-				+ "' AND CAST(b.data AS DATE) BETWEEN (CAST('" + datas + "' AS DATE) - INTERVAL '1 day') AND CAST('"
-				+ datas + "' AS DATE) " + "AND b.unidade = '" + unidade + "'" + filtroExcluirOdonto
+				+ ") THEN a.avaliado = 1 ELSE a.avaliado = 0 END AND r.setor = :atenderHoje"
+				+ " AND CAST(b.data AS DATE) BETWEEN (CAST('" + datas + "' AS DATE) - INTERVAL '1 day') AND CAST('"
+				+ datas + "' AS DATE) " + "AND b.unidade = :unidade" + filtroExcluirOdonto
 				+ "ORDER BY  b.cor desc, CAST(b.data AS DATE) DESC, b.hora";
 
-		List<Object[]> results = getEntityManager().createNativeQuery(sql).getResultList();
+		List<Object[]> results = getEntityManager().createNativeQuery(sql)
+				.setParameter("atendidopor", atendidopor)
+				.setParameter("atenderHoje", atenderHoje)
+				.setParameter("unidade", unidade)
+				.getResultList();
 		List<AtendMedicoDTO> atendimento = new ArrayList<>();
 
 		for (Object[] result : results) {
@@ -136,8 +140,7 @@ public class AtendimentoMedicoRepository implements PanacheRepository<Atendiment
 		String datas = data.format(formatador).toString();
 		datas = datas.replaceAll("-", "/");
 
-		String subConsulta = "(select distinct on (registro.setor) registro.setor from setoresunidade inner join registro on registro.setor = setoresunidade.setor  where setoresunidade.triar = true  and setoresunidade.siglaunidade = '"
-				+ unidade + "')";
+		String subConsulta = "(select distinct on (registro.setor) registro.setor from setoresunidade inner join registro on registro.setor = setoresunidade.setor  where setoresunidade.triar = true  and setoresunidade.siglaunidade = :unidade)";
 
 		// Odontologia e os setores multidisciplinares tem fila propria (AtendimentoOdontologico /
 		// AtendimentoMultidisciplinar) — nao devem aparecer tambem na fila generica do medico.
@@ -160,14 +163,18 @@ public class AtendimentoMedicoRepository implements PanacheRepository<Atendiment
 			sql = "SELECT DISTINCT b.idbam, b.cor, CAST(b.data AS DATE), b.hora, b.ematendimento, p.idpaciente, p.nome, p.idade, p.pacienteespecial, p.pai, p.mae, p.nascimento, a.idAvaliacao, a.avaliado, r.idregistro, r.setor, r.resultadorx, r.resultadotomo, r.resultadomed, r.resultadoexame, r.resultadolabo, r.resultadoenfe, t.idtratamento, t.tratado, e.idescalapaciente, e.medico, r.atendidopor, r.temlabo, r.temrx, r.temtomo, r.temmed, r.temenfe, (b.transferido OR NULLIF(TRIM(COALESCE(b.transorigem, '')), '') IS NOT NULL) AS transferido "
 					+ "FROM tratamento as t, avaliacao as a, pacientes as p, bam as b, registro as r , escalapaciente e "
 					+ "WHERE b.idbam = e.agbam and e.agenda = false and  b.tratamento_idtratamento=t.idtratamento and b.registro_idregistro=r.idregistro and b.paciente_idpaciente=p.idpaciente and "
-					+ "b.avaliacao_idavaliacao=a.idavaliacao and t.tratado=0  and ( t.tipo_alta NOT IN ('internacao', 'obs'))  and a.esperando=1  and r.eletivo=false and (r.setor = '"
-					+ atenderHoje + "'  or r.setor = '" + setorPadrao
-					+ "' )  and (cast(b.data as date ) between (cast('" + datas
-					+ "' as date) - INTERVAL '1 day' ) and cast('" + datas + "' as date) ) and b.unidade ='" + unidade
-					+ "'" + filtroExcluirOdonto
+					+ "b.avaliacao_idavaliacao=a.idavaliacao and t.tratado=0  and ( t.tipo_alta NOT IN ('internacao', 'obs'))  and a.esperando=1  and r.eletivo=false and (r.setor = :atenderHoje"
+					+ "  or r.setor = :setorPadrao"
+					+ " )  and (cast(b.data as date ) between (cast('" + datas
+					+ "' as date) - INTERVAL '1 day' ) and cast('" + datas + "' as date) ) and b.unidade = :unidade"
+					+ filtroExcluirOdonto
 					+ "order by cast(b.data as date) desc, b.hora, r.resultadorx desc, r.resultadoexame desc, b.cor desc";
 
-			List<Object[]> results = getEntityManager().createNativeQuery(sql).getResultList();
+			List<Object[]> results = getEntityManager().createNativeQuery(sql)
+					.setParameter("atenderHoje", atenderHoje)
+					.setParameter("setorPadrao", setorPadrao)
+					.setParameter("unidade", unidade)
+					.getResultList();
 			List<AtendMedicoDTO> atendimento = new ArrayList<>();
 
 			for (Object[] result : results) {
@@ -219,9 +226,9 @@ public class AtendimentoMedicoRepository implements PanacheRepository<Atendiment
 				sql = "SELECT DISTINCT b.idbam, b.cor, CAST(b.data AS DATE), b.hora, b.ematendimento, p.idpaciente, p.nome, p.idade, p.pacienteespecial, p.pai, p.mae, p.nascimento, a.idAvaliacao, a.avaliado, r.idregistro, r.setor, r.resultadorx, r.resultadotomo, r.resultadomed, r.resultadoexame, r.resultadolabo, r.resultadoenfe, t.idtratamento, t.tratado, e.idescalapaciente, e.medico, r.atendidopor, r.temlabo, r.temrx, r.temtomo, r.temmed, r.temenfe, (b.transferido OR NULLIF(TRIM(COALESCE(b.transorigem, '')), '') IS NOT NULL) AS transferido "
 						+ "FROM tratamento as t, avaliacao as a, pacientes as p, bam as b, registro as r, escalapaciente e "
 						+ "WHERE b.idbam = e.agbam and e.agenda = false and  b.tratamento_idtratamento=t.idtratamento and b.registro_idregistro=r.idregistro and b.paciente_idpaciente=p.idpaciente and "
-						+ "b.avaliacao_idavaliacao=a.idavaliacao and t.tratado=0 and r.eletivo=false and a.esperando=1 and r.setor = '"
-						+ atenderHoje + "' and b.unidade ='" + unidade
-						+ "' and (cast(b.data as date ) between (cast('" + datas
+						+ "b.avaliacao_idavaliacao=a.idavaliacao and t.tratado=0 and r.eletivo=false and a.esperando=1 and r.setor = :atenderHoje"
+						+ " and b.unidade = :unidade"
+						+ " and (cast(b.data as date ) between (cast('" + datas
 						+ "' as date) - INTERVAL '1 day' ) and cast('" + datas
 						+ "' as date) )" + filtroExcluirOdonto
 						+ "order by cast(b.data as date), b.hora, b.cor desc";
@@ -231,14 +238,17 @@ public class AtendimentoMedicoRepository implements PanacheRepository<Atendiment
 						+ "WHERE b.idbam = e.agbam and e.agenda = false and  b.tratamento_idtratamento=t.idtratamento and b.registro_idregistro=r.idregistro and b.paciente_idpaciente=p.idpaciente and "
 						+ "b.avaliacao_idavaliacao=a.idavaliacao and t.tratado=0 and a.esperando=1 and case when (r.setor in "
 						+ subConsulta
-						+ ") then a.avaliado=1 ELSE a.avaliado=0 END and r.eletivo=false and r.setor = '"
-						+ atenderHoje + "' and b.unidade ='" + unidade
-						+ "' and (cast(b.data as date ) between (cast('" + datas
+						+ ") then a.avaliado=1 ELSE a.avaliado=0 END and r.eletivo=false and r.setor = :atenderHoje"
+						+ " and b.unidade = :unidade"
+						+ " and (cast(b.data as date ) between (cast('" + datas
 						+ "' as date) - INTERVAL '1 day' ) and cast('" + datas
 						+ "' as date) )" + filtroExcluirOdonto
 						+ "order by cast(b.data as date), b.hora, b.cor desc";
 			}
-			List<Object[]> results = getEntityManager().createNativeQuery(sql).getResultList();
+			List<Object[]> results = getEntityManager().createNativeQuery(sql)
+					.setParameter("atenderHoje", atenderHoje)
+					.setParameter("unidade", unidade)
+					.getResultList();
 			List<AtendMedicoDTO> atendimento = new ArrayList<>();
 
 			for (Object[] result : results) {
@@ -292,7 +302,7 @@ public class AtendimentoMedicoRepository implements PanacheRepository<Atendiment
 
 		String subConsulta = "(SELECT DISTINCT ON (setoresunidade.setor) setoresunidade.setor FROM setoresunidade "
 				+ "INNER JOIN registro ON registro.setor = setoresunidade.setor "
-				+ "WHERE setoresunidade.triar = true AND setoresunidade.siglaunidade = '" + unidade + "')";
+				+ "WHERE setoresunidade.triar = true AND setoresunidade.siglaunidade = :unidade)";
 
 		// Odontologia e os setores multidisciplinares tem fila propria (AtendimentoOdontologico /
 		// AtendimentoMultidisciplinar) — nao devem aparecer tambem na fila generica do medico.
@@ -317,18 +327,22 @@ public class AtendimentoMedicoRepository implements PanacheRepository<Atendiment
 				+ "e.idescalapaciente, e.medico, r.atendidopor, "
 				+ "r.temlabo, r.temrx, r.temtomo, r.temmed, r.temenfe, (b.transferido OR NULLIF(TRIM(COALESCE(b.transorigem, '')), '') IS NOT NULL) AS transferido "
 				+ "FROM tratamento t, avaliacao a, pacientes p, bam b, registro r, escalapaciente e "
-				+ "WHERE b.idbam = e.agbam AND e.agenda = true and e.chegou = true AND CASE WHEN r.atendidopor = '"
-				+ atendidopor + "' THEN r.resultadoexamec19 = 3 ELSE b.ematendimento = false END "
+				+ "WHERE b.idbam = e.agbam AND e.agenda = true and e.chegou = true AND CASE WHEN r.atendidopor = :atendidopor"
+				+ " THEN r.resultadoexamec19 = 3 ELSE b.ematendimento = false END "
 				+ "AND b.registro_idregistro = r.idregistro AND b.tratamento_idtratamento = t.idtratamento "
 				+ "AND b.paciente_idpaciente = p.idpaciente AND b.avaliacao_idavaliacao = a.idavaliacao "
 				+ "AND t.tratado = 0 AND t.tipo_alta NOT IN ('internacao', 'obs') AND r.eletivo = false "
 				+ "AND a.esperando = 0 AND CASE WHEN (r.setor IN " + subConsulta
-				+ ") THEN a.avaliado = 1 ELSE a.avaliado = 0 END AND r.setor = '" + atenderHoje
-				+ "' AND e.inicioagenda = CAST('" + datas + "' AS DATE) AND b.unidade = '" + unidade
-				+ "'" + filtroExcluirOdonto
+				+ ") THEN a.avaliado = 1 ELSE a.avaliado = 0 END AND r.setor = :atenderHoje"
+				+ " AND e.inicioagenda = CAST('" + datas + "' AS DATE) AND b.unidade = :unidade"
+				+ filtroExcluirOdonto
 				+ "ORDER BY  b.cor desc, CAST(b.data AS DATE) DESC, b.hora";
 
-		List<Object[]> results = getEntityManager().createNativeQuery(sql).getResultList();
+		List<Object[]> results = getEntityManager().createNativeQuery(sql)
+				.setParameter("atendidopor", atendidopor)
+				.setParameter("atenderHoje", atenderHoje)
+				.setParameter("unidade", unidade)
+				.getResultList();
 		List<AtendMedicoDTO> atendimento = new ArrayList<>();
 
 		for (Object[] result : results) {
@@ -381,8 +395,8 @@ public class AtendimentoMedicoRepository implements PanacheRepository<Atendiment
 		String datas = data.format(formatador).toString();
 		datas = datas.replaceAll("-", "/");
 
-		String subConsulta = "(select distinct on (registro.setor) registro.setor from setoresunidade inner join registro on registro.setor = setoresunidade.setor  where setoresunidade.triar = true  and setoresunidade.siglaunidade = '"
-				+ unidade + "')";
+		String subConsulta = "(select distinct on (registro.setor) registro.setor from setoresunidade inner join registro on registro.setor = setoresunidade.setor  where setoresunidade.triar = true  and setoresunidade.siglaunidade = :unidade)";
+				
 
 		String sql = "";
 		// Odontologia e os setores multidisciplinares tem fila propria (AtendimentoOdontologico /
@@ -410,12 +424,16 @@ public class AtendimentoMedicoRepository implements PanacheRepository<Atendiment
 					+ "WHERE b.idbam = e.agbam and e.agenda = true and e.chegou=true "
 					+ "and b.tratamento_idtratamento=t.idtratamento and b.registro_idregistro=r.idregistro and b.paciente_idpaciente=p.idpaciente and "
 					+ "b.avaliacao_idavaliacao=a.idavaliacao and t.tratado=0 and (t.tipo_alta NOT IN ('internacao', 'obs')) and a.esperando=1 "
-					+ "and r.eletivo=false and (r.setor = '" + atenderHoje + "' or r.setor = '" + setorPadrao
-					+ "') and e.inicioagenda = cast('" + datas + "' as date) and b.unidade ='" + unidade + "'"
+					+ "and r.eletivo=false and (r.setor = :atenderHoje or r.setor = :setorPadrao"
+					+ ") and e.inicioagenda = cast('" + datas + "' as date) and b.unidade = :unidade"
 					+ filtroExcluirOdonto
 					+ "order by cast(b.data as date) desc, b.hora, r.resultadorx desc, r.resultadoexame desc, b.cor desc";
 
-			List<Object[]> results = getEntityManager().createNativeQuery(sql).getResultList();
+			List<Object[]> results = getEntityManager().createNativeQuery(sql)
+					.setParameter("atenderHoje", atenderHoje)
+					.setParameter("setorPadrao", setorPadrao)
+					.setParameter("unidade", unidade)
+					.getResultList();
 			List<AtendMedicoDTO> atendimento = new ArrayList<>();
 
 			for (Object[] result : results) {
@@ -467,9 +485,9 @@ public class AtendimentoMedicoRepository implements PanacheRepository<Atendiment
 				sql = "SELECT DISTINCT b.idbam, b.cor, CAST(b.data AS DATE), b.hora, b.ematendimento, p.idpaciente, p.nome, p.idade, p.pacienteespecial, p.pai, p.mae, p.nascimento, a.idAvaliacao, a.avaliado, r.idregistro, r.setor, r.resultadorx, r.resultadotomo, r.resultadomed, r.resultadoexame, r.resultadolabo, r.resultadoenfe, t.idtratamento, t.tratado, e.idescalapaciente, e.medico, r.atendidopor, r.temlabo, r.temrx, r.temtomo, r.temmed, r.temenfe, (b.transferido OR NULLIF(TRIM(COALESCE(b.transorigem, '')), '') IS NOT NULL) AS transferido "
 						+ "FROM tratamento as t, avaliacao as a, pacientes as p, bam as b, registro as r, escalapaciente e "
 						+ "WHERE b.idbam = e.agbam and e.agenda = true and e.chegou = true and b.tratamento_idtratamento=t.idtratamento and b.registro_idregistro=r.idregistro and b.paciente_idpaciente=p.idpaciente and "
-						+ "b.avaliacao_idavaliacao=a.idavaliacao and t.tratado=0 and r.eletivo=false and a.esperando=1 and r.setor = '"
-						+ atenderHoje + "' and b.unidade ='" + unidade
-						+ "' and e.inicioagenda = cast('" + datas + "' as date)"
+						+ "b.avaliacao_idavaliacao=a.idavaliacao and t.tratado=0 and r.eletivo=false and a.esperando=1 and r.setor = :atenderHoje"
+						+ " and b.unidade = :unidade"
+						+ " and e.inicioagenda = cast('" + datas + "' as date)"
 						+ filtroExcluirOdonto
 						+ "order by cast(b.data as date), b.hora, b.cor desc";
 			} else {
@@ -478,13 +496,16 @@ public class AtendimentoMedicoRepository implements PanacheRepository<Atendiment
 						+ "WHERE b.idbam = e.agbam and e.agenda = true and e.chegou = true and b.tratamento_idtratamento=t.idtratamento and b.registro_idregistro=r.idregistro and b.paciente_idpaciente=p.idpaciente and "
 						+ "b.avaliacao_idavaliacao=a.idavaliacao and t.tratado=0 and a.esperando=1 and case when (r.setor in "
 						+ subConsulta
-						+ ") then a.avaliado=1 ELSE a.avaliado=0 END and r.eletivo=false and r.setor = '"
-						+ atenderHoje + "' and b.unidade ='" + unidade
-						+ "' and e.inicioagenda = cast('" + datas + "' as date)"
+						+ ") then a.avaliado=1 ELSE a.avaliado=0 END and r.eletivo=false and r.setor = :atenderHoje"
+						+ " and b.unidade = :unidade"
+						+ " and e.inicioagenda = cast('" + datas + "' as date)"
 						+ filtroExcluirOdonto
 						+ "order by cast(b.data as date), b.hora, b.cor desc";
 			}
-			List<Object[]> results = getEntityManager().createNativeQuery(sql).getResultList();
+			List<Object[]> results = getEntityManager().createNativeQuery(sql)
+					.setParameter("atenderHoje", atenderHoje)
+					.setParameter("unidade", unidade)
+					.getResultList();
 			List<AtendMedicoDTO> atendimento = new ArrayList<>();
 
 			for (Object[] result : results) {

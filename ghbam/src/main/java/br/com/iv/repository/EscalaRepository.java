@@ -41,18 +41,20 @@ public class EscalaRepository implements PanacheRepository<Escala> {
 			sql = "SELECT p.*  FROM pacientes  where s.nome = 'SOU GRATO A TI ABA'";
 			return getEntityManager().createNativeQuery(sql, EscalaPaciente.class).getResultList();
 		} else {
-			sql = "SELECT *  FROM escala WHERE setor like  '" + n_nome + "%' and unidade ='" + unidade
-					+ "'  order by setor";
+			sql = "SELECT *  FROM escala WHERE setor like :setor and unidade = :unidade  order by setor";
 		}
-		return getEntityManager().createNativeQuery(sql, Pacientes.class).getResultList();
+		return getEntityManager().createNativeQuery(sql, Pacientes.class)
+				.setParameter("setor", n_nome + "%")
+				.setParameter("unidade", unidade)
+				.getResultList();
 
 	}
 
 	@Transactional
 	public void removerDiante(Long id, String data) {
-		String sql = "delete from escala  where  servidor_idservidor = " + id
-				+ " and Cast(inicioagenda as date) >= Cast('" + data + "' as date)";
-		entityManager.createNativeQuery(sql).executeUpdate();
+		String sql = "delete from escala  where  servidor_idservidor = :id"
+				+ " and Cast(inicioagenda as date) >= Cast(:data as date)";
+		entityManager.createNativeQuery(sql).setParameter("id", id).setParameter("data", data).executeUpdate();
 
 	}
 

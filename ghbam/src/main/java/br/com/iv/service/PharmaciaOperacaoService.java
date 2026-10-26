@@ -20,6 +20,7 @@ public class PharmaciaOperacaoService {
     @Inject com.fasterxml.jackson.databind.ObjectMapper mapper;
     @Inject PharmaciaMovimentacaoService movimentos;
     @Inject LogService logs;
+    @Inject ArmazenamentoArquivoService armazenamento;
     static final Set<String> TIPOS = Set.of("ENTRADA", "INVENTARIO", "QUARENTENA", "RECOLHIMENTO", "DESCARTE", "TEMPERATURA", "ABERTURA", "FRACIONAMENTO");
 
     static String exigirTexto(String texto, int limite, String campo) {
@@ -44,6 +45,10 @@ public class PharmaciaOperacaoService {
         PharmaciaOperacaoDocumento d = em.find(PharmaciaOperacaoDocumento.class, id);
         if (d == null) throw new jakarta.ws.rs.NotFoundException();
         auditar(o, "visualizou documento", matricula);
+        if (d.armazenamentoChave != null && !d.armazenamentoChave.isBlank()) {
+            try { return armazenamento.ler(d.armazenamentoChave); }
+            catch (RuntimeException e) { throw new jakarta.ws.rs.ServiceUnavailableException("Documento temporariamente indisponivel"); }
+        }
         return java.util.Base64.getDecoder().decode(d.conteudoBase64);
     }
     static void validar(PharmaciaOperacaoRequest r) {
@@ -162,7 +167,19 @@ public class PharmaciaOperacaoService {
         if (r.documentoBase64 != null) {
             em.flush();
             PharmaciaOperacaoDocumento anexo = new PharmaciaOperacaoDocumento();
-            anexo.operacaoId = o.id; anexo.conteudoBase64 = r.documentoBase64; em.persist(anexo);
+            anexo.operacaoId = o.id; anexo.conteudoBase64 = r.documentoBase64;
+            // MinIO ligado: PDF sai do banco; se falhar, fica no banco como antes.
+            if (armazenamento.habilitado()) {
+                try {
+                    anexo.armazenamentoChave = armazenamento.salvar("farmacia/" + ArmazenamentoArquivoService.pastaUnidade(o.unidade) + "/operacao-" + o.id + "-" + java.util.UUID.randomUUID(),
+                            java.util.Base64.getDecoder().decode(r.documentoBase64), "application/pdf");
+                    anexo.conteudoBase64 = null;
+                } catch (RuntimeException falha) {
+                    org.jboss.logging.Logger.getLogger(PharmaciaOperacaoService.class)
+                            .warnf("Farmacia: MinIO indisponivel, documento da operacao %s gravado no banco: %s", o.id, falha.getMessage());
+                }
+            }
+            em.persist(anexo);
         } em.flush();
         if ("FRACIONAMENTO".equals(r.tipo)) {
             ajustar(o, -r.quantidade, matricula, r.justificativa);

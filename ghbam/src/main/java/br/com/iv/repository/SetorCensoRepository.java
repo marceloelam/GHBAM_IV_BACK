@@ -44,14 +44,14 @@ public class SetorCensoRepository implements PanacheRepository<SetorCenso> {
 
 	public List<String> listarUnidadesDistintosDoSetor(String unidade) {
 		return entityManager.createQuery(
-				"SELECT DISTINCT s.unidade FROM SetorCenso s where unidade = '" + unidade + "' ORDER BY s.unidade",
-				String.class).getResultList();
+				"SELECT DISTINCT s.unidade FROM SetorCenso s where unidade = :unidade ORDER BY s.unidade",
+				String.class).setParameter("unidade", unidade).getResultList();
 	}
 
 	public List<String> listarSetoresDistintosDoSetor(String unidade) {
 		return entityManager.createQuery(
-				"SELECT DISTINCT s.setor FROM SetorCenso s where s.unidade = '" + unidade + "' ORDER BY s.setor",
-				String.class).getResultList();
+				"SELECT DISTINCT s.setor FROM SetorCenso s where s.unidade = :unidade ORDER BY s.setor",
+				String.class).setParameter("unidade", unidade).getResultList();
 	}
 
 	// Atualizar senha do servidor

@@ -38,8 +38,8 @@ public class LocalCensoRepository implements PanacheRepository<LocalCenso> {
 
 	public List<String> listarUnidadesDistintosDoSetor(String unidade) {
 		return entityManager.createQuery(
-				"SELECT DISTINCT s.unidade FROM LocalCenso s where unidade = '" + unidade + "' ORDER BY s.unidade",
-				String.class).getResultList();
+				"SELECT DISTINCT s.unidade FROM LocalCenso s where unidade = :unidade ORDER BY s.unidade",
+				String.class).setParameter("unidade", unidade).getResultList();
 	}
 
 	public List<LocalCensoDto> listarUnidadesDistintosDoLocalPorSetor(String unidade, int setor) {

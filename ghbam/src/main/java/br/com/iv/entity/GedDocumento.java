@@ -22,7 +22,10 @@ public class GedDocumento extends PanacheEntityBase {
  @Column(nullable = false, length = 120) public String tipoMime;
  public Long tamanhoBytes;
  @Column(columnDefinition = "TEXT") public String descricao;
- @Column(nullable = false, columnDefinition = "TEXT") public String conteudoBase64;
+ // Legado: anexos antigos (e os novos, se o armazenamento S3 estiver desligado) ficam aqui.
+ @Column(columnDefinition = "TEXT") public String conteudoBase64;
+ // Chave do objeto no MinIO/S3; preenchida, o conteudo nao esta no banco.
+ @Column(name = "armazenamento_chave", length = 255) public String armazenamentoChave;
  @Column(name = "criado_por", length = 120) public String criadoPor;
  @Column(name = "criado_por_matricula", length = 40) public String criadoPorMatricula;
  @Column(name = "removido_por", length = 120) public String removidoPor;

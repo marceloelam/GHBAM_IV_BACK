@@ -43,6 +43,8 @@ public class Visitantes  extends PanacheEntityBase  implements Serializable {
 	private String fotovisitante;
 	@Column(length = 100)
 	private String fotovisitantearquivo;
+	@Column(name = "armazenamento_chave", length = 255)
+	private String armazenamentoChave;
 	@Column(length = 30)
 	private String nunidade;
 

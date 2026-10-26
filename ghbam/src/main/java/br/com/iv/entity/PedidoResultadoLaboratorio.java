@@ -10,6 +10,8 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import lombok.Data;
 
@@ -33,6 +35,10 @@ public class PedidoResultadoLaboratorio extends PanacheEntityBase implements Ser
 	private int bam;
 	@Column(columnDefinition = "TEXT")
 	private String arquivo;
+	// Com o MinIO ligado, arquivo fica vazio no banco e o laudo esta nesta chave.
+	@JsonIgnore
+	@Column(name = "armazenamento_chave", length = 255)
+	private String armazenamentoChave;
 	@Column(length = 12)
 	private String dt;
 	@Column(length = 5)

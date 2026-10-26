@@ -283,8 +283,10 @@ public class PacientesRepository implements PanacheRepository<Pacientes> {
 			sql = "SELECT p.*  FROM pacientes p LEFT JOIN bam b ON b.paciente_idpaciente = p.idpaciente "
 					+ "LEFT JOIN novointernado n ON n.nbam = b.idbam "
 					+ "LEFT JOIN setorcenso s on s.idsetorcenso = n.setor_idsetorcenso "
-					+ "WHERE  SUBSTRING (p.nome, 1, 2) != 'RN' and " + setoresRnSql + " and n.alta = false and replace(p.nome, ' ', '') like  replace('"
-					+ n_nome + "%', ' ', '')  order by p.nome";
+					+ "WHERE  SUBSTRING (p.nome, 1, 2) != 'RN' and " + setoresRnSql + " and n.alta = false and replace(p.nome, ' ', '') like  replace(:nome, ' ', '')  order by p.nome";
+			return getEntityManager().createNativeQuery(sql, Pacientes.class)
+					.setParameter("nome", n_nome + "%")
+					.getResultList();
 		}
 		return getEntityManager().createNativeQuery(sql, Pacientes.class).getResultList();
 
@@ -298,10 +300,11 @@ public class PacientesRepository implements PanacheRepository<Pacientes> {
 		String n_nome = query.replaceAll("\\s", "");
 
 		sql = "SELECT p.*  FROM pacientes p LEFT JOIN bam b ON b.paciente_idpaciente = p.idpaciente LEFT JOIN novointernado n ON n.nbam = b.idbam "
-				+ "	 where n.alta = false and replace(p.mae, ' ', '') =  replace('" + n_nome
-				+ "', ' ','') order by p.nome";
+				+ "	 where n.alta = false and replace(p.mae, ' ', '') =  replace(:mae, ' ','') order by p.nome";
 
-		return getEntityManager().createNativeQuery(sql, Pacientes.class).getResultList();
+		return getEntityManager().createNativeQuery(sql, Pacientes.class)
+				.setParameter("mae", n_nome)
+				.getResultList();
 
 		// return find("replace(nome, ' ', '') like ?1", n_nome +
 		// "%").page(Page.ofSize(10)).list();
@@ -533,18 +536,20 @@ public class PacientesRepository implements PanacheRepository<Pacientes> {
 		String datas = data.format(formatador).toString();
 		datas = datas.replaceAll("-", "/");
 
-		String subConsulta = "(select distinct registro.setor from setoresunidade inner join registro on registro.setor = setoresunidade.setor where setoresunidade.triar = true and setoresunidade.siglaunidade = '"
-				+ unidade + "')";
+		String subConsulta = "(select distinct registro.setor from setoresunidade inner join registro on registro.setor = setoresunidade.setor where setoresunidade.triar = true and setoresunidade.siglaunidade = :unidade)";
 
-		String sql = "SELECT DISTINCT b.idbam as ibam, p.*, a.*, b.*, r.* FROM pacientes p "
-				+ "JOIN bam b ON b.paciente_idpaciente = p.idpaciente "
+		// Só p.* no SELECT externo: com "p.*, a.*, b.*, r.*" colunas repetidas (idpaciente, data)
+		// fazem o Hibernate falhar na auto-descoberta (NonUniqueDiscoveredSqlAliasException).
+		String sql = "SELECT p.* FROM pacientes p JOIN (SELECT DISTINCT b.idbam, b.prioridade, b.hora, b.paciente_idpaciente FROM bam b "
 				+ "JOIN avaliacao a ON b.avaliacao_idavaliacao = a.idavaliacao "
 				+ "JOIN registro r ON b.registro_idregistro = r.idregistro "
-				+ "WHERE a.avaliado = 0 AND r.eletivo = false AND to_date(a.data, 'YYYY/MM/DD') = '" + datas
-				+ "' AND r.setor IN " + subConsulta + " AND b.unidade = '" + unidade
-				+ "' ORDER BY b.idbam, b.prioridade DESC, b.hora";
+				+ "WHERE a.avaliado = 0 AND r.eletivo = false AND to_date(a.data, 'YYYY/MM/DD') = '" + datas + "' "
+				+ "AND r.setor IN " + subConsulta + " AND b.unidade = :unidade) x ON x.paciente_idpaciente = p.idpaciente "
+				+ "ORDER BY x.idbam, x.prioridade DESC, x.hora";
 
-		return getEntityManager().createNativeQuery(sql, Pacientes.class).getResultList();
+		return getEntityManager().createNativeQuery(sql, Pacientes.class)
+				.setParameter("unidade", unidade)
+				.getResultList();
 	}
 
 	@SuppressWarnings("unchecked")
@@ -576,8 +581,7 @@ public class PacientesRepository implements PanacheRepository<Pacientes> {
 		String datas = data.format(formatador).toString();
 		datas = datas.replaceAll("-", "/");
 
-		String subConsulta = "(select distinct registro.setor from setoresunidade inner join registro on registro.setor = setoresunidade.setor where setoresunidade.triar = true and setoresunidade.siglaunidade = '"
-				+ unidade + "')";
+		String subConsulta = "(select distinct registro.setor from setoresunidade inner join registro on registro.setor = setoresunidade.setor where setoresunidade.triar = true and setoresunidade.siglaunidade = :unidade)";
 
 		String sql = "SELECT DISTINCT p.idpaciente, p.nome, p.idade, p.pacienteespecial, p.mae, p.pai, p.nascimento, a.idavaliacao, a.data, a.avaliado, "
 				+ "b.idbam, b.prioridade, a.hora, r.idregistro, r.eletivo, r.setor, t.idtratamento, t.tratado  FROM pacientes p "
@@ -585,11 +589,14 @@ public class PacientesRepository implements PanacheRepository<Pacientes> {
 				+ "JOIN avaliacao a ON b.avaliacao_idavaliacao = a.idavaliacao "
 				+ "JOIN registro r ON b.registro_idregistro = r.idregistro "
 				+ "JOIN tratamento t ON b.tratamento_idtratamento = t.idtratamento "
-				+ "WHERE a.avaliado = 0 AND r.eletivo = false AND to_date(a.data, 'YYYY/MM/DD') = '" + datas
-				+ "' AND r.setor IN " + subConsulta + " AND b.unidade = '" + unidade + "' AND r.setor like '" + ksetor
-				+ "%' AND t.tratado = 0  ORDER BY r.setor, b.idbam, b.prioridade DESC, a.hora";
+				+ "WHERE a.avaliado = 0 AND r.eletivo = false AND to_date(a.data, 'YYYY/MM/DD') = '" + datas + "' "
+				+ "AND r.setor IN " + subConsulta + " AND b.unidade = :unidade AND r.setor like :ksetor "
+				+ "AND t.tratado = 0  ORDER BY r.setor, b.idbam, b.prioridade DESC, a.hora";
 
-		List<Object[]> results = getEntityManager().createNativeQuery(sql).getResultList();
+		List<Object[]> results = getEntityManager().createNativeQuery(sql)
+				.setParameter("unidade", unidade)
+				.setParameter("ksetor", ksetor + "%")
+				.getResultList();
 		List<PacienteDto> pacientes = new ArrayList<>();
 
 		for (Object[] result : results) {
@@ -740,13 +747,16 @@ public class PacientesRepository implements PanacheRepository<Pacientes> {
 					+ " FROM pacientes p LEFT JOIN bam b ON p.idpaciente = b.paciente_idpaciente "
 					+ " LEFT JOIN internacao i ON cast(i.bam as integer) = b.idbam "
 					+ " LEFT JOIN  tratamento t ON t.idtratamento = b.tratamento_idtratamento "
-					+ " WHERE  p.nome LIKE '" + nome + "%' AND b.unidade = '" + unidade + "'"
+					+ " WHERE  p.nome LIKE :nome AND b.unidade = :unidade"
 					+ " AND p.pacienteespecial != 'OBITO' AND b.transferido = false "
 					+ " AND   cast(i.datasaida as date)  is null   AND t.tipo_alta = 'internacao' AND p.prontuario != '0' AND i.motivodaalta = '-' "
 					+ " GROUP BY p.idpaciente, p.nome, p.idade, p.prontuario, p.pacienteespecial, b.idbam,  t.tipo_alta, i.datasaida, i.datainternacao"
 					+ " ORDER BY p.nome, p.prontuario";
 
-			List<Object[]> results = getEntityManager().createNativeQuery(sql).getResultList();
+			List<Object[]> results = getEntityManager().createNativeQuery(sql)
+					.setParameter("nome", nome + "%")
+					.setParameter("unidade", unidade)
+					.getResultList();
 
 			for (Object[] result : results) {
 				PacientesNirDto dto = new PacientesNirDto();
@@ -794,10 +804,13 @@ public class PacientesRepository implements PanacheRepository<Pacientes> {
 					+ " left join localcenso l on n.local_idsetorlocalcenso = l.idsetorlocalcenso "
 					+ " left join setorcenso s on  n.setor_idsetorcenso = s.idsetorcenso "
 					+ " where (n.motivosaida = '-' or n.motivosaida = 'ALTA ADM')  and n.alta = false "
-					+ " and  p.nome LIKE '" + nome + "%' " + " and n.unidade  = '" + unidade + "' "
+					+ " and  p.nome LIKE :nome  and n.unidade  = :unidade "
 					+ " order by  t.tipo_alta desc,  n.setor_idsetorcenso, n.local_idsetorlocalcenso, p.nome,p.prontuario ";
 
-			List<Object[]> results = getEntityManager().createNativeQuery(sql).getResultList();
+			List<Object[]> results = getEntityManager().createNativeQuery(sql)
+					.setParameter("nome", nome + "%")
+					.setParameter("unidade", unidade)
+					.getResultList();
 
 			for (Object[] result : results) {
 				PacientesNirDto dto = new PacientesNirDto();
@@ -906,9 +919,9 @@ public class PacientesRepository implements PanacheRepository<Pacientes> {
 					+ " FROM pacientes p LEFT JOIN bam b ON p.idpaciente = b.paciente_idpaciente "
 					+ " LEFT JOIN  tratamento t ON t.idtratamento = b.tratamento_idtratamento "
 					+ " LEFT JOIN  laudoautorizacao l ON l.bam = b.idbam "
-					+ " LEFT JOIN internacao i ON i.bam = cast(b.idbam as text)  WHERE  p.nome LIKE '" + nome
-					+ "%' AND b.unidade = '" + unidade
-					+ "' and (i.datasaida is not null and (cast(i.datasaida as date) between  (cast('" + datas
+					+ " LEFT JOIN internacao i ON i.bam = cast(b.idbam as text)  WHERE  p.nome LIKE :nome"
+					+ " AND b.unidade = :unidade"
+					+ " and (i.datasaida is not null and (cast(i.datasaida as date) between  (cast('" + datas
 					+ "' as date) - INTERVAL '5 day') and cast('" + datas + "' as date))) "
 					+ " AND p.pacienteespecial != 'OBITO'   AND i.bam is not null " + " AND LEFT(p.nome, 3) != 'RN '"
 					+ " GROUP BY p.idpaciente, p.nome, p.idade, p.prontuario, p.pacienteespecial, b.idbam,  t.tipo_alta, b.data,  l.bam, i.datainternacao, "
@@ -916,7 +929,10 @@ public class PacientesRepository implements PanacheRepository<Pacientes> {
 					+ " ORDER BY  cast(i.datasaida as date), p.nome,  cast(b.data as date) desc,    p.prontuario, l.bam, i.datainternacao, "
 					+ "	     i.medicodeualta, i.medicoqueinternou ";
 
-			List<Object[]> results = getEntityManager().createNativeQuery(sql).getResultList();
+			List<Object[]> results = getEntityManager().createNativeQuery(sql)
+					.setParameter("nome", nome + "%")
+					.setParameter("unidade", unidade)
+					.getResultList();
 
 			for (Object[] result : results) {
 				PacientesNirDto dto = new PacientesNirDto();
@@ -945,14 +961,17 @@ public class PacientesRepository implements PanacheRepository<Pacientes> {
 
 			String sql = "SELECT p.idpaciente, p.nome, p.idade, p.prontuario, p.pacienteespecial, MAX(b.idbam) AS idbam,   r.dataalta, r.diagfinal"
 					+ " FROM pacientes p LEFT JOIN bam b ON p.idpaciente = b.paciente_idpaciente "
-					+ " LEFT JOIN resumodealta r ON cast(r.bam as integer) = b.idbam  WHERE  p.nome LIKE '" + nome
-					+ "%' AND b.unidade = '" + unidade + "'"
+					+ " LEFT JOIN resumodealta r ON cast(r.bam as integer) = b.idbam  WHERE  p.nome LIKE :nome"
+					+ " AND b.unidade = :unidade"
 					+ " AND (p.pacienteespecial != 'OBITO' and (p.nome != '' or p.nome != ' ' or p.nome != '   ' or p.nome != '    ') and p.prontuario != '0') and ( r.dataalta is not null and cast(r.dataalta as date) <= CURRENT_DATE) "
 					+ " AND COALESCE(upper(r.status), 'ATIVO') <> 'CANCELADO' "
 					+ " GROUP BY p.idpaciente, p.nome, p.idade, p.prontuario, p.pacienteespecial, b.idbam,   r.datainternacao, r.dataalta, r.diagfinal"
 					+ " ORDER BY  cast(r.dataalta as date) desc,  p.nome, b.idbam desc";
 
-			List<Object[]> results = getEntityManager().createNativeQuery(sql).getResultList();
+			List<Object[]> results = getEntityManager().createNativeQuery(sql)
+					.setParameter("nome", nome + "%")
+					.setParameter("unidade", unidade)
+					.getResultList();
 
 			for (Object[] result : results) {
 				PacientesNirDto dto = new PacientesNirDto();
@@ -1024,10 +1043,13 @@ public class PacientesRepository implements PanacheRepository<Pacientes> {
 					+ " left join localcenso l on n.local_idsetorlocalcenso = l.idsetorlocalcenso "
 					+ " left join setorcenso s on  n.setor_idsetorcenso = s.idsetorcenso "
 					+ " where (n.motivosaida = '-' or n.motivosaida = 'ALTA ADM')  and n.alta = false "
-					+ " and  p.nome LIKE '" + nome + "%' " + " and n.unidade  = '" + unidade + "' "
+					+ " and  p.nome LIKE :nome  and n.unidade  = :unidade "
 					+ " order by  n.setor_idsetorcenso, n.local_idsetorlocalcenso, p.nome ";
 
-			List<Object[]> results = getEntityManager().createNativeQuery(sql).getResultList();
+			List<Object[]> results = getEntityManager().createNativeQuery(sql)
+					.setParameter("nome", nome + "%")
+					.setParameter("unidade", unidade)
+					.getResultList();
 
 			for (Object[] result : results) {
 				PacientesNirDto dto = new PacientesNirDto();
@@ -1163,11 +1185,14 @@ public class PacientesRepository implements PanacheRepository<Pacientes> {
 				+ " left join tratamento t on  t.idtratamento = b.tratamento_idtratamento "
 				+ " left join localcenso l on n.local_idsetorlocalcenso = l.idsetorlocalcenso "
 				+ " left join setorcenso s on  n.setor_idsetorcenso = s.idsetorcenso " + " INNER JOIN visitantes v ON "
-				+ "cast(b.idbam as integer) = cast(v.nbam as integer)" + " where p.nome LIKE '" + nome + "%' "
-				+ " and n.unidade  = '" + unidade + "' "
+				+ "cast(b.idbam as integer) = cast(v.nbam as integer)" + " where p.nome LIKE :nome "
+				+ " and n.unidade  = :unidade "
 				+ " order by b.idbam, n.setor_idsetorcenso, n.local_idsetorlocalcenso, p.nome ";
 
-		List<Object[]> results = getEntityManager().createNativeQuery(sql).getResultList();
+		List<Object[]> results = getEntityManager().createNativeQuery(sql)
+				.setParameter("nome", nome + "%")
+				.setParameter("unidade", unidade)
+				.getResultList();
 		List<PacientesNirDto> pacientesNir = new ArrayList<>();
 
 		for (Object[] result : results) {
@@ -1198,12 +1223,15 @@ public class PacientesRepository implements PanacheRepository<Pacientes> {
 				+ " LEFT JOIN   laudoautorizacao la ON b.idbam = la.bam LEFT JOIN    setorcenso s  ON s.idsetorcenso = n.setor_idsetorcenso "
 				+ " LEFT JOIN   localcenso lo  ON lo.idsetorlocalcenso = n.local_idsetorlocalcenso 	WHERE ((  p.prontuario != '0' "
 				+ " AND p.prontuario != '-' AND (n.alta != true OR (i.datasaida IS NULL AND i.iddopaciente IS NOT NULL)) OR la.bam IS NOT NULL "
-				+ " ) AND p.idpaciente = " + id + " AND b.unidade = '" + unidade
-				+ "'  )	GROUP BY   p.idpaciente,  p.nome, p.idade, "
+				+ " ) AND p.idpaciente = :id AND b.unidade = :unidade "
+				+ "  )	GROUP BY   p.idpaciente,  p.nome, p.idade, "
 				+ "  p.prontuario,  p.pacienteespecial,  i.datasaida,  n.alta,  i.datainternacao,   n.diainternacao, "
 				+ " s.setor, lo.local ORDER BY  s.setor, lo.local,  p.nome,  n.alta";
 
-		List<Object[]> results = getEntityManager().createNativeQuery(sql).getResultList();
+		List<Object[]> results = getEntityManager().createNativeQuery(sql)
+				.setParameter("id", id)
+				.setParameter("unidade", unidade)
+				.getResultList();
 		List<PacientesNirDto> pacientesNir = new ArrayList<>();
 
 		for (Object[] result : results) {
@@ -1238,21 +1266,24 @@ public class PacientesRepository implements PanacheRepository<Pacientes> {
 			sql = "SELECT p.idpaciente, p.nome, p.idade, p.pacienteespecial, p.mae, p.pai, p.nascimento, a.idavaliacao, a.data, a.avaliado, "
 					+ " b.idbam, b.prioridade, a.hora, r.idregistro, r.atendidopor, r.eletivo, r.setor, t.idtratamento, t.tratado  from pacientes as p, bam as b, registro as r , avaliacao as a, tratamento as t , escalapaciente e where   b.idbam = e.agbam and e.agenda = false  and  b.paciente_idpaciente=p.idpaciente "
 					+ " and b.registro_idregistro=r.idregistro  and b.tratamento_idtratamento=t.idtratamento"
-					+ " and b.unidade = '" + unidade
-					+ "' and b.avaliacao_idavaliacao=a.idavaliacao and (r.atendidopor != '.' and r.atendidopor != '')  and t.tratado=0 and t.tipo_alta='-' "
+					+ " and b.unidade = :unidade"
+					+ " and b.avaliacao_idavaliacao=a.idavaliacao and (r.atendidopor != '.' and r.atendidopor != '')  and t.tratado=0 and t.tipo_alta='-' "
 					+ filtroSetor
 					+ " order by  cast(b.data as date) desc, cast(b.hora as time),r.setor, r.atendidopor";
 		} else {
 			sql = "SELECT p.idpaciente, p.nome, p.idade, p.pacienteespecial, p.mae, p.pai, p.nascimento, a.idavaliacao, a.data, a.avaliado, "
 					+ " b.idbam, b.prioridade, a.hora, r.idregistro , r.atendidopor, r.eletivo, r.setor, t.idtratamento, t.tratado  from pacientes as p, bam as b, registro as r , avaliacao as a, tratamento as t , escalapaciente e where   b.idbam = e.agbam and e.agenda = false  and  b.paciente_idpaciente=p.idpaciente "
 					+ " and b.registro_idregistro=r.idregistro  and b.tratamento_idtratamento=t.idtratamento"
-					+ " and b.unidade = '" + unidade + "' and ( p.nome like '" + nome + "%' or r.atendidopor like '"
-					+ nome
-					+ "%' )  and b.avaliacao_idavaliacao=a.idavaliacao  and (r.atendidopor != '.' and r.atendidopor != '')  and t.tratado=0  and t.tipo_alta='-' "
+					+ " and b.unidade = :unidade and ( p.nome like :nome or r.atendidopor like :nome )"
+					+ "  and b.avaliacao_idavaliacao=a.idavaliacao  and (r.atendidopor != '.' and r.atendidopor != '')  and t.tratado=0  and t.tipo_alta='-' "
 					+ filtroSetor
 					+ "  order by  cast(b.data as date) desc, cast(b.hora as time),r.setor, r.atendidopor";
 		}
-		List<Object[]> results = getEntityManager().createNativeQuery(sql).getResultList();
+		jakarta.persistence.Query query = getEntityManager().createNativeQuery(sql).setParameter("unidade", unidade);
+		if (!"NADA".equals(nome)) {
+			query.setParameter("nome", nome + "%");
+		}
+		List<Object[]> results = query.getResultList();
 		List<PacientesAtendimentoDto> pacientes = new ArrayList<>();
 
 		for (Object[] result : results) {
@@ -1333,13 +1364,15 @@ public class PacientesRepository implements PanacheRepository<Pacientes> {
 				+ "  avaliacao AS a ON b.avaliacao_idavaliacao = a.idavaliacao INNER JOIN "
 				+ "  tratamento AS t ON b.tratamento_idtratamento = t.idtratamento INNER JOIN "
 				+ " escalapaciente e ON b.idbam = e.agbam LEFT JOIN   pedidomedico2 p2 ON p2.bam = b.idbam "
-				+ "WHERE   e.agenda = FALSE and b.unidade = '" + unidade
-				+ "' and cast(b.data as date) = cast('" + datas + "' as date) AND t.tratado = 0 "
+				+ "WHERE   e.agenda = FALSE and b.unidade = :unidade"
+				+ " and cast(b.data as date) = cast('" + datas + "' as date) AND t.tratado = 0 "
 				+ " AND p2.bam IS NULL  AND t.tipo_alta = '-'  ORDER BY   b.cor DESC, "
 				+ "  CAST(b.data AS date) DESC,   CAST(b.hora AS time)";
-		
-		
-		List<Object[]> results = getEntityManager().createNativeQuery(sql).getResultList();
+
+
+		List<Object[]> results = getEntityManager().createNativeQuery(sql)
+				.setParameter("unidade", unidade)
+				.getResultList();
 		List<PacientesAtendimentoDto> pacientes = new ArrayList<>();
 
 		for (Object[] result : results) {
@@ -1381,7 +1414,7 @@ public class PacientesRepository implements PanacheRepository<Pacientes> {
 		// Consulta otimizada com uso de parâmetros para maior segurança
 		String subConsulta = "(SELECT DISTINCT ON (setoresunidade.setor) setoresunidade.setor FROM setoresunidade "
 				+ "INNER JOIN registro ON registro.setor = setoresunidade.setor "
-				+ "WHERE setoresunidade.triar = true AND setoresunidade.siglaunidade = '" + unidade + "')";
+				+ "WHERE setoresunidade.triar = true AND setoresunidade.siglaunidade = :unidade)";
 
 		String sql = "SELECT DISTINCT b.idbam, b.cor, CAST(b.data AS DATE), b.hora, b.ematendimento, "
 				+ "p.idpaciente, p.nome, p.idade, p.pacienteespecial, p.pai, p.mae, p.nascimento, "
@@ -1393,11 +1426,13 @@ public class PacientesRepository implements PanacheRepository<Pacientes> {
 				+ "AND t.tratado = 0 AND t.tipo_alta NOT IN ('internacao', 'obs') AND r.eletivo = false "
 				+ "AND a.anamnese = '.'"
 				+ "AND a.esperando = 0 AND CASE WHEN (r.setor IN " + subConsulta
-				+ ") THEN a.avaliado = 1 ELSE a.avaliado = 0 END AND CAST(b.data AS DATE) = CAST('" + datas + "' AS DATE) AND b.unidade = '" + unidade
-				+ "' AND r.setor NOT IN ('ODONTOLOGIA', 'DENTISTA', 'BUCOMAXILO', 'RAIO X', 'TOMOGRAFIA', 'ENFERMAGEM', 'ENFERMARIA', 'ULTRASSONOGRAFIA', 'ULTRASSOM')"
+				+ ") THEN a.avaliado = 1 ELSE a.avaliado = 0 END AND CAST(b.data AS DATE) = CAST('" + datas + "' AS DATE) AND b.unidade = :unidade"
+				+ " AND r.setor NOT IN ('ODONTOLOGIA', 'DENTISTA', 'BUCOMAXILO', 'RAIO X', 'TOMOGRAFIA', 'ENFERMAGEM', 'ENFERMARIA', 'ULTRASSONOGRAFIA', 'ULTRASSOM')"
 				+ " ORDER BY  b.cor desc, CAST(b.data AS DATE) DESC, b.hora";
 
-		List<Object[]> results = getEntityManager().createNativeQuery(sql).getResultList();
+		List<Object[]> results = getEntityManager().createNativeQuery(sql)
+				.setParameter("unidade", unidade)
+				.getResultList();
 		List<AtendMedicoDTO> atendimento = new ArrayList<>();
 
 		// Loop otimizado para conversão de tipos evitando exceções
@@ -1448,11 +1483,14 @@ public class PacientesRepository implements PanacheRepository<Pacientes> {
 		String sql = "SELECT distinct on (p.nome) p.nome as xnome, idpaciente, idade, pacienteespecial, "
 				+ "nascimento, idBam,  idpedidomedico, efetuado, confirmado, coletar FROM pacientes p, bam b, "
 				+ "pedidomedico2 pe, pedidoresultadolaboratorio pm2 where b.idbam = pe.bam "
-				+ "and b.paciente_idpaciente = p.idpaciente and pm2.bam = pe.bam  and nome like '" + nome
-				+ "%' and pe.efetuado=true and pe.confirmado=true  and pe.coletar = false  "
-				+ "and  pe.efetuado = true and pe.unidade = '" + unidade + "' limit 20";
+				+ "and b.paciente_idpaciente = p.idpaciente and pm2.bam = pe.bam  and nome like :nome"
+				+ " and pe.efetuado=true and pe.confirmado=true  and pe.coletar = false  "
+				+ "and  pe.efetuado = true and pe.unidade = :unidade limit 20";
 
-		List<Object[]> results = getEntityManager().createNativeQuery(sql).getResultList();
+		List<Object[]> results = getEntityManager().createNativeQuery(sql)
+				.setParameter("nome", nome + "%")
+				.setParameter("unidade", unidade)
+				.getResultList();
 		List<PacienteResultadoExameDto> pacientes = new ArrayList<>();
 
 		for (Object[] result : results) {
