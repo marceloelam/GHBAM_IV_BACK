@@ -56,6 +56,15 @@ public class ServidorController {
 	@Inject
 	br.com.iv.service.IdentificacaoFacialService identificacaoFacialService;
 
+	@Inject
+	com.fasterxml.jackson.databind.ObjectMapper objectMapper;
+
+	// A listagem por unidade ia com o certificado (PFX + senha) e os templates de biometria
+	// de todos os servidores: pesava a tela e expunha segredo. Quem precisa do certificado
+	// usa /certificado/{matricula}; biometria e comparada no servidor.
+	private static final List<String> CAMPOS_FORA_DA_LISTAGEM = List.of(
+			"certificadoPfxBase64", "certificadoPfxSenha", "biometria", "fir", "biometriaSourceafis");
+
 	@PATCH
 	@Path("/{idservidor}/matricula")
 	public Response alterarMatricula(@PathParam("idservidor") int idservidor,
@@ -209,7 +218,13 @@ public class ServidorController {
 	public Response xlistarUnidades(@PathParam("yunidade") String yunidade) {
 		ServidorDto dto = new ServidorDto();
 		List<Servidor> servidor = servidorService.filtarPorUnidadeServidor(yunidade, dto);
-		return Response.ok(servidor).build();
+		List<Map<String, Object>> lista = servidor.stream().map(s -> {
+			@SuppressWarnings("unchecked")
+			Map<String, Object> item = objectMapper.convertValue(s, Map.class);
+			CAMPOS_FORA_DA_LISTAGEM.forEach(item::remove);
+			return item;
+		}).toList();
+		return Response.ok(lista).build();
 	}
 	
 	@GET

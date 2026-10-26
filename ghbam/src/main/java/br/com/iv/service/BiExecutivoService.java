@@ -87,11 +87,11 @@ public class BiExecutivoService {
 	}
 
 	private List<Map<String, Object>> demandaPorEspecialidade(LocalDate inicio, LocalDate fim) {
-		String sql = "SELECT COALESCE(b.unidade, 'SEM UNIDADE'), COALESCE(NULLIF(r.especialidade, ''), NULLIF(r.setor, ''), 'NAO INFORMADA'), "
+		String sql = "SELECT COALESCE(b.unidade, 'SEM UNIDADE'), COALESCE(NULLIF(TRIM(BOTH '. ' FROM r.especialidade), ''), NULLIF(TRIM(BOTH '. ' FROM r.setor), ''), 'NAO INFORMADA'), "
 				+ "COUNT(b.idbam), COUNT(DISTINCT b.paciente_idpaciente) "
 				+ "FROM bam b JOIN registro r ON r.idregistro = b.registro_idregistro "
-				+ "WHERE b.data BETWEEN :inicio AND :fim GROUP BY b.unidade, r.especialidade, r.setor "
-				+ "ORDER BY b.unidade, COUNT(b.idbam) DESC, r.especialidade, r.setor";
+				+ "WHERE b.data BETWEEN :inicio AND :fim GROUP BY 1, 2 "
+				+ "ORDER BY 1, 3 DESC, 2";
 		List<Map<String, Object>> resultado = new java.util.ArrayList<>();
 		try {
 			@SuppressWarnings("unchecked") List<Object[]> rows = entityManager.createNativeQuery(sql)
@@ -151,7 +151,7 @@ public class BiExecutivoService {
 		String sql = "SELECT COALESCE(unidade, 'SEM UNIDADE'), "
 				+ "COUNT(*) FILTER (WHERE ematendimento = true), "
 				+ "COUNT(*) FILTER (WHERE internar = true), "
-				+ "COUNT(*) FILTER (WHERE dar_alta = true) "
+				+ "COUNT(*) FILTER (WHERE daralta = true) "
 				+ "FROM bam WHERE data BETWEEN :inicio AND :fim GROUP BY unidade";
 		try {
 			@SuppressWarnings("unchecked") List<Object[]> rows = entityManager.createNativeQuery(sql)
@@ -168,7 +168,7 @@ public class BiExecutivoService {
 	private void adicionarVigilancia(Map<String, Map<String, Object>> porUnidade, LocalDate inicio, LocalDate fim) {
 		String sql = "SELECT COALESCE(unidade, 'SEM UNIDADE'), COUNT(*), "
 				+ "COUNT(*) FILTER (WHERE status IN ('RASCUNHO', 'PRONTO', 'ENCAMINHADO')) "
-				+ "FROM notificacao_sinan WHERE CAST(data_notificacao AS DATE) BETWEEN :inicio AND :fim GROUP BY unidade";
+				+ "FROM notificacao_sinan WHERE CAST(datanotificacao AS DATE) BETWEEN :inicio AND :fim GROUP BY unidade";
 		try {
 			@SuppressWarnings("unchecked") List<Object[]> rows = entityManager.createNativeQuery(sql)
 					.setParameter("inicio", inicio).setParameter("fim", fim).getResultList();
@@ -202,8 +202,8 @@ public class BiExecutivoService {
 	private void adicionarEstoque(Map<String, Map<String, Object>> porUnidade) {
 		String sql = "SELECT COALESCE(e.unidade_sigla, 'SEM UNIDADE'), "
 				+ "COUNT(*) FILTER (WHERE e.ativo = true), "
-				+ "COUNT(*) FILTER (WHERE e.ativo = true AND e.quantidade <= COALESCE(e.estoque_minimo, 0)), "
-				+ "COUNT(*) FILTER (WHERE e.ativo = true AND l.data_validade < CURRENT_DATE) "
+				+ "COUNT(*) FILTER (WHERE e.ativo = true AND e.quantidade <= COALESCE(e.estoqueminimo, 0)), "
+				+ "COUNT(*) FILTER (WHERE e.ativo = true AND l.datavalidade < CURRENT_DATE) "
 				+ "FROM pharmacia_estoque e JOIN pharmacia_lote l ON l.id = e.lote_id "
 				+ "GROUP BY e.unidade_sigla";
 		try {

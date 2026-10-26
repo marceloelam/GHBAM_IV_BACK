@@ -1,0 +1,109 @@
+# ============================================================
+# VARI√É¬ÅVEIS DE AMBIENTE LOCAIS √¢‚Ç¨‚Äù preencha os valores TROQUE_*
+# Este arquivo √É¬© ignorado pelo git (.gitignore). N√É∆íO commitar.
+# ============================================================
+
+# ----------------------------
+# Banco de dados PostgreSQL 18
+# ----------------------------
+DB_USER=postgres
+DB_PASSWORD=852456
+#DB_HOST=10.200.200.7
+DB_HOST=10.200.200.143
+
+#ghbamiv.vps-kinghost.net
+#DB_HOST=191.252.209.82
+DB_PORT=5432
+DB_NAME=hospitalit
+
+# ----------------------------------
+# LDAP / Active Directory
+# ---------------------------------
+LDAP_SERVER_URI=ldap://itg.rio:389
+LDAP_BIND_DN=itadeskAuth@itg.rio
+LDAP_BIND_PASSWORD=Pr3f31tur4
+LDAP_USER_SEARCH_BASE=DC=itg,DC=rio
+LDAP_ADMIN_USER=itadeskAuth@itg.rio
+LDAP_ADMIN_PASSWORD=Pr3f31tur4
+LDAP_DOMAIN=itg.rio
+
+# ------------------------------
+# JWT (arquivos externos ao artefato da aplicacao)
+# -----------------------------
+JWT_PRIVATE_KEY_LOCATION=file:/root/ghbam4/secrets/jwt/ghbam-private.pem
+JWT_PUBLIC_KEY_LOCATION=file:/root/ghbam4/secrets/jwt/ghbam-public.pem
+
+# ----------------------------
+# Integracoes externas
+# ----------------------------
+HF_API_TOKEN=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
+OPENROUTER_API_KEY=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
+GROQ_API_KEY=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
+CLAUD_RAG_API_KEY=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
+ZAMED_AUTENTICACAO=wmH0OocASo 
+
+# ----------------------------
+# Seguranca e schema
+# ----------------------------
+GHBAM_SECURITY_RBAC_ENFORCE=true
+GHBAM_LEGACY_SCHEMA_INITIALIZER=false
+
+# ----------------------------
+# Web Push (VAPID) - reset de senha via PWA
+# Gerado com: npx web-push generate-vapid-keys
+# A publica tambem precisa ser configurada no frontend (VITE_VAPID_PUBLIC_KEY)
+# ----------------------------
+VAPID_PUBLIC_KEY=BCeGBgUPyyvKjXz8k--0MubFiIyTYxhHHSR-7Y_9Qrhirxe4UrCv0a29U2qqtvZw9fVmsch7p5UhfaHYzUORKgg
+VAPID_PRIVATE_KEY=Zpg6Oj9ypDCtzs89ETerHD9epeJryBl9TArSDdKIBSI
+VAPID_SUBJECT=mailto:suporte@ghbam.com.br
+
+# ----------------------------
+# Relatorios Jasper
+# ----------------------------
+# Desenvolvimento:
+REPORTS_DIR=src/main/resources/reports
+# Produ√É¬ß√É¬£o (descomente conforme necess√É¬°rio):
+# REPORTS_DIR=/opt/app/reports
+
+# Reconhecimento facial para reset de senha
+# Reconhecimento facial via CompreFace na VPS
+# Acesso administrativo: http://ghbamiv.vps-kinghost.net:8000/login admin@ghbam.com.br 852456M@c
+# DNS interno (10.200.200.100) bloqueia o nome; usando IP do VPS
+# GHBAM_FACE_VERIFICATION_URL=http://ghbamiv.vps-kinghost.net:8000/api/v1/verification/verify
+GHBAM_FACE_VERIFICATION_URL=http://191.252.209.82:8000/api/v1/verification/verify
+GHBAM_FACE_API_KEY=ebeee7a2-4ec7-4037-aa12-617656246c56
+GHBAM_FACE_SIMILARITY_THRESHOLD=0.85
+GHBAM_FACE_TIMEOUT_SECONDS=20
+
+# Identificacao 1:N (/biofoto/webcam): servico Recognition do CompreFace (chave propria, diferente da verificacao)
+GHBAM_FACE_RECOGNITION_URL=http://191.252.209.82:8000/api/v1/recognition
+GHBAM_FACE_RECOGNITION_API_KEY=ed56654a-57ea-4aa9-b6a2-dbf66b1597d4
+GHBAM_FACE_RECOGNITION_SIMILARITY_THRESHOLD=0.9
+
+# ----------------------------
+# Integracao SUS - chave do cofre de credenciais (certificado PFX/senha)
+# ----------------------------
+GHBAM_SUS_CREDENTIALS_KEY=QTB6K7ushrIrRcgj5oP1NU6ToJjBOXh8ALo2bb+UdLfkfObAR28d7mRxMci9tWf0
+
+# Identidade do sistema (sobrepoe application.properties)
+GHBAM_SISTEMA_NOME=GHBAM IV
+GHBAM_SISTEMA_NOME_COMPLETO=GHBAM IV+
+GHBAM_SISTEMA_DESCRICAO=Plataforma de Gest„o Hospitalar de Boletim de Atendimento MÈdico
+
+# MinIO/S3: arquivos (GED, farmacia, laboratorio) fora do banco. false = tudo no banco.
+#O cÛdigo n„o muda. Para funcionar, porÈm, o servidor do MinIO precisa de quatro ajustes:
+#Aceitar conexıes de fora. Na KingHost, o MinIO escuta sÛ no 127.0.0.1, e o backend de outra m·quina n„o alcanÁaria. Em /etc/default/minio, troque para:
+#MINIO_OPTS="--address :9000 --console-address 127.0.0.1:9001"
+#O console continua fechado; sÛ a API fica disponÌvel.
+#Liberar a porta 9000 sÛ para o IP do backend no firewall do servidor do MinIO:
+#ufw allow from IP-DO-BACKEND to any port 9000 proto tcp
+#Nunca libere essa porta para "Anywhere".
+#Usar HTTPS se a ligaÁ„o passar pela internet. Entre duas VPS, por exemplo, use https://... no endereÁo, com um certificado no MinIO ou um nginx na frente dele. O cÛdigo j· aceita HTTPS. Na rede interna do hospital, como com o 143, http:// È aceit·vel.
+#Manter os relÛgios certos nas duas m·quinas. A assinatura que o backend usa È recusada pelo MinIO se a diferenÁa de hor·rio passar de 15 minutos. Isso se resolve deixando o NTP ligado nas duas, que costuma ser o padr„o.
+#Exemplo concreto: backend na KingHost e MinIO no 143. O backend usaria GHBAM_S3_ENDPOINT=http://10.200.200.143:9000
+
+GHBAM_S3_HABILITADO=true
+GHBAM_S3_ENDPOINT=http://127.0.0.1:9000
+GHBAM_S3_BUCKET=ghbam-documentos
+GHBAM_S3_ACCESS_KEY=marceloelam
+GHBAM_S3_SECRET_KEY=852456M@c

@@ -8,6 +8,9 @@ import br.com.iv.dto.GedRemocaoDto;
 import br.com.iv.entity.GedDocumento;
 import br.com.iv.security.AuthenticatedUser;
 import br.com.iv.security.SecurityPermissionService;
+import br.com.iv.service.ArmazenamentoArquivoService;
+import br.com.iv.service.GedArquivoRemovidoService;
+import br.com.iv.service.GedReenvioArmazenamentoService;
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
@@ -25,6 +28,8 @@ public class GedDocumentoController {
 
  @Inject EntityManager entityManager;
  @Inject SecurityPermissionService securityPermissionService;
+ @Inject ArmazenamentoArquivoService armazenamento;
+ @Inject GedArquivoRemovidoService arquivoRemovido;
 
  private static final Logger LOG = Logger.getLogger(GedDocumentoController.class);
 
@@ -94,7 +99,14 @@ public class GedDocumentoController {
   x.uuid=UUID.randomUUID().toString();x.tipo=tipo;x.status="ATIVO";x.idpaciente=d.idpaciente;x.idbam=d.idbam;x.prontuario=limpar(d.prontuario);
   x.nomePaciente=!limpar(d.nomePaciente).isBlank()?limpar(d.nomePaciente):limpar(d.nomepaciente);
   x.unidade=!limpar(d.unidade).isBlank()?limpar(d.unidade):u.unidade();x.nomeArquivo=nome;x.tipoMime=mime;x.tamanhoBytes=(long)conteudo.length;
-  x.descricao=limpar(d.descricao);x.conteudoBase64=base64;x.criadoPor=u.nome();x.criadoPorMatricula=u.matricula();x.persist();
+  x.descricao=limpar(d.descricao);x.conteudoBase64=base64;x.criadoPor=u.nome();x.criadoPorMatricula=u.matricula();
+  // Com o MinIO ligado o arquivo sai do banco. Se o MinIO falhar, grava no banco
+  // como antes: o anexo do paciente nao pode se perder por indisponibilidade.
+  if(armazenamento.habilitado()){
+   try{x.armazenamentoChave=armazenamento.salvar(GedReenvioArmazenamentoService.chave(x),conteudo,mime);x.conteudoBase64=null;}
+   catch(RuntimeException e){LOG.errorf("GED: MinIO indisponivel, anexo %s gravado no banco (reenvio automatico em ate 10 min): %s",x.uuid,e.getMessage());}
+  }
+  x.persist();
   return Response.status(Response.Status.CREATED).entity(resumo(x)).build();
  }
 
@@ -116,6 +128,7 @@ public class GedDocumentoController {
   if(x==null||!daUnidadeDoUsuario(x,u)) throw new NotFoundException();
   if("REMOVIDO".equals(x.status)) return Response.status(Response.Status.CONFLICT).entity(Map.of("erro","Documento ja esta removido")).build();
   x.status="REMOVIDO";x.motivoRemocao=motivo;x.removidoPor=u.nome();x.removidoPorMatricula=u.matricula();x.removidoEm=java.time.LocalDateTime.now();
+  arquivoRemovido.arquivar(x);
   LOG.infof("GED: documento %s (%s) do paciente %s / prontuario %s removido por %s (%s) na unidade %s. Motivo: %s",
     x.id,x.nomeArquivo,x.nomePaciente,x.prontuario,u.nome(),u.matricula(),x.unidade,motivo);
   return Response.ok(resumo(x)).build();
@@ -129,7 +142,12 @@ public class GedDocumentoController {
   GedDocumento x=buscar(id);
   if(x==null||"REMOVIDO".equals(x.status)||!daUnidadeDoUsuario(x,u)) throw new NotFoundException();
   byte[] bytes;
-  try{bytes=Base64.getMimeDecoder().decode(limpar(x.conteudoBase64));}catch(IllegalArgumentException e){throw new InternalServerErrorException("Conteudo armazenado invalido");}
+  if(!limpar(x.armazenamentoChave).isBlank()){
+   try{bytes=armazenamento.ler(x.armazenamentoChave);}
+   catch(RuntimeException e){LOG.errorf("GED: falha ao ler anexo %s do MinIO: %s",x.uuid,e.getMessage());throw new ServiceUnavailableException("Arquivo temporariamente indisponivel");}
+  }else{
+   try{bytes=Base64.getMimeDecoder().decode(limpar(x.conteudoBase64));}catch(IllegalArgumentException e){throw new InternalServerErrorException("Conteudo armazenado invalido");}
+  }
   String nome=limpar(x.nomeArquivo).isBlank()?("documento-ged-"+x.id):x.nomeArquivo;
   return Response.ok(bytes)
     .type(limpar(x.tipoMime).isBlank()?MediaType.APPLICATION_OCTET_STREAM:x.tipoMime)

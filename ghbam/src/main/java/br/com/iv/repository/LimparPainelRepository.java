@@ -14,8 +14,8 @@ public class LimparPainelRepository implements PanacheRepository<Pacientes> {
 
 	@Transactional
 	public void limparPainel(String unidade) {
-		String sql = "delete from chamadapaciente where unidade = '" + unidade + "'";
-		entityManager.createNativeQuery(sql).executeUpdate();
+		String sql = "delete from chamadapaciente where unidade = :unidade";
+		entityManager.createNativeQuery(sql).setParameter("unidade", unidade).executeUpdate();
 
 	}
 }

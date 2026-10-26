@@ -180,11 +180,15 @@ public class ProcedimentosSusRepository implements PanacheRepository<Procediment
 	
 	@SuppressWarnings("unchecked")
 	public List<ProcedimentosSus> procediment(String texto, String cid, String cbo) {
-		String sql = "select distinct on (pa_id) pa_id as pa_id_unico, s_proced.* from s_proced where UPPER(pa_dc) like '%" + texto
-				+ "%' and pa_id in (select pacid_pa from s_pacid where pacid_cid in (select cd_cod from s_cid where UPPER(cd_cod) like '%"
-				+ cid + "%')) and pa_id in (select pacbo_pa from s_pacbo where pacbo_cbo = '" + cbo + "' )";
+		String sql = "select distinct on (pa_id) pa_id as pa_id_unico, s_proced.* from s_proced where UPPER(pa_dc) like :texto"
+				+ " and pa_id in (select pacid_pa from s_pacid where pacid_cid in (select cd_cod from s_cid where UPPER(cd_cod) like :cid"
+				+ ")) and pa_id in (select pacbo_pa from s_pacbo where pacbo_cbo = :cbo )";
 
-		return getEntityManager().createNativeQuery(sql, ProcedimentosSus.class).getResultList();
+		return getEntityManager().createNativeQuery(sql, ProcedimentosSus.class)
+				.setParameter("texto", "%" + texto + "%")
+				.setParameter("cid", "%" + cid + "%")
+				.setParameter("cbo", cbo)
+				.getResultList();
 	}
 
 	/**

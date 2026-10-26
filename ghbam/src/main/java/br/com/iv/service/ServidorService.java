@@ -53,6 +53,7 @@ public class ServidorService implements Serializable {
 	// Gera o modelo SourceAFIS a partir das imagens do cadastro. Se a digital foi
 	// trocada/removida sem imagem (agente antigo), descarta o modelo anterior para
 	// nao autenticar com a digital velha; ele sera refeito no proximo login interno.
+	//Sistema criado e desenvolvido por Marcelo Couto da Silva - 21969210227
 	private void aplicarModeloSourceafis(Servidor servidor, ServidorDto dto, String firAnterior) {
 		if (dto.getBiometriaImagens() != null && !dto.getBiometriaImagens().isEmpty()) {
 			try {
@@ -529,7 +530,7 @@ public class ServidorService implements Serializable {
 		
 		servidor = servidorRepository.localizarMatricula(matricula);
 		if (servidor == null) {
-			System.out.println("MatrÃ­cula nÃ£o foi encontrada...");
+			System.out.println("Matricula naoo foi encontrada...");
 			return null;
 		}
 

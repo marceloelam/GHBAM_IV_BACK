@@ -1,7 +1,13 @@
 package br.com.iv.service;
 
 import java.io.Serializable;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.UUID;
+
+import org.jboss.logging.Logger;
+
+import io.quarkus.hibernate.orm.panache.Panache;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -23,13 +29,56 @@ public class PedidoResultadoLaboratorioService implements Serializable {
 	@Inject
 	FhirDispatchService fhirDispatchService;
 
+	@Inject
+	ArmazenamentoArquivoService armazenamento;
+
+	private static final Logger LOG = Logger.getLogger(PedidoResultadoLaboratorioService.class);
+	// Abaixo disso nao e laudo em PDF (as telas tratam texto curto como "sem PDF").
+	private static final int TAMANHO_MINIMO_ARMAZENAR = 600;
+
 	public List<PedidoResultadoLaboratorio> filtrarBamPedidoResultadoLaboratorio(int idbam) {
 		List<PedidoResultadoLaboratorio> pedidoResultadoLaboratorio2Op = pedidoResultadoLaboratorioRepository
 				.filtrarBamPedidoResultadoLaboratorio(idbam);
 		if (pedidoResultadoLaboratorio2Op.isEmpty()) {
 			System.out.println("Resultados de exames não encontrado...");
 		}
-		return pedidoResultadoLaboratorio2Op;
+		return preencherArquivos(pedidoResultadoLaboratorio2Op);
+	}
+
+	/**
+	 * Guarda o laudo no MinIO exatamente como chegou (o texto Base64/data URL),
+	 * para as telas receberem de volta o mesmo valor. Devolve null quando fica no banco.
+	 */
+	private String guardarArquivo(int idPedido, String unidade, int bam, String arquivo) {
+		if (!armazenamento.habilitado() || arquivo == null || arquivo.length() < TAMANHO_MINIMO_ARMAZENAR) return null;
+		try {
+			return armazenamento.salvar("laboratorio/" + ArmazenamentoArquivoService.pastaUnidade(unidade) + "/" + pastaPacienteDoBam(bam)
+					+ "pedido-" + idPedido + "-" + UUID.randomUUID(),
+					arquivo.getBytes(StandardCharsets.UTF_8), "text/plain; charset=utf-8");
+		} catch (RuntimeException falha) {
+			LOG.warnf("Laboratorio: MinIO indisponivel, laudo do pedido %d gravado no banco: %s", idPedido, falha.getMessage());
+			return null;
+		}
+	}
+
+	/** Nome e id do paciente pelo BAM do pedido; sem BAM valido, fica so a pasta da unidade. */
+	private String pastaPacienteDoBam(int bam) {
+		return armazenamento.pastaPacienteDoBam(bam);
+	}
+
+	/** Recoloca no campo arquivo o laudo que esta no MinIO, sem regravar no banco. */
+	private List<PedidoResultadoLaboratorio> preencherArquivos(List<PedidoResultadoLaboratorio> resultados) {
+		for (PedidoResultadoLaboratorio r : resultados) {
+			String chave = r.getArmazenamentoChave();
+			if (chave == null || chave.isBlank()) continue;
+			Panache.getEntityManager().detach(r);
+			try {
+				r.setArquivo(new String(armazenamento.ler(chave), StandardCharsets.UTF_8));
+			} catch (RuntimeException falha) {
+				LOG.errorf("Laboratorio: falha ao ler laudo do pedido %d do MinIO: %s", r.getIdPedidoResultado(), falha.getMessage());
+			}
+		}
+		return resultados;
 	}
 
 	public List<PedidoResultadoLaboratorio> filtrarPeloIDPaciente(int idpaciente) {
@@ -38,12 +87,15 @@ public class PedidoResultadoLaboratorioService implements Serializable {
 		if (pedidoResultadoLaboratorio2Op.isEmpty()) {
 			System.out.println("Resultados de exames não encontrado...");
 		}
-		return pedidoResultadoLaboratorio2Op;
+		return preencherArquivos(pedidoResultadoLaboratorio2Op);
 	}
 
 	@Transactional
 	public void pdfExame(int id, String arquivo, String liberou) {
-		pedidoResultadoLaboratorioRepository.pdfExame(id, arquivo, liberou);
+		PedidoResultadoLaboratorio pedido = PedidoResultadoLaboratorio.findById(id);
+		String chave = guardarArquivo(id, pedido == null ? null : pedido.getUnidade(), pedido == null ? 0 : pedido.getBam(), arquivo);
+		if (chave != null) pedidoResultadoLaboratorioRepository.pdfExameArmazenado(id, chave);
+		else pedidoResultadoLaboratorioRepository.pdfExame(id, arquivo, liberou);
 	}
 
 	// Salvar
@@ -66,6 +118,17 @@ public class PedidoResultadoLaboratorioService implements Serializable {
 		// Só vai para a fila RNDS quem foi preparado para ela (painel RNDS ou exames lidos do PDF).
 		if (temItens || temDadosRnds(pedidoResultadoLaboratorio)) {
 			fhirDispatchService.enfileirarResultadoLaboratorial(pedidoResultadoLaboratorio);
+		}
+		String arquivo = pedidoResultadoLaboratorio.getArquivo();
+		String chave = guardarArquivo(pedidoResultadoLaboratorio.getIdPedidoResultado(), pedidoResultadoLaboratorio.getUnidade(),
+				pedidoResultadoLaboratorio.getBam(), arquivo);
+		if (chave != null) {
+			pedidoResultadoLaboratorio.setArquivo("");
+			pedidoResultadoLaboratorio.setArmazenamentoChave(chave);
+			Panache.getEntityManager().flush();
+			// A resposta devolve o laudo como antes; o banco ja ficou so com a chave.
+			Panache.getEntityManager().detach(pedidoResultadoLaboratorio);
+			pedidoResultadoLaboratorio.setArquivo(arquivo);
 		}
 		return pedidoResultadoLaboratorio;
 	}
@@ -132,7 +195,7 @@ public class PedidoResultadoLaboratorioService implements Serializable {
 		if (pedidoResultadoLaboratorio2Op.isEmpty()) {
 			System.err.println("Nenhum resultados realizado de exames não encontrado...");
 		}
-		return pedidoResultadoLaboratorio2Op;
+		return preencherArquivos(pedidoResultadoLaboratorio2Op);
 	}
 
 	// Texto vazio vira null; maximo 0 = sem limite (colunas TEXT).

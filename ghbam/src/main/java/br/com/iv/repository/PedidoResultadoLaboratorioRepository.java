@@ -28,8 +28,14 @@ public class PedidoResultadoLaboratorioRepository implements PanacheRepository<P
 
 	@Transactional
 	public void pdfExame(int idpedido, String arquivo, String liberou) {
-		String sql = "UPDATE pedidoresultadolaboratorio set arquivo = :arquivo where idpedidoresultado = :idpedidoresultado";
+		String sql = "UPDATE pedidoresultadolaboratorio set arquivo = :arquivo, armazenamento_chave = null where idpedidoresultado = :idpedidoresultado";
 		entityManager.createNativeQuery(sql).setParameter("idpedidoresultado", idpedido).setParameter("arquivo", arquivo).executeUpdate();
+	}
+
+	// Laudo guardado no MinIO: o banco fica so com a chave.
+	public void pdfExameArmazenado(int idpedido, String chave) {
+		String sql = "UPDATE pedidoresultadolaboratorio set arquivo = '', armazenamento_chave = :chave where idpedidoresultado = :idpedidoresultado";
+		entityManager.createNativeQuery(sql).setParameter("idpedidoresultado", idpedido).setParameter("chave", chave).executeUpdate();
 	}
 
 	@SuppressWarnings("unchecked")

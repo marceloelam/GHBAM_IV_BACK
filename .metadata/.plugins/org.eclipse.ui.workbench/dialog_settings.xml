@@ -12,6 +12,10 @@
 		<item key="WizardZipFileResourceExportPage1.STORE_CREATE_STRUCTURE_ID" value="true"/>
 		<item key="WizardZipFileResourceExportPage1.STORE_COMPRESS_CONTENTS_ID" value="true"/>
 		<list key="WizardZipFileResourceExportPage1.STORE_DESTINATION_NAMES_ID">
+			<item value="C:\Projeto\Backup\GHBAM Novo\Quarkus_Back_24102026_bio_sem_minio.zip"/>
+			<item value="C:\Projeto\Backup\GHBAM Novo\Quarkus_Back_23102026_bio_b.zip"/>
+			<item value="C:\Projeto\Backup\GHBAM Novo\Quarkus_Back_23102026_bio_a.zip"/>
+			<item value="C:\Projeto\Backup\GHBAM Novo\Quarkus_Back_22102026_bio_a.zip"/>
 			<item value="C:\Projeto\Backup\GHBAM Novo\Quarkus_Back_17102026_bio_a.zip"/>
 			<item value="C:\Projeto\Backup\GHBAM Novo\Quarkus_Back_16102026_bio_a.zip"/>
 			<item value="C:\Projeto\Backup\GHBAM Novo\Quarkus_Back_14102026_bio_a.zip"/>
@@ -29,7 +33,7 @@
 			<item key="DIALOG_Y_ORIGIN" value="80"/>
 			<item key="DIALOG_WIDTH" value="657"/>
 			<item key="DIALOG_HEIGHT" value="617"/>
-			<item key="DIALOG_FONT_NAME" value="1|Segoe UI|9.0|0|WINDOWS|1|-12|0|0|0|400|0|0|0|1|0|0|0|0|Segoe UI"/>
+			<item key="DIALOG_FONT_NAME" value="1|Segoe UI|9.0|0|WINDOWS|1|-30|0|0|0|400|0|0|0|1|0|0|0|0|Segoe UI"/>
 		</section>
 	</section>
 	<section name="WorkbenchPreferenceDialog.dialogBounds">

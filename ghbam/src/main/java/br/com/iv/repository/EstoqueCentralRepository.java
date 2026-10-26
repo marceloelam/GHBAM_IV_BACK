@@ -15,15 +15,21 @@ public class EstoqueCentralRepository implements PanacheRepository<EstoqueCentra
 	@Transactional
 	public List<EstoqueCentral> estoquecentral(String material, String unidade) {
 		
-		String sql = "SELECT * from estoquecentral where material like '" + material + "%' and unidade = '"+ unidade + "' order by material " ;
+		String sql = "SELECT * from estoquecentral where material like :material and unidade = :unidade order by material " ;
 
-		return getEntityManager().createNativeQuery(sql, EstoqueCentral.class).getResultList();
+		return getEntityManager().createNativeQuery(sql, EstoqueCentral.class)
+				.setParameter("material", material + "%")
+				.setParameter("unidade", unidade)
+				.getResultList();
 	}
 
 	@SuppressWarnings("unchecked")
 	public List<EstoqueCentral> estoquecentralLote(String lote, String unidade) {
-		String sql = "SELECT * from estoquecentral where lote = '" + lote + "' and unidade = '"+ unidade + "' order by material " ;
-		return getEntityManager().createNativeQuery(sql, EstoqueCentral.class).getResultList();
+		String sql = "SELECT * from estoquecentral where lote = :lote and unidade = :unidade order by material " ;
+		return getEntityManager().createNativeQuery(sql, EstoqueCentral.class)
+				.setParameter("lote", lote)
+				.setParameter("unidade", unidade)
+				.getResultList();
 	}
 
 

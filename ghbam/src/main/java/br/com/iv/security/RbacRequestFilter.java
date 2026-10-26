@@ -155,7 +155,10 @@ public class RbacRequestFilter implements ContainerRequestFilter {
             "push/pareamento/vapid-public-key",
             // Consulta de paciente por sistema externo: sem sessao GHBAM, protegida
             // pela chave X-API-Key validada no proprio IntegracaoPacienteController.
-            "integracao/pacientes");
+            "integracao/pacientes",
+            // Portal publico de exames do paciente (CPF + nascimento no corpo do POST),
+            // protegido por PortalPacienteRateLimitService e token curto no download.
+            "portal-paciente");
 
     @ConfigProperty(name = "ghbam.security.rbac.enforce", defaultValue = "true")
     boolean enforce;

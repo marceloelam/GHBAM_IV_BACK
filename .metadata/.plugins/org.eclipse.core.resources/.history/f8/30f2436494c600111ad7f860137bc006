@@ -1,7 +1,0 @@
-ALTER TABLE resumodealta
-    ADD COLUMN IF NOT EXISTS status VARCHAR(20) NOT NULL DEFAULT 'ATIVO',
-    ADD COLUMN IF NOT EXISTS cancelado_em TIMESTAMP,
-    ADD COLUMN IF NOT EXISTS cancelado_por VARCHAR(120),
-    ADD COLUMN IF NOT EXISTS motivo_cancelamento VARCHAR(500);
-
-UPDATE resumodealta SET status = 'ATIVO' WHERE status IS NULL;
