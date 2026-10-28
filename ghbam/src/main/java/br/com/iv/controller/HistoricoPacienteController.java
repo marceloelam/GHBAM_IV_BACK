@@ -514,7 +514,7 @@ public class HistoricoPacienteController {
 
     private List<Map<String, Object>> listarDemandasAssistenciaisCirurgicas(int idpaciente) {
         String sql = "SELECT idevidencia, data_registro, NULL AS hora, responsavel, unidade, modulo, status, tipo, referencia, descricao "
-                + "FROM evidencia_assistencial WHERE idpaciente = :idpaciente AND origem_modulo = 'CENTRO_CIRURGICO' "
+                + "FROM evidencia_assistencial WHERE idpaciente = :idpaciente AND origemmodulo = 'CENTRO_CIRURGICO' "
                 + "ORDER BY data_registro DESC";
         return eventosDoPaciente(sql, idpaciente, "APOIO_CIRURGICO", "Apoio cirurgico",
                 "idevidencia", "data_registro", "hora", "responsavel", "unidade",

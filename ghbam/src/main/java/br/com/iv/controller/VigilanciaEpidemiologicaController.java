@@ -28,6 +28,7 @@ import jakarta.ws.rs.container.ContainerRequestContext;
 import jakarta.ws.rs.core.Context;
 import br.com.iv.entity.NotificacaoSinan;
 import br.com.iv.security.SecurityPermissionService;
+import br.com.iv.service.GeocodificacaoPacienteService;
 import br.com.iv.service.NotificacaoSinanService;
 import br.com.iv.service.OcorrenciaSistemaService;
 
@@ -191,6 +192,7 @@ public class VigilanciaEpidemiologicaController {
                                CAST(b.idbam AS varchar) AS origem_id,
                                NULLIF(UPPER(TRIM(p.bairro)), '') AS bairro,
                                NULLIF(UPPER(TRIM(p.municipio)), '') AS municipio,
+                               NULLIF(UPPER(TRIM(p.estado)), '') AS estado,
                                CAST(b.data AS date) >= :inicio AS atual
                         FROM bam b
                         JOIN pacientes p ON p.idpaciente = b.paciente_idpaciente
@@ -210,6 +212,7 @@ public class VigilanciaEpidemiologicaController {
                                CAST(CONCAT('GPEC-', a.id) AS varchar) AS origem_id,
                                NULLIF(UPPER(TRIM(d.bairro)), '') AS bairro,
                                CAST(NULL AS varchar) AS municipio,
+                               CAST(NULL AS varchar) AS estado,
                                a.data_referencia >= :inicio AS atual
                         FROM aps_atendimento a
                         JOIN aps_cidadao c ON c.id = a.id_cidadao
@@ -225,26 +228,40 @@ public class VigilanciaEpidemiologicaController {
                                 AND (' ' || REGEXP_REPLACE(TRANSLATE(LOWER(COALESCE(pr.descricao,'') || ' ' || COALESCE(pr.cid10,'') || ' ' || COALESCE(pr.ciap,'')), :acentos, :semAcentos), '[^a-z0-9]+', ' ', 'g') || ' ')
                                     ILIKE ANY(CAST(string_to_array(:padroesDoenca, '|') AS text[]))
                           ))
+                    ), marcadas AS (
+                        -- Sem coordenada, fora do Brasil ou no ponto padrao antigo de Itaguai
+                        -- = sem localizacao propria; esses casos sao posicionados pelo bairro.
+                        SELECT f.*, (latitude IS NOT NULL AND longitude IS NOT NULL
+                                     AND latitude BETWEEN -34 AND 6 AND longitude BETWEEN -74 AND -33
+                                     AND NOT (ABS(latitude - :latPadrao) < 0.000001
+                                              AND ABS(longitude - :lonPadrao) < 0.000001)) AS localizado
+                        FROM fontes f
                     ), concentracoes AS (
                         -- atual = periodo escolhido; o restante sao as 4 janelas anteriores
                         -- de mesmo tamanho, base historica da mesma regiao.
-                        SELECT AVG(CAST(latitude AS numeric)) FILTER (WHERE atual) AS latitude,
-                               AVG(CAST(longitude AS numeric)) FILTER (WHERE atual) AS longitude,
+                        -- O ponto e o centro da celula (~1 km), nunca o endereco do paciente.
+                        SELECT ROUND(CAST(latitude AS numeric), 2) AS latitude,
+                               ROUND(CAST(longitude AS numeric), 2) AS longitude,
                                COUNT(DISTINCT origem_id) FILTER (WHERE atual) AS peso,
                                MODE() WITHIN GROUP (ORDER BY bairro) FILTER (WHERE atual) AS bairro,
                                MODE() WITHIN GROUP (ORDER BY municipio) FILTER (WHERE atual) AS municipio,
-                               COUNT(DISTINCT origem_id) FILTER (WHERE NOT atual) AS base
-                        FROM fontes
-                        WHERE latitude IS NOT NULL AND longitude IS NOT NULL
-                          AND latitude BETWEEN -90 AND 90
-                          AND longitude BETWEEN -180 AND 180
-                        GROUP BY ROUND(CAST(latitude AS numeric), 2),
-                                 ROUND(CAST(longitude AS numeric), 2)
-                        HAVING COUNT(DISTINCT origem_id) FILTER (WHERE atual) >= 3
+                               COUNT(DISTINCT origem_id) FILTER (WHERE NOT atual) AS base,
+                               CAST(NULL AS varchar) AS estado
+                        FROM marcadas
+                        WHERE localizado
+                        GROUP BY 1, 2
+                        UNION ALL
+                        SELECT NULL, NULL,
+                               COUNT(DISTINCT origem_id) FILTER (WHERE atual),
+                               bairro, municipio,
+                               COUNT(DISTINCT origem_id) FILTER (WHERE NOT atual),
+                               estado
+                        FROM marcadas
+                        WHERE NOT localizado
+                        GROUP BY bairro, municipio, estado
                     )
-                    SELECT latitude, longitude, peso, bairro, municipio, base
+                    SELECT latitude, longitude, peso, bairro, municipio, base, estado
                     FROM concentracoes
-                    ORDER BY peso DESC
                     """;
             @SuppressWarnings("unchecked")
             long diasPeriodo = java.time.temporal.ChronoUnit.DAYS.between(dataInicio, dataFim) + 1;
@@ -258,7 +275,43 @@ public class VigilanciaEpidemiologicaController {
                     .setParameter("padroesDoenca", padroesBusca(termosDoenca))
                     .setParameter("acentos", ACENTOS)
                     .setParameter("semAcentos", SEM_ACENTOS)
+                    .setParameter("latPadrao", GeocodificacaoPacienteService.LATITUDE_PADRAO)
+                    .setParameter("lonPadrao", GeocodificacaoPacienteService.LONGITUDE_PADRAO)
                     .getResultList();
+
+            // Casos sem localizacao propria vao para o centro do bairro/municipio (ou o
+            // ponto da unidade) e somam na celula de ~1 km correspondente. Celula:
+            // [latitude, longitude, peso, base, aproximados, maior peso que deu o nome].
+            Map<String, double[]> celulas = new LinkedHashMap<>();
+            Map<String, String[]> nomesCelula = new LinkedHashMap<>();
+            GeocodificacaoPacienteService.PadraoUnidade padraoUnidade = null;
+            long casosSemLocalizacao = 0;
+            for (Object[] row : rows) {
+                long pesoLinha = ((Number) row[2]).longValue();
+                boolean aproximado = row[0] == null || row[1] == null;
+                double[] coordenada;
+                if (aproximado) {
+                    if (padraoUnidade == null) padraoUnidade = GeocodificacaoPacienteService.padraoDaUnidade(unidade);
+                    coordenada = GeocodificacaoPacienteService.coordenadaAproximada(texto(row[3]), texto(row[4]), texto(row[6]), padraoUnidade);
+                    if (coordenada == null) {
+                        casosSemLocalizacao += pesoLinha;
+                        continue;
+                    }
+                } else {
+                    coordenada = new double[] { ((Number) row[0]).doubleValue(), ((Number) row[1]).doubleValue() };
+                }
+                double latitude = Math.round(coordenada[0] * 100) / 100d;
+                double longitude = Math.round(coordenada[1] * 100) / 100d;
+                String chave = latitude + ":" + longitude;
+                double[] celula = celulas.computeIfAbsent(chave, k -> new double[] { latitude, longitude, 0, 0, 0, -1 });
+                celula[2] += pesoLinha;
+                celula[3] += ((Number) row[5]).longValue();
+                if (aproximado) celula[4] += pesoLinha;
+                if (pesoLinha > celula[5]) {
+                    celula[5] = pesoLinha;
+                    nomesCelula.put(chave, new String[] { texto(row[3]), texto(row[4]) });
+                }
+            }
 
             String totalSql = """
                     SELECT COUNT(*) FROM (
@@ -302,25 +355,31 @@ public class VigilanciaEpidemiologicaController {
                     .getSingleResult();
 
             List<Map<String, Object>> pontos = new ArrayList<>();
-            for (Object[] row : rows) {
+            for (Map.Entry<String, double[]> entrada : celulas.entrySet()) {
+                double[] celula = entrada.getValue();
+                long peso = (long) celula[2];
+                if (peso <= 0) continue;
+                String[] nomes = nomesCelula.getOrDefault(entrada.getKey(), new String[] { "", "" });
                 Map<String, Object> ponto = new LinkedHashMap<>();
-                ponto.put("latitude", ((Number) row[0]).doubleValue());
-                ponto.put("longitude", ((Number) row[1]).doubleValue());
-                ponto.put("peso", ((Number) row[2]).longValue());
+                ponto.put("latitude", celula[0]);
+                ponto.put("longitude", celula[1]);
+                ponto.put("peso", peso);
                 // Bairro e município predominantes da região (agregado, nunca do paciente).
-                ponto.put("bairro", texto(row[3]));
-                ponto.put("municipio", texto(row[4]));
+                ponto.put("bairro", nomes[0]);
+                ponto.put("municipio", nomes[1]);
+                // Casos posicionados pelo bairro/município/unidade, sem endereço localizado.
+                ponto.put("casosAproximados", (long) celula[4]);
                 ponto.put("origem", texto(origem).isBlank() ? "TODOS" : texto(origem));
                 // Mesma regra de sinal do analisar(): acima de 2x a media das janelas
                 // anteriores; regiao sem historico so sinaliza a partir de 5 casos.
-                long peso = ((Number) row[2]).longValue();
-                double media = ((Number) row[5]).longValue() / 4d;
+                double media = celula[3] / 4d;
                 boolean alerta = peso > MINIMO_INVESTIGACAO && peso >= media * 2;
                 ponto.put("mediaAnterior", Math.round(media * 10) / 10d);
                 ponto.put("sinalParaInvestigacao", alerta);
                 ponto.put("nivel", alerta ? (peso > MINIMO_INVESTIGACAO * 2 || (media > 0 && peso >= media * 3) ? "ALTO" : "ATENCAO") : "NORMAL");
                 pontos.add(ponto);
             }
+            pontos.sort((a, b) -> Long.compare(((Number) b.get("peso")).longValue(), ((Number) a.get("peso")).longValue()));
 
             long casosNoMapa = pontos.stream()
                     .mapToLong(p -> ((Number) p.get("peso")).longValue())
@@ -329,6 +388,7 @@ public class VigilanciaEpidemiologicaController {
             resposta.put("totalCasos", total == null ? 0 : total.longValue());
             resposta.put("pontos", pontos);
             resposta.put("casosNoMapa", casosNoMapa);
+            resposta.put("casosSemLocalizacao", casosSemLocalizacao);
             resposta.put("origem", texto(origem).isBlank() ? "GHBAM" : texto(origem));
             List<Map<String, Object>> doencas = new ArrayList<>();
             List<Map<String, Object>> regrasAtivas = new ArrayList<>();
@@ -552,6 +612,15 @@ public class VigilanciaEpidemiologicaController {
         if (cache != null && System.currentTimeMillis() - (Long) cache[0] < ALERTA_CACHE_MS) {
             return Response.ok(cache[1]).build();
         }
+        garantirEstrutura();
+        if (!alertaCabecalhoAtivo(chave)) {
+            // Desligado pela unidade: nem calcula, e o cabecalho esconde o selo (total 0).
+            Map<String, Object> desligado = new LinkedHashMap<>();
+            desligado.put("regioes", 0); desligado.put("diagnosticos", 0); desligado.put("total", 0);
+            desligado.put("nivel", "NORMAL"); desligado.put("desativado", true);
+            ALERTA_CACHE.put(chave, new Object[] { System.currentTimeMillis(), desligado });
+            return Response.ok(desligado).build();
+        }
         String inicio = LocalDate.now().minusDays(6).toString();
         String fim = LocalDate.now().toString();
         Response mapa = mapa(inicio, fim, chave, "TODOS", "");
@@ -583,6 +652,54 @@ public class VigilanciaEpidemiologicaController {
         String sessao = securityPermissionService.unidadeDaSessao(requestContext);
         String valor = sessao.isBlank() ? texto(informada) : sessao;
         return valor.split(":")[0].trim();
+    }
+
+    /** Alerta do cabecalho ligado por padrao; a unidade pode desligar (chave = sigla da sessao). */
+    private boolean alertaCabecalhoAtivo(String unidade) {
+        List<?> rows = em.createNativeQuery("SELECT alerta_cabecalho FROM vigilancia_epidemiologica_unidade WHERE unidade=:u")
+                .setParameter("u", unidade).getResultList();
+        return rows.isEmpty() || !Boolean.FALSE.equals(rows.get(0));
+    }
+
+    @GET @Path("configuracao/alerta-cabecalho")
+    @Transactional
+    public Response configuracaoAlertaCabecalho(@QueryParam("unidade") String unidade) {
+        String chave = unidadeEfetiva(unidade);
+        if (chave.isBlank()) {
+            return Response.status(Response.Status.BAD_REQUEST).entity(Map.of("erro", "Unidade de trabalho nao identificada.")).build();
+        }
+        garantirEstrutura();
+        Map<String, Object> resposta = new LinkedHashMap<>();
+        resposta.put("unidade", chave);
+        resposta.put("ativo", alertaCabecalhoAtivo(chave));
+        return Response.ok(resposta).build();
+    }
+
+    @PUT @Path("configuracao/alerta-cabecalho")
+    @Transactional
+    public Response salvarAlertaCabecalho(Map<String, Object> dto) {
+        if (dto == null || dto.get("ativo") == null) {
+            return Response.status(Response.Status.BAD_REQUEST).entity(Map.of("erro", "Informe se o alerta fica ativo.")).build();
+        }
+        String chave = unidadeEfetiva(texto(dto.get("unidade")));
+        if (chave.isBlank()) {
+            return Response.status(Response.Status.BAD_REQUEST).entity(Map.of("erro", "Unidade de trabalho nao identificada.")).build();
+        }
+        garantirEstrutura();
+        boolean ativo = booleano(dto.get("ativo"), true);
+        String usuario = texto(dto.get("usuario"));
+        em.createNativeQuery("""
+                INSERT INTO vigilancia_epidemiologica_unidade (unidade, alerta_cabecalho, atualizado_por, atualizado_em)
+                VALUES (:u, :a, :p, now())
+                ON CONFLICT (unidade) DO UPDATE SET alerta_cabecalho=EXCLUDED.alerta_cabecalho,
+                    atualizado_por=EXCLUDED.atualizado_por, atualizado_em=now()
+                """).setParameter("u", chave).setParameter("a", ativo).setParameter("p", usuario).executeUpdate();
+        ALERTA_CACHE.remove(chave);
+        LOG.infof("Alerta epidemiologico do cabecalho %s na unidade %s por %s", ativo ? "ligado" : "desligado", chave, usuario);
+        Map<String, Object> resposta = new LinkedHashMap<>();
+        resposta.put("unidade", chave);
+        resposta.put("ativo", ativo);
+        return Response.ok(resposta).build();
     }
 
     @GET @Path("configuracao")
@@ -895,6 +1012,12 @@ public class VigilanciaEpidemiologicaController {
                     )
                     """).executeUpdate();
             em.createNativeQuery("CREATE INDEX IF NOT EXISTS idx_vigilancia_regra_unidade ON vigilancia_epidemiologica_regra (unidade, ativo)").executeUpdate();
+            em.createNativeQuery("""
+                    CREATE TABLE IF NOT EXISTS vigilancia_epidemiologica_unidade (
+                        unidade VARCHAR(30) PRIMARY KEY, alerta_cabecalho BOOLEAN NOT NULL DEFAULT TRUE,
+                        atualizado_por VARCHAR(120) NOT NULL DEFAULT '', atualizado_em TIMESTAMP NOT NULL DEFAULT now()
+                    )
+                    """).executeUpdate();
             estruturaPronta = true;
         }
     }

@@ -40,21 +40,21 @@ public class TratamentoRepository implements PanacheRepository<Tratamento> {
 
 			if (op.equals("0")) {
 				if (alta.equals("nirfinalizou")) {
-					sql = "UPDATE tratamento SET tratado = 1, tipo_alta = :alta FROM bam WHERE tratamento.idtratamento = bam.tratamento_idtratamento AND bam.idbam = :idtratamento";
+					sql = "UPDATE tratamento SET tratado = 1, tipo_alta = :alta, finalizado_em = COALESCE(tratamento.finalizado_em, :agora) FROM bam WHERE tratamento.idtratamento = bam.tratamento_idtratamento AND bam.idbam = :idtratamento";
 				} else {
-					sql = "UPDATE tratamento SET tratado = 1, tipo_alta = :alta WHERE idtratamento = :idtratamento";
+					sql = "UPDATE tratamento SET tratado = 1, tipo_alta = :alta, finalizado_em = COALESCE(tratamento.finalizado_em, :agora) WHERE idtratamento = :idtratamento";
 				}
 			}
 			if (alta.equals("internacao") && op.equals("1"))
-				sql = "UPDATE tratamento SET tipo_alta = 'internacao', tratado = 1 WHERE idtratamento = :idtratamento";
+				sql = "UPDATE tratamento SET tipo_alta = 'internacao', tratado = 1, finalizado_em = COALESCE(finalizado_em, :agora) WHERE idtratamento = :idtratamento";
 
 			if (alta.equals("observacao") && op.equals("1")) {
-				sql = "UPDATE tratamento SET tipo_alta = 'obs', tratado = 1 WHERE idtratamento = :idtratamento";
+				sql = "UPDATE tratamento SET tipo_alta = 'obs', tratado = 1, finalizado_em = COALESCE(finalizado_em, :agora) WHERE idtratamento = :idtratamento";
 			}
 
 			// Suporte para alta hospitalar quando op == 1
 			if (alta.equals("altahospitalar") && op.equals("1")) {
-				sql = "UPDATE tratamento SET tipo_alta = 'altahospitalar', tratado = 1 WHERE idtratamento = :idtratamento";
+				sql = "UPDATE tratamento SET tipo_alta = 'altahospitalar', tratado = 1, finalizado_em = COALESCE(finalizado_em, :agora) WHERE idtratamento = :idtratamento";
 			}
 
 			if (sql.isBlank()) {
@@ -64,9 +64,9 @@ public class TratamentoRepository implements PanacheRepository<Tratamento> {
 			var query = entityManager.createNativeQuery(sql);
 
 			if (op.equals("0")) {
-				query.setParameter("alta", alta).setParameter("idtratamento", idtratamento);
+				query.setParameter("alta", alta).setParameter("idtratamento", idtratamento).setParameter("agora", java.time.LocalDateTime.now());
 			} else {
-				query.setParameter("idtratamento", idtratamento);
+				query.setParameter("idtratamento", idtratamento).setParameter("agora", java.time.LocalDateTime.now());
 			}
 
 			query.executeUpdate();

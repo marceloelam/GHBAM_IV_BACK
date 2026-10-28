@@ -42,8 +42,8 @@ public class GeocodificacaoPacienteService {
 	private static final Logger LOG = Logger.getLogger(GeocodificacaoPacienteService.class);
 
 	// Centro de Itaguai: valor gravado por padrao quando ninguem calculava a coordenada.
-	static final double LATITUDE_PADRAO = -22.869417;
-	static final double LONGITUDE_PADRAO = -43.777349;
+	public static final double LATITUDE_PADRAO = -22.869417;
+	public static final double LONGITUDE_PADRAO = -43.777349;
 
 	@ConfigProperty(name = "ghbam.geocodificacao.url")
 	Optional<String> url;
@@ -356,6 +356,18 @@ public class GeocodificacaoPacienteService {
 		ConfiguracaoUnidade u = ConfiguracaoUnidade.find("upper(sigla) = upper(?1)", sigla.trim()).firstResult();
 		return u == null ? PadraoUnidade.VAZIO
 				: new PadraoUnidade(txt(u.getMunicipioPadrao()), u.getLatitude(), u.getLongitude());
+	}
+
+	/**
+	 * Ponto aproximado para quem nao tem coordenada propria (mapa epidemiologico): centro do
+	 * bairro, senao do municipio, senao o ponto da unidade. Null se nada for conhecido.
+	 */
+	public static double[] coordenadaAproximada(String bairro, String municipio, String estado, PadraoUnidade unidade) {
+		Resultado r = coordenadaLocal(bairro, municipio, estado);
+		if (r != null) {
+			return new double[] { r.latitude(), r.longitude() };
+		}
+		return unidade != null && unidade.temPonto() ? new double[] { unidade.latitude(), unidade.longitude() } : null;
 	}
 
 	/** Municipio em branco: assume o municipio da unidade onde o paciente esta sendo cadastrado. */

@@ -18,8 +18,10 @@ import java.time.format.DateTimeParseException;
 
 import org.jboss.logging.Logger;
 
+import br.com.iv.entity.Avaliacao;
 import br.com.iv.entity.Bam;
 import br.com.iv.entity.ConformidadePendenciaBaixa;
+import br.com.iv.entity.Pacientes;
 import br.com.iv.entity.PedidoMedico2;
 import br.com.iv.entity.PrescricaoItemCicloEvento;
 import br.com.iv.entity.PrescricaoItemEstruturado;
@@ -112,7 +114,9 @@ public class JornadaPaService implements Serializable {
         response.put("conformidade", conformidade);
         response.put("timeline", eventos);
         response.put("resumoOperacional", montarResumoOperacional(bam, prescricaoItens, pedidosMedicos, conformidade, faturamentoItens));
-        response.put("indicadoresTempo", montarIndicadoresTempo(bam, eventos));
+        LocalDate dataBam = toLocalDate(bam.getData());
+        MarcosLog marcosLog = dataBam == null ? MarcosLog.VAZIO : carregarMarcosDoLog(dataBam, dataBam.plusDays(3), bam.getUnidade());
+        response.put("indicadoresTempo", montarIndicadoresTempo(bam, eventos, listarMarcosMedicos(List.of(bam.getIdbam()), marcosLog).get(bam.getIdbam())));
         return response;
     }
 
@@ -431,7 +435,7 @@ public class JornadaPaService implements Serializable {
         boolean filtrarRisco = !"TODOS".equalsIgnoreCase(filtroRisco);
 
         List<Map<String, Object>> itens = new ArrayList<>();
-        List<Bam> bams = listarBamsBi(dataInicio, dataFim, unidade, limite);
+        List<Bam> bams = listarBamsLimitados(dataInicio, dataFim, unidade, limite);
         Map<Integer, List<Map<String, Object>>> eventosPorBam = listarEventosEmLote(
                 bams.stream().map(Bam::getIdbam).toList());
         int conformes = 0;
@@ -543,7 +547,7 @@ public class JornadaPaService implements Serializable {
         String filtroRisco = risco == null || risco.isBlank() ? "TODOS" : risco.trim();
         boolean filtrarRisco = !"TODOS".equalsIgnoreCase(filtroRisco);
 
-        List<Bam> bams = listarBamsBi(dataInicio, dataFim, unidade, limite);
+        List<Bam> bams = listarBamsLimitados(dataInicio, dataFim, unidade, limite);
         List<Integer> bamIds = bams.stream().map(Bam::getIdbam).toList();
         Map<Integer, List<Map<String, Object>>> eventosPorBam = listarEventosEmLote(bamIds);
         Map<Integer, Long> faturamentoPorBam = contarFaturamentoPorBam(bamIds);
@@ -1061,9 +1065,11 @@ public class JornadaPaService implements Serializable {
             dataFim = temp;
         }
 
-        List<Bam> bams = listarBamsBi(dataInicio, dataFim, unidade, limite);
-        Map<Integer, List<Map<String, Object>>> eventosPorBam = listarEventosEmLote(
-                bams.stream().map(Bam::getIdbam).toList());
+        // Todos os BAMs do periodo entram nos tempos medios; "limite" so corta a lista de
+        // gargalos. Antes eram so os 50 BAMs mais recentes, e mudar a data nao mudava nada.
+        List<Bam> bams = listarBamsBi(dataInicio, dataFim, unidade);
+        // Finalizacoes podem cair dias depois da entrada (observacao, BAM esquecido aberto).
+        MarcosLog marcosLog = carregarMarcosDoLog(dataInicio, dataFim.plusDays(3), unidade);
         Map<String, AcumuladorTempo> tempos = acumuladoresTempo();
         String filtroRisco = risco == null ? "" : risco.trim();
         boolean filtrarRisco = !filtroRisco.isBlank() && !"TODOS".equalsIgnoreCase(filtroRisco);
@@ -1073,7 +1079,12 @@ public class JornadaPaService implements Serializable {
         Map<String, Long> porUnidade = new LinkedHashMap<>();
         List<Map<String, Object>> gargalos = new ArrayList<>();
 
-        for (Bam bam : bams) {
+        for (int lote = 0; lote < bams.size(); lote += LOTE_BI) {
+            List<Bam> bamsLote = bams.subList(lote, Math.min(bams.size(), lote + LOTE_BI));
+            List<Integer> idsLote = bamsLote.stream().map(Bam::getIdbam).toList();
+            Map<Integer, List<Map<String, Object>>> eventosPorBam = listarEventosEmLote(idsLote);
+            Map<Integer, Object[]> finalizacoes = listarMarcosMedicos(idsLote, marcosLog);
+          for (Bam bam : bamsLote) {
             try {
                 String riscoBam = rotuloRisco(bam);
                 porRisco.merge(riscoBam, 1L, Long::sum);
@@ -1085,7 +1096,8 @@ public class JornadaPaService implements Serializable {
                 porUnidade.merge(valorOuPadrao(bam.getUnidade(), "Sem unidade"), 1L, Long::sum);
 
                 List<Map<String, Object>> eventos = eventosPorBam.getOrDefault(bam.getIdbam(), List.of());
-                List<Map<String, Object>> indicadores = montarIndicadoresTempo(bam, eventos);
+                Object[] finalizacao = finalizacoes.get(bam.getIdbam());
+                List<Map<String, Object>> indicadores = montarIndicadoresTempo(bam, eventos, finalizacao);
                 for (Map<String, Object> indicador : indicadores) {
                     String key = String.valueOf(indicador.get("key"));
                     AcumuladorTempo acumulador = tempos.get(key);
@@ -1094,7 +1106,7 @@ public class JornadaPaService implements Serializable {
 
                 indicadores.stream()
                         .filter(item -> "warn".equals(String.valueOf(item.get("status"))))
-                        .forEach(item -> gargalos.add(gargalo(bam, item)));
+                        .forEach(item -> gargalos.add(gargalo(bam, item, finalizacao)));
             } catch (Exception e) {
                 Map<String, Object> item = new LinkedHashMap<>();
                 item.put("idbam", bam.getIdbam());
@@ -1107,6 +1119,7 @@ public class JornadaPaService implements Serializable {
                 item.put("tempo", "verificar registro");
                 gargalos.add(item);
             }
+          }
         }
 
         gargalos.sort(Comparator.comparingLong(item -> -numero(item.get("minutos"))));
@@ -1121,15 +1134,17 @@ public class JornadaPaService implements Serializable {
         Map<String, Object> response = new LinkedHashMap<>();
         response.put("filtros", filtros);
         response.put("totalBams", bams.size());
+        response.put("bamsTruncados", bams.size() >= MAX_BAMS_BI);
         response.put("totalBamsFiltrados", totalBamsFiltrados);
         response.put("indicadoresTempo", tempos.values().stream().map(AcumuladorTempo::toMap).toList());
         response.put("porDia", mapaSerie(porDia, "data"));
         response.put("porRisco", mapaSerie(porRisco, "risco"));
         response.put("porUnidade", mapaSerie(porUnidade, "unidade"));
-        response.put("gargalos", gargalos.stream().limit(25).toList());
+        response.put("gargalos", gargalos.stream().limit(normalizarLimite(limite)).toList());
         return response;
     }
-    private List<Bam> listarBamsBi(LocalDate inicio, LocalDate fim, String unidade, int limite) {
+    // Entidades completas, so os "limite" BAMs mais recentes (telas de conformidade).
+    private List<Bam> listarBamsLimitados(LocalDate inicio, LocalDate fim, String unidade, int limite) {
         StringBuilder jpql = new StringBuilder("select b from Bam b where b.data between :inicio and :fim");
         if (unidade != null && !unidade.isBlank() && !"TODAS".equalsIgnoreCase(unidade)) {
             jpql.append(" and upper(b.unidade) = upper(:unidade)");
@@ -1142,6 +1157,52 @@ public class JornadaPaService implements Serializable {
                 .setMaxResults(normalizarLimite(limite));
         if (unidade != null && !unidade.isBlank() && !"TODAS".equalsIgnoreCase(unidade)) query.setParameter("unidade", unidade);
         return query.getResultList();
+    }
+
+    private static final int MAX_BAMS_BI = 5000;
+    private static final int LOTE_BI = 1000;
+
+    // Consulta nativa so com os campos do BI: carregar a entidade Bam (6 relacoes EAGER)
+    // para milhares de BAMs dispararia centenas de selects. Os Bam montados aqui sao
+    // transitorios, nunca persistidos.
+    private List<Bam> listarBamsBi(LocalDate inicio, LocalDate fim, String unidade) {
+        boolean filtrarUnidade = unidade != null && !unidade.isBlank() && !"TODAS".equalsIgnoreCase(unidade);
+        StringBuilder sql = new StringBuilder("""
+                SELECT b.idbam, b.data, b.hora, b.unidade, b.cor, b.internar, a.risco, p.nome
+                FROM bam b
+                LEFT JOIN avaliacao a ON a.idavaliacao = b.avaliacao_idavaliacao
+                LEFT JOIN pacientes p ON p.idpaciente = b.paciente_idpaciente
+                WHERE b.data BETWEEN :inicio AND :fim
+                """);
+        if (filtrarUnidade) sql.append(" AND upper(b.unidade) = upper(:unidade)");
+        sql.append(" ORDER BY b.data DESC, b.hora DESC, b.idbam DESC");
+
+        Query query = entityManager.createNativeQuery(sql.toString())
+                .setParameter("inicio", java.sql.Date.valueOf(inicio))
+                .setParameter("fim", java.sql.Date.valueOf(fim))
+                .setMaxResults(MAX_BAMS_BI);
+        if (filtrarUnidade) query.setParameter("unidade", unidade);
+
+        List<Bam> result = new ArrayList<>();
+        for (Object row : query.getResultList()) {
+            Object[] cols = (Object[]) row;
+            Bam bam = new Bam();
+            bam.setIdbam((int) numero(cols[0]));
+            LocalDate data = toLocalDate(cols[1]);
+            bam.setData(data == null ? null : java.sql.Date.valueOf(data));
+            bam.setHora(cols[2] == null ? null : String.valueOf(cols[2]));
+            bam.setUnidade(cols[3] == null ? null : String.valueOf(cols[3]));
+            bam.setCor((int) numero(cols[4]));
+            bam.setInternar(Boolean.TRUE.equals(cols[5]));
+            Avaliacao avaliacao = new Avaliacao();
+            avaliacao.setRisco(cols[6] == null ? null : String.valueOf(cols[6]));
+            bam.setAvaliacao(avaliacao);
+            Pacientes paciente = new Pacientes();
+            paciente.setNome(cols[7] == null ? "" : String.valueOf(cols[7]));
+            bam.setPaciente(paciente);
+            result.add(bam);
+        }
+        return result;
     }
 
     private boolean ehInteiro(String value) {
@@ -1180,10 +1241,101 @@ public class JornadaPaService implements Serializable {
         result.put("medico-pedido", new AcumuladorTempo("medico-pedido", "Medico -> pedido"));
         result.put("pedido-resultado", new AcumuladorTempo("pedido-resultado", "Pedido -> resultado"));
         result.put("entrada-saida", new AcumuladorTempo("entrada-saida", "Entrada -> saida/NIR"));
+        result.put("entrada-finalizacao", new AcumuladorTempo("entrada-finalizacao", "Entrada -> finalizacao medica"));
         return result;
     }
 
-    private Map<String, Object> gargalo(Bam bam, Map<String, Object> indicador) {
+    // Por BAM: { finalizacao medica, tipo_alta, abertura pelo medico }. As colunas V215/V216
+    // so existem para BAMs novos; para os antigos, os mesmos marcos saem do log de auditoria
+    // (PATCH /bam/{id}/em-atendimento/true e POST /tratamento/{id}/alta/...), que tem hora.
+    private Map<Integer, Object[]> listarMarcosMedicos(List<Integer> bamIds, MarcosLog marcosLog) {
+        Map<Integer, Object[]> result = new LinkedHashMap<>();
+        if (bamIds == null || bamIds.isEmpty()) return result;
+        try {
+            List<?> rows = entityManager.createNativeQuery("""
+                    SELECT b.idbam, t.finalizado_em, t.tipo_alta, b.atendimento_medico_em, b.tratamento_idtratamento
+                    FROM bam b
+                    LEFT JOIN tratamento t ON t.idtratamento = b.tratamento_idtratamento
+                    WHERE b.idbam IN (:bamIds)
+                    """)
+                    .setParameter("bamIds", bamIds)
+                    .getResultList();
+            for (Object row : rows) {
+                Object[] cols = (Object[]) row;
+                int idbam = (int) numero(cols[0]);
+                int idtratamento = (int) numero(cols[4]);
+                Object finalizado = cols[1];
+                Object tipo = cols[2];
+                Object aberto = cols[3];
+                if (finalizado == null && marcosLog.finalizacaoPorTratamento().containsKey(idtratamento)) {
+                    Object[] doLog = marcosLog.finalizacaoPorTratamento().get(idtratamento);
+                    finalizado = doLog[0];
+                    if (tipo == null || String.valueOf(tipo).isBlank()) tipo = doLog[1];
+                }
+                if (aberto == null) aberto = marcosLog.aberturaPorBam().get(idbam);
+                result.put(idbam, new Object[] { finalizado, tipo, aberto });
+            }
+        } catch (Exception e) {
+            LOG.warnf(e, "Falha ao carregar finalizacao medica dos BAMs no BI da PA");
+        }
+        return result;
+    }
+
+    private record MarcosLog(Map<Integer, LocalDateTime> aberturaPorBam, Map<Integer, Object[]> finalizacaoPorTratamento) {
+        static final MarcosLog VAZIO = new MarcosLog(Map.of(), Map.of());
+    }
+
+    private static final java.util.regex.Pattern LOG_ABERTURA = java.util.regex.Pattern.compile("PATCH /bam/(\\d+)/em-atendimento/true");
+    private static final java.util.regex.Pattern LOG_FINALIZACAO = java.util.regex.Pattern.compile("POST /tratamento/(\\d+)/alta/([a-z]+)");
+
+    // Primeira abertura por BAM e primeira finalizacao por tratamento no periodo. "nirfinalizou"
+    // fica de fora: e o NIR fechando (e o id da URL e o BAM, nao o tratamento).
+    private MarcosLog carregarMarcosDoLog(LocalDate inicio, LocalDate fim, String unidade) {
+        boolean filtrarUnidade = unidade != null && !unidade.isBlank() && !"TODAS".equalsIgnoreCase(unidade);
+        try {
+            Query query = entityManager.createNativeQuery("SELECT evento, data, hora FROM logs WHERE data BETWEEN :inicio AND :fim"
+                    + (filtrarUnidade ? " AND upper(unidade) = upper(:unidade)" : "")
+                    + " AND (evento LIKE '%/em-atendimento/true%' OR evento LIKE '%POST /tratamento/%/alta/%')")
+                    .setParameter("inicio", java.sql.Date.valueOf(inicio))
+                    .setParameter("fim", java.sql.Date.valueOf(fim));
+            if (filtrarUnidade) query.setParameter("unidade", unidade);
+
+            Map<Integer, LocalDateTime> abertura = new java.util.HashMap<>();
+            Map<Integer, Object[]> finalizacao = new java.util.HashMap<>();
+            for (Object row : query.getResultList()) {
+                Object[] cols = (Object[]) row;
+                String evento = cols[0] == null ? "" : String.valueOf(cols[0]);
+                LocalDateTime quando = dataHora(cols[1], cols[2]);
+                if (quando == null) continue;
+                java.util.regex.Matcher m = LOG_ABERTURA.matcher(evento);
+                if (m.find()) {
+                    abertura.merge(Integer.parseInt(m.group(1)), quando, (a, b) -> a.isBefore(b) ? a : b);
+                    continue;
+                }
+                m = LOG_FINALIZACAO.matcher(evento);
+                if (m.find() && !"nirfinalizou".equals(m.group(2))) {
+                    Object[] novo = new Object[] { quando, m.group(2) };
+                    finalizacao.merge(Integer.parseInt(m.group(1)), novo,
+                            (a, b) -> ((LocalDateTime) a[0]).isBefore((LocalDateTime) b[0]) ? a : b);
+                }
+            }
+            return new MarcosLog(abertura, finalizacao);
+        } catch (Exception e) {
+            LOG.warnf(e, "Falha ao ler marcos medicos do log no BI da PA");
+            return MarcosLog.VAZIO;
+        }
+    }
+
+    private LocalDateTime toLocalDateTime(Object value) {
+        if (value == null) return null;
+        if (value instanceof LocalDateTime localDateTime) return localDateTime;
+        if (value instanceof java.sql.Timestamp timestamp) return timestamp.toLocalDateTime();
+        if (value instanceof java.time.OffsetDateTime offset) return offset.toLocalDateTime();
+        if (value instanceof java.time.Instant instant) return LocalDateTime.ofInstant(instant, ZoneId.systemDefault());
+        return dataHora(String.valueOf(value), null);
+    }
+
+    private Map<String, Object> gargalo(Bam bam, Map<String, Object> indicador, Object[] finalizacao) {
         Map<String, Object> item = new LinkedHashMap<>();
         item.put("idbam", bam.getIdbam());
         item.put("paciente", bam.getPaciente() == null ? "" : bam.getPaciente().getNome());
@@ -1194,6 +1346,12 @@ public class JornadaPaService implements Serializable {
         item.put("indicador", indicador.get("label"));
         item.put("minutos", indicador.get("minutos"));
         item.put("tempo", indicador.get("value"));
+        LocalDateTime finalizadoEm = finalizacao == null ? null : toLocalDateTime(finalizacao[0]);
+        Long permanencia = minutosEntre(dataHora(bam.getData(), bam.getHora()), finalizadoEm);
+        item.put("permanenciaMinutos", permanencia);
+        item.put("permanencia", formatarDuracao(permanencia));
+        item.put("finalizadoEm", finalizadoEm == null ? null : String.valueOf(finalizadoEm));
+        item.put("destino", finalizacao == null || finalizacao[1] == null ? "" : String.valueOf(finalizacao[1]));
         return item;
     }
 
@@ -1276,31 +1434,47 @@ public class JornadaPaService implements Serializable {
         }
     }
 
-    private List<Map<String, Object>> montarIndicadoresTempo(Bam bam, List<Map<String, Object>> eventos) {
+    private List<Map<String, Object>> montarIndicadoresTempo(Bam bam, List<Map<String, Object>> eventos, Object[] marcos) {
         LocalDateTime entrada = dataHora(bam.getData(), bam.getHora());
         List<Map<String, Object>> ordenados = eventos.stream()
                 .sorted(Comparator.comparing(this::dataHoraEvento, Comparator.nullsLast(Comparator.naturalOrder())))
                 .toList();
 
-        Map<String, Object> triagem = primeiroEvento(ordenados, item -> "TRIAGEM".equals(String.valueOf(item.get("tipo"))));
-        Map<String, Object> medico = primeiroEvento(ordenados, item -> "ATENDIMENTO".equals(String.valueOf(item.get("tipo")))
-                || "EVOLUCAO_MEDICA".equals(String.valueOf(item.get("tipo")))
-                || contem(item, "ATENDIMENTO", "EVOLUCAO MEDICA", "MEDICA"));
-        Map<String, Object> pedido = primeiroEvento(ordenados, item -> "PEDIDO".equals(String.valueOf(item.get("tipo")))
-                || contem(item, "PEDIDO", "EXAME", "MEDICACAO"));
-        Map<String, Object> resultado = primeiroEvento(ordenados, item -> "RESULTADO_LAB".equals(String.valueOf(item.get("tipo")))
-                || contem(item, "RESULTADO", "LAUDO"));
-        Map<String, Object> saida = primeiroEvento(ordenados, item -> "NIR".equals(String.valueOf(item.get("tipo")))
-                || "INTERNACAO".equals(String.valueOf(item.get("tipo")))
-                || "RESUMO_ALTA".equals(String.valueOf(item.get("tipo")))
-                || contem(item, "ALTA", "INTERNACAO", "INTERNADO", "NIR"));
+        // Marcos escolhidos pelo TIPO do evento, nunca por texto livre: o relato da
+        // enfermagem com "medicacao" ou o rotulo "Pedido:" do detalhe faziam qualquer
+        // evento virar "medico"/"pedido". Eventos sem hora (caem em 00:00) tambem nao
+        // servem para medir minutos entre etapas.
+        Map<String, Object> triagem = primeiroEvento(ordenados, item -> tipoEvento(item, "TRIAGEM"));
+        LocalDateTime inicioMedico = dataHoraEvento(triagem) != null ? dataHoraEvento(triagem) : entrada;
+        // A recepcao cria um registro em "atendimento" vazio (sem relato/medico) no
+        // momento da entrada; so conta como medico quando o medico preencheu algo.
+        Map<String, Object> consulta = primeiroEventoApos(ordenados, inicioMedico, item -> tipoEvento(item, "EVOLUCAO_MEDICA")
+                || (tipoEvento(item, "ATENDIMENTO") && atendimentoPreenchido(item)));
+        Map<String, Object> pedido = primeiroEventoApos(ordenados, inicioMedico, item -> tipoEvento(item, "PEDIDO", "PRESCRICAO"));
+        // A hora em que o medico abriu o paciente (V216) e o marco preferido. Para BAMs
+        // anteriores a ela, sem registro proprio da consulta, o primeiro pedido/prescricao
+        // e o primeiro ato medico com hora — serve para triagem->medico, nao para medico->pedido.
+        LocalDateTime finalizadoEm = marcos == null ? null : toLocalDateTime(marcos[0]);
+        LocalDateTime abertoPeloMedico = marcos == null || marcos.length < 3 ? null : toLocalDateTime(marcos[2]);
+        if (abertoPeloMedico != null && inicioMedico != null && abertoPeloMedico.isBefore(inicioMedico)) abertoPeloMedico = null;
+        LocalDateTime fimTriagemMedico = abertoPeloMedico != null ? abertoPeloMedico
+                : dataHoraEvento(consulta != null ? consulta : pedido);
+        LocalDateTime inicioPedido = abertoPeloMedico != null ? abertoPeloMedico : dataHoraEvento(consulta);
+        Map<String, Object> pedidoAposConsulta = inicioPedido == null ? null
+                : primeiroEventoApos(ordenados, inicioPedido, item -> tipoEvento(item, "PEDIDO", "PRESCRICAO"));
+        Map<String, Object> resultado = primeiroEventoApos(ordenados, dataHoraEvento(pedido), item -> tipoEvento(item, "RESULTADO_LAB"));
+        // NIR/internacao/resumo de alta nao tem hora (so data); com hora, valem. Sem eles, a
+        // saida do fluxo da PA e a finalizacao do medico (alta, internacao ou observacao).
+        Map<String, Object> saidaEvento = primeiroEventoApos(ordenados, entrada, item -> tipoEvento(item, "NIR", "INTERNACAO", "RESUMO_ALTA"));
+        LocalDateTime saida = saidaEvento != null ? dataHoraEvento(saidaEvento) : finalizadoEm;
 
         return List.of(
                 indicadorTempo("porta-triagem", "Porta -> triagem", entrada, dataHoraEvento(triagem), "Entrada ate classificacao", 10, 30),
-                indicadorTempo("triagem-medico", "Triagem -> medico", dataHoraEvento(triagem) != null ? dataHoraEvento(triagem) : entrada, dataHoraEvento(medico), "Classificacao ate atendimento", 30, 90),
-                indicadorTempo("medico-pedido", "Medico -> pedido", dataHoraEvento(medico), dataHoraEvento(pedido), "Atendimento ate solicitacao", 20, 60),
+                indicadorTempo("triagem-medico", "Triagem -> medico", inicioMedico, fimTriagemMedico, "Classificacao ate atendimento", 30, 90),
+                indicadorTempo("medico-pedido", "Medico -> pedido", inicioPedido, dataHoraEvento(pedidoAposConsulta), "Atendimento ate solicitacao", 20, 60),
                 indicadorTempo("pedido-resultado", "Pedido -> resultado", dataHoraEvento(pedido), dataHoraEvento(resultado), "Solicitacao ate resultado", 60, 180),
-                indicadorTempo("entrada-saida", "Entrada -> saida/NIR", entrada, dataHoraEvento(saida), "Permanencia ate destino", 240, 720));
+                indicadorTempo("entrada-saida", "Entrada -> saida/NIR", entrada, saida, "Permanencia ate destino", 240, 720),
+                indicadorTempo("entrada-finalizacao", "Entrada -> finalizacao medica", entrada, finalizadoEm, "Permanencia ate o medico finalizar o BAM", 240, 720));
     }
 
     private Map<String, Object> indicadorTempo(String key, String label, LocalDateTime inicio, LocalDateTime fim, String meta, long limiteBom, long limiteAtencao) {
@@ -1336,6 +1510,38 @@ public class JornadaPaService implements Serializable {
                 .filter(predicate)
                 .findFirst()
                 .orElse(null);
+    }
+
+    private Map<String, Object> primeiroEventoApos(List<Map<String, Object>> eventos, LocalDateTime inicio,
+                                                   java.util.function.Predicate<Map<String, Object>> predicate) {
+        if (inicio == null) return null;
+        return eventos.stream()
+                .filter(this::temHora)
+                .filter(item -> !dataHoraEvento(item).isBefore(inicio))
+                .filter(predicate)
+                .findFirst()
+                .orElse(null);
+    }
+
+    private boolean tipoEvento(Map<String, Object> item, String... tipos) {
+        String tipo = String.valueOf(item.get("tipo"));
+        for (String t : tipos) {
+            if (t.equals(tipo)) return true;
+        }
+        return false;
+    }
+
+    private boolean temHora(Map<String, Object> item) {
+        Object hora = item.get("hora");
+        String texto = hora == null ? "" : String.valueOf(hora).trim();
+        return dataHoraEvento(item) != null && !texto.isEmpty() && !"null".equalsIgnoreCase(texto);
+    }
+
+    private boolean atendimentoPreenchido(Map<String, Object> item) {
+        Object profissional = item.get("profissional");
+        boolean temMedico = profissional != null && !String.valueOf(profissional).isBlank();
+        Object detalhe = item.get("detalhe");
+        return temMedico || (detalhe != null && !String.valueOf(detalhe).isBlank());
     }
 
     private LocalDateTime dataHoraEvento(Map<String, Object> item) {
@@ -1386,23 +1592,6 @@ public class JornadaPaService implements Serializable {
             }
         }
         return LocalTime.MIDNIGHT;
-    }
-
-    private boolean contem(Map<String, Object> item, String... termos) {
-        String base = normalizarTexto(String.valueOf(item.getOrDefault("tipo", "")) + " "
-                + String.valueOf(item.getOrDefault("titulo", "")) + " "
-                + String.valueOf(item.getOrDefault("detalhe", "")) + " "
-                + String.valueOf(item.getOrDefault("status", "")));
-        for (String termo : termos) {
-            if (base.contains(normalizarTexto(termo))) return true;
-        }
-        return false;
-    }
-
-    private String normalizarTexto(String value) {
-        return java.text.Normalizer.normalize(String.valueOf(value), java.text.Normalizer.Form.NFD)
-                .replaceAll("\\p{M}", "")
-                .toUpperCase();
     }
 
     private Map<String, Object> montarResumoOperacional(
@@ -1921,7 +2110,7 @@ public class JornadaPaService implements Serializable {
 
     private List<Map<String, Object>> listarApoioCirurgico(int idpaciente) {
         String sql = "SELECT idevidencia, data_registro, NULL AS hora, responsavel, unidade, modulo, tipo, status, referencia, descricao "
-                + "FROM evidencia_assistencial WHERE idpaciente = :idpaciente AND origem_modulo = 'CENTRO_CIRURGICO' "
+                + "FROM evidencia_assistencial WHERE idpaciente = :idpaciente AND origemmodulo = 'CENTRO_CIRURGICO' "
                 + "ORDER BY data_registro DESC";
         try {
             List<Map<String, Object>> registros = rows(entityManager.createNativeQuery(sql).setParameter("idpaciente", idpaciente),
