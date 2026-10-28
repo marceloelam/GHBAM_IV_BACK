@@ -1,4 +1,0 @@
-# Properties used during unit/integration tests
-app.version=1.0.0
-# Avoid promoting TRACE log level to DEBUG for ReportResource
-quarkus.log.category."br.com.iv.util.ReportResource".min-level=TRACE

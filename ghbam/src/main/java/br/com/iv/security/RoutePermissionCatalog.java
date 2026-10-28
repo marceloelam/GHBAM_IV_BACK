@@ -391,7 +391,10 @@ public class RoutePermissionCatalog {
             entry("interoperabilidade", "kmedico", "kenfermagem", "kfaturamento", "kadm"),
             entry("prontuario", "ktriagem", "kmedico", "kenfermagem", "kfaturamento", "presumopaciente", "kadm"),
             entry("prontuarioclinico", "kmedico", "kenfermagem", "kfaturamento", "presumopaciente", "kadm"),
-            entry("historicopaciente", "krecepcao", "ktriagem", "kmedico", "kenfermagem", "kfaturamento", "presumopaciente", "pcomoestaopaciente", "pprontuariocompleto", "penfermariaseleitos", "pnir", "pccih", "kadm"),
+            // Equipe multidisciplinar le o historico (menu Multidisciplinar > Historico completo).
+            // Seguro por ser so leitura: HistoricoPacienteController e ApsHistoricoController so tem GET.
+            entry("historicopaciente", "krecepcao", "ktriagem", "kmedico", "kenfermagem", "kfaturamento", "presumopaciente", "pcomoestaopaciente", "pprontuariocompleto", "penfermariaseleitos", "pnir", "pccih", "kadm",
+                    "kfisioterapia", "kassistencia", "knutricao", "kfonoaudiologia", "kpsicologia", "pevolucaomultidisciplinar"),
             // Mesmo publico de "historicopaciente" (Prontuario Completo): quem ja
             // pode ver o prontuario completo do paciente pode pedir a analise de
             // risco por IA sobre os mesmos dados.

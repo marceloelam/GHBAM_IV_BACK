@@ -246,7 +246,23 @@ public class JornadaPaController {
 
     private LocalDate parseData(String valor, LocalDate padrao) {
         if (valor == null || valor.isBlank()) return padrao;
-        return LocalDate.parse(valor);
+        String texto = valor.trim();
+        // Aceita dia/mes sem zero ("2026-10-1") e o formato brasileiro; data invalida e
+        // erro do filtro (400), nao falha do servidor (500).
+        for (java.time.format.DateTimeFormatter formato : java.util.List.of(
+                java.time.format.DateTimeFormatter.ofPattern("uuuu-M-d"),
+                java.time.format.DateTimeFormatter.ofPattern("d/M/uuuu"),
+                java.time.format.DateTimeFormatter.ofPattern("d-M-uuuu"))) {
+            try {
+                LocalDate data = LocalDate.parse(texto, formato);
+                // "uuuu" aceita 5 digitos: ano 20261 viraria consulta de seculos.
+                if (data.getYear() < 2000 || data.getYear() > LocalDate.now().getYear() + 1) break;
+                return data;
+            } catch (java.time.format.DateTimeParseException ignored) {
+                // Tenta o proximo formato.
+            }
+        }
+        throw new jakarta.ws.rs.BadRequestException("Data invalida no filtro: " + texto);
     }
 
     private AuthenticatedUser usuarioAtual() {

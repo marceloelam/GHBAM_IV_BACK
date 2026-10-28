@@ -34,9 +34,9 @@ public class MonitoramentoService {
         dto.setPacientesAguardando(aguardando);
 
         int criticos = intVal(scalar(
-            "SELECT COUNT(*) FROM bam b JOIN registro r ON b.registro_idregistro = r.idregistro "
-            + "WHERE b.unidade = :u AND CAST(b.data AS DATE) = :hoje "
-            + "AND UPPER(COALESCE(r.corclassificacao, r.riscoclassificacao, '')) IN ('VERMELHO','RED') "
+            // bam.cor: 1 = VERMELHO (mesma escala de RagPacienteService/JornadaPaService)
+            "SELECT COUNT(*) FROM bam b "
+            + "WHERE b.unidade = :u AND CAST(b.data AS DATE) = :hoje AND b.cor = 1 "
             + "AND NOT EXISTS (SELECT 1 FROM atendimento a WHERE a.bam = b.idbam)",
             unidade, hoje));
         dto.setCasosCriticos(criticos);

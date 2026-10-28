@@ -71,6 +71,12 @@ public class BamRepository implements PanacheRepository<Bam> {
 		String sql = "UPDATE bam set ematendimento = :ematendimento where idbam = :idbam";
 		entityManager.createNativeQuery(sql).setParameter("ematendimento", ematendimento).setParameter("idbam", idbam)
 				.executeUpdate();
+		if (ematendimento) {
+			// Primeira abertura pelo medico (V216): base do BI da PA, nao e sobrescrita.
+			entityManager.createNativeQuery("UPDATE bam set atendimento_medico_em = COALESCE(atendimento_medico_em, :agora) where idbam = :idbam")
+					.setParameter("agora", java.time.LocalDateTime.now()).setParameter("idbam", idbam)
+					.executeUpdate();
+		}
 	}
 
 	public void atualizarOrigemDestinoTransferencia(int idbam, String origem, String destino) {
