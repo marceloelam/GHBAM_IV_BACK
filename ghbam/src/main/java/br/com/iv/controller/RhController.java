@@ -77,7 +77,11 @@ public class RhController {
     @PUT
     @Path("/plantoes/{id}/encerrar")
     public Response encerrarPlantao(@PathParam("id") int id) {
-        rhService.encerrarPlantao(id);
+        try {
+            rhService.encerrarPlantao(id);
+        } catch (IllegalStateException e) {
+            return Response.status(409).entity(e.getMessage()).build();
+        }
         return Response.noContent().build();
     }
 
@@ -86,6 +90,12 @@ public class RhController {
     public Response excluirPlantao(@PathParam("id") int id) {
         rhService.excluirPlantao(id);
         return Response.noContent().build();
+    }
+
+    @DELETE
+    @Path("/plantoes/{id}/escala")
+    public Response excluirEscala(@PathParam("id") int id) {
+        return Response.ok("{\"excluidos\":" + rhService.excluirEscala(id) + "}").build();
     }
 
     // ===== Produtividade =====

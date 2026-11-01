@@ -33,7 +33,16 @@ public class PreventivoService {
     public record AtualizacaoStatus(String status, String observacao) {}
     public record Fonte(String tipo, String id, String bam, String data, String profissional, String texto, String unidadeOrigem) {}
     public record Vital(String idbam, String data, Double pasist, Double padiast, Double fc, Double fr, Double spo, Double peso, Double tax, String unidadeOrigem) {}
-    public record Evidencia(String label, String detalhe) {}
+    // Registro (BAM/documento) que gerou a evidencia, para o profissional conferir a origem do total.
+    public record Ocorrencia(String tipo, String id, String bam, String data, String unidadeOrigem, String profissional, String resumo) {}
+    public record Evidencia(String label, String detalhe, List<Ocorrencia> ocorrencias) {
+        public Evidencia {
+            ocorrencias = ocorrencias == null ? List.of() : List.copyOf(ocorrencias);
+        }
+        public Evidencia(String label, String detalhe) {
+            this(label, detalhe, List.of());
+        }
+    }
     public record AlertaPreventivo(String codigo, String condicao, String severidade, String especialista,
             String mensagem, String recomendacao, List<Evidencia> evidencias, boolean diagnostico) {}
     public record FilaPreventivaItem(Integer idpaciente, String nome, String idade, String ultimoBam,
@@ -186,23 +195,25 @@ public class PreventivoService {
     public List<AlertaPreventivo> avaliarAutomaticamente(List<Fonte> fontes, List<Vital> vitais) {
         String texto = normalizar(String.join("\n", fontes.stream().map(f -> texto(f.texto())).toList()));
         List<AlertaPreventivo> alertas = new ArrayList<>();
-        avaliarRiscoDiabetes(texto, alertas);
-        avaliarRiscoOncologico(vitais, texto, alertas);
+        avaliarRiscoDiabetes(fontes, texto, alertas);
+        avaliarRiscoOncologico(fontes, vitais, texto, alertas);
         avaliarRiscoCardiovascular(fontes, vitais, texto, alertas);
-        avaliarRiscoRenal(texto, alertas);
-        avaliarRiscoRespiratorio(vitais, texto, alertas);
-        avaliarRiscoFragilidadeQueda(texto, alertas);
-        avaliarRiscoInfeccioso(vitais, texto, alertas);
+        avaliarRiscoRenal(fontes, texto, alertas);
+        avaliarRiscoRespiratorio(fontes, vitais, texto, alertas);
+        avaliarRiscoFragilidadeQueda(fontes, texto, alertas);
+        avaliarRiscoInfeccioso(fontes, vitais, texto, alertas);
         alertas.sort(Comparator.comparingInt(a -> ordemSeveridadePreventiva(a.severidade())));
         return alertas;
     }
 
-    private void avaliarRiscoDiabetes(String texto, List<AlertaPreventivo> alertas) {
+    private void avaliarRiscoDiabetes(List<Fonte> fontes, String texto, List<AlertaPreventivo> alertas) {
         List<Evidencia> evidencias = new ArrayList<>();
-        int termos = ocorrencias(texto, "\\bdiabet\\w*|\\bhiperglicem\\w*|\\bglicemia alterada\\b|\\bhemoglobina glicada\\b|\\bhba1c\\b");
-        if (termos >= 2) evidencias.add(new Evidencia("Termos metabólicos recorrentes", termos + " menção(ões) no histórico"));
-        if (ocorrencias(texto, "\\bglicemia\\D{0,20}(?:1[2-9]\\d|[2-9]\\d{2})\\b|\\bhgt\\D{0,20}(?:1[2-9]\\d|[2-9]\\d{2})\\b") >= 2)
-            evidencias.add(new Evidencia("Glicemia alterada recorrente", "Dois ou mais registros textuais compatíveis"));
+        String regexTermos = "\\bdiabet\\w*|\\bhiperglicem\\w*|\\bglicemia alterada\\b|\\bhemoglobina glicada\\b|\\bhba1c\\b";
+        int termos = ocorrencias(texto, regexTermos);
+        if (termos >= 2) evidencias.add(new Evidencia("Termos metabólicos recorrentes", termos + " menção(ões) no histórico", ocorrenciasTexto(fontes, regexTermos)));
+        String regexGlicemia = "\\bglicemia\\D{0,20}(?:1[2-9]\\d|[2-9]\\d{2})\\b|\\bhgt\\D{0,20}(?:1[2-9]\\d|[2-9]\\d{2})\\b";
+        if (ocorrencias(texto, regexGlicemia) >= 2)
+            evidencias.add(new Evidencia("Glicemia alterada recorrente", "Dois ou mais registros textuais compatíveis", ocorrenciasTexto(fontes, regexGlicemia)));
         if (!evidencias.isEmpty()) {
             alertas.add(alertaPreventivo("CDSS_PREV_DIABETES", "Risco metabólico/diabetes", evidencias.size() >= 2 ? "HIGH" : "MODERATE",
                     "Endocrinologia ou clínica médica", "Padrão longitudinal sugere risco metabólico que merece revisão clínica.",
@@ -210,23 +221,24 @@ public class PreventivoService {
         }
     }
 
-    private void avaliarRiscoOncologico(List<Vital> vitais, String texto, List<AlertaPreventivo> alertas) {
+    private void avaliarRiscoOncologico(List<Fonte> fontes, List<Vital> vitais, String texto, List<AlertaPreventivo> alertas) {
         List<Evidencia> evidencias = new ArrayList<>();
-        adicionarSeEncontrar(evidencias, texto, "\\bperda de peso\\b|\\bemagrecimento\\b|\\bcaquex\\w*", "Perda ponderal ou caquexia");
-        adicionarSeEncontrar(evidencias, texto, "\\banemia\\b|\\bhemoglobina baixa\\b|\\bhb baixa\\b", "Anemia ou hemoglobina baixa");
-        adicionarSeEncontrar(evidencias, texto, "\\bsangramento\\b|\\bhematoquezia\\b|\\bmelena\\b|\\bhemoptise\\b", "Sangramento registrado");
-        adicionarSeEncontrar(evidencias, texto, "\\bnodulo\\b|\\bmassa\\b|\\blesao suspeita\\b|\\bneoplas\\w*|\\btumor\\b|\\bcancer\\b", "Lesão, nódulo ou suspeita oncológica");
-        List<Double> pesos = vitais.stream()
+        adicionarSeEncontrar(evidencias, fontes, texto, "\\bperda de peso\\b|\\bemagrecimento\\b|\\bcaquex\\w*", "Perda ponderal ou caquexia");
+        adicionarSeEncontrar(evidencias, fontes, texto, "\\banemia\\b|\\bhemoglobina baixa\\b|\\bhb baixa\\b", "Anemia ou hemoglobina baixa");
+        adicionarSeEncontrar(evidencias, fontes, texto, "\\bsangramento\\b|\\bhematoquezia\\b|\\bmelena\\b|\\bhemoptise\\b", "Sangramento registrado");
+        adicionarSeEncontrar(evidencias, fontes, texto, "\\bnodulo\\b|\\bmassa\\b|\\blesao suspeita\\b|\\bneoplas\\w*|\\btumor\\b|\\bcancer\\b", "Lesão, nódulo ou suspeita oncológica");
+        List<Vital> comPeso = vitais.stream()
                 .filter(v -> v.peso() != null && v.peso() > 0)
-                .map(Vital::peso)
                 .toList();
+        List<Double> pesos = comPeso.stream().map(Vital::peso).toList();
         if (pesos.size() >= 2) {
             double pesoMaisRecente = pesos.get(0);
             double pesoMaisAntigo = pesos.get(pesos.size() - 1);
             double quedaPercentual = (pesoMaisAntigo - pesoMaisRecente) / pesoMaisAntigo * 100;
             if (quedaPercentual >= 5) {
                 evidencias.add(new Evidencia("Perda de peso ≥5% (medição estruturada)",
-                        String.format(Locale.ROOT, "Queda de %.0f%% entre %d medições", quedaPercentual, pesos.size())));
+                        String.format(Locale.ROOT, "Queda de %.0f%% entre %d medições", quedaPercentual, pesos.size()),
+                        comPeso.stream().map(this::ocorrenciaVital).toList()));
             }
         }
         if (evidencias.size() >= 2) {
@@ -238,15 +250,18 @@ public class PreventivoService {
 
     private void avaliarRiscoCardiovascular(List<Fonte> fontes, List<Vital> vitais, String texto, List<AlertaPreventivo> alertas) {
         List<Evidencia> evidencias = new ArrayList<>();
-        long triagensComPaAlta = fontes.stream().filter(f -> "TRIAGEM".equals(f.tipo()))
-                .filter(f -> Pattern.compile("\\b1[4-9]\\d\\b|\\b[2-9]\\d{2}\\b").matcher(texto(f.texto())).find()).count();
-        if (triagensComPaAlta >= 2) evidencias.add(new Evidencia("Pressão arterial elevada recorrente", triagensComPaAlta + " atendimento(s)"));
-        long medicoesPaAlta = vitais.stream()
+        List<Fonte> triagensComPaAlta = fontes.stream().filter(f -> "TRIAGEM".equals(f.tipo()))
+                .filter(f -> Pattern.compile("\\b1[4-9]\\d\\b|\\b[2-9]\\d{2}\\b").matcher(texto(f.texto())).find()).toList();
+        if (triagensComPaAlta.size() >= 2) evidencias.add(new Evidencia("Pressão arterial elevada recorrente", triagensComPaAlta.size() + " atendimento(s)",
+                triagensComPaAlta.stream().map(f -> ocorrenciaTriagem(f, vitais)).toList()));
+        List<Vital> medicoesPaAlta = vitais.stream()
                 .filter(v -> (v.pasist() != null && v.pasist() >= 140) || (v.padiast() != null && v.padiast() >= 90))
-                .count();
-        if (medicoesPaAlta >= 2) evidencias.add(new Evidencia("PA sistólica/diastólica elevada (medição estruturada)", medicoesPaAlta + " atendimento(s)"));
-        int termos = ocorrencias(texto, "\\bhipertens\\w*|\\bdislipidem\\w*|\\btabag\\w*|\\bdor toracica\\b|\\binsuficiencia cardiaca\\b");
-        if (termos >= 2) evidencias.add(new Evidencia("Fatores cardiovasculares recorrentes", termos + " menção(ões)"));
+                .toList();
+        if (medicoesPaAlta.size() >= 2) evidencias.add(new Evidencia("PA sistólica/diastólica elevada (medição estruturada)", medicoesPaAlta.size() + " atendimento(s)",
+                medicoesPaAlta.stream().map(this::ocorrenciaVital).toList()));
+        String regexTermos = "\\bhipertens\\w*|\\bdislipidem\\w*|\\btabag\\w*|\\bdor toracica\\b|\\binsuficiencia cardiaca\\b";
+        int termos = ocorrencias(texto, regexTermos);
+        if (termos >= 2) evidencias.add(new Evidencia("Fatores cardiovasculares recorrentes", termos + " menção(ões)", ocorrenciasTexto(fontes, regexTermos)));
         if (!evidencias.isEmpty()) {
             alertas.add(alertaPreventivo("CDSS_PREV_CARDIOVASCULAR", "Risco cardiovascular", evidencias.size() >= 2 ? "HIGH" : "MODERATE",
                     "Cardiologia ou clínica médica", "Histórico sugere necessidade de revisão de risco cardiovascular.",
@@ -254,10 +269,11 @@ public class PreventivoService {
         }
     }
 
-    private void avaliarRiscoRenal(String texto, List<AlertaPreventivo> alertas) {
+    private void avaliarRiscoRenal(List<Fonte> fontes, String texto, List<AlertaPreventivo> alertas) {
         List<Evidencia> evidencias = new ArrayList<>();
-        int termos = ocorrencias(texto, "\\bcreatinina (alta|elevada|subindo)\\b|\\btfg baixa\\b|\\begfr baixo\\b|\\bclearance baixo\\b|\\bproteinuria\\b|\\binsuficiencia renal\\b|\\bdrc\\b|\\binjuria renal\\b");
-        if (termos > 0) evidencias.add(new Evidencia("Marcadores renais alterados", termos + " menção(ões)"));
+        String regexTermos = "\\bcreatinina (alta|elevada|subindo)\\b|\\btfg baixa\\b|\\begfr baixo\\b|\\bclearance baixo\\b|\\bproteinuria\\b|\\binsuficiencia renal\\b|\\bdrc\\b|\\binjuria renal\\b";
+        int termos = ocorrencias(texto, regexTermos);
+        if (termos > 0) evidencias.add(new Evidencia("Marcadores renais alterados", termos + " menção(ões)", ocorrenciasTexto(fontes, regexTermos)));
         if (!evidencias.isEmpty()) {
             alertas.add(alertaPreventivo("CDSS_PREV_RENAL", "Risco renal", termos >= 2 ? "HIGH" : "MODERATE",
                     "Nefrologia ou clínica médica", "Há achados compatíveis com risco de piora da função renal.",
@@ -265,18 +281,23 @@ public class PreventivoService {
         }
     }
 
-    private void avaliarRiscoRespiratorio(List<Vital> vitais, String texto, List<AlertaPreventivo> alertas) {
+    private void avaliarRiscoRespiratorio(List<Fonte> fontes, List<Vital> vitais, String texto, List<AlertaPreventivo> alertas) {
         List<Evidencia> evidencias = new ArrayList<>();
-        int sintomas = ocorrencias(texto, "\\bdispneia\\b|\\bfalta de ar\\b|\\bsibil\\w*|\\btosse cronica\\b|\\bbroncoespasmo\\b");
-        int condicoes = ocorrencias(texto, "\\bdpoc\\b|\\benfisema\\b|\\basma\\b|\\btabag\\w*|\\bex-tabag\\w*");
-        int saturacao = ocorrencias(texto, "\\bspo2?\\D{0,15}(?:8\\d|9[0-2])\\b|\\bsaturacao\\D{0,15}(?:8\\d|9[0-2])\\b");
-        long medicoesSpo2Baixo = vitais.stream().filter(v -> v.spo() != null && v.spo() > 0 && v.spo() < 93).count();
-        long medicoesTaquipneia = vitais.stream().filter(v -> v.fr() != null && v.fr() >= 24).count();
-        if (sintomas >= 2) evidencias.add(new Evidencia("Sintomas respiratórios recorrentes", sintomas + " menção(ões)"));
-        if (condicoes > 0) evidencias.add(new Evidencia("Condição ou fator respiratório registrado", condicoes + " menção(ões)"));
-        if (saturacao > 0) evidencias.add(new Evidencia("Saturação baixa registrada", saturacao + " registro(s) textual(is)"));
-        if (medicoesSpo2Baixo > 0) evidencias.add(new Evidencia("Saturação baixa (medição estruturada)", medicoesSpo2Baixo + " atendimento(s)"));
-        if (medicoesTaquipneia >= 2) evidencias.add(new Evidencia("Frequência respiratória elevada recorrente", medicoesTaquipneia + " atendimento(s)"));
+        String regexSintomas = "\\bdispneia\\b|\\bfalta de ar\\b|\\bsibil\\w*|\\btosse cronica\\b|\\bbroncoespasmo\\b";
+        String regexCondicoes = "\\bdpoc\\b|\\benfisema\\b|\\basma\\b|\\btabag\\w*|\\bex-tabag\\w*";
+        String regexSaturacao = "\\bspo2?\\D{0,15}(?:8\\d|9[0-2])\\b|\\bsaturacao\\D{0,15}(?:8\\d|9[0-2])\\b";
+        int sintomas = ocorrencias(texto, regexSintomas);
+        int condicoes = ocorrencias(texto, regexCondicoes);
+        int saturacao = ocorrencias(texto, regexSaturacao);
+        List<Vital> medicoesSpo2Baixo = vitais.stream().filter(v -> v.spo() != null && v.spo() > 0 && v.spo() < 93).toList();
+        List<Vital> medicoesTaquipneia = vitais.stream().filter(v -> v.fr() != null && v.fr() >= 24).toList();
+        if (sintomas >= 2) evidencias.add(new Evidencia("Sintomas respiratórios recorrentes", sintomas + " menção(ões)", ocorrenciasTexto(fontes, regexSintomas)));
+        if (condicoes > 0) evidencias.add(new Evidencia("Condição ou fator respiratório registrado", condicoes + " menção(ões)", ocorrenciasTexto(fontes, regexCondicoes)));
+        if (saturacao > 0) evidencias.add(new Evidencia("Saturação baixa registrada", saturacao + " registro(s) textual(is)", ocorrenciasTexto(fontes, regexSaturacao)));
+        if (!medicoesSpo2Baixo.isEmpty()) evidencias.add(new Evidencia("Saturação baixa (medição estruturada)", medicoesSpo2Baixo.size() + " atendimento(s)",
+                medicoesSpo2Baixo.stream().map(this::ocorrenciaVital).toList()));
+        if (medicoesTaquipneia.size() >= 2) evidencias.add(new Evidencia("Frequência respiratória elevada recorrente", medicoesTaquipneia.size() + " atendimento(s)",
+                medicoesTaquipneia.stream().map(this::ocorrenciaVital).toList()));
         if (evidencias.size() >= 2) {
             alertas.add(alertaPreventivo("CDSS_PREV_RESPIRATORIO", "Risco respiratório crônico", evidencias.size() >= 3 ? "HIGH" : "MODERATE",
                     "Pneumologia ou clínica médica", "Histórico sugere necessidade de revisão preventiva respiratória.",
@@ -284,14 +305,17 @@ public class PreventivoService {
         }
     }
 
-    private void avaliarRiscoFragilidadeQueda(String texto, List<AlertaPreventivo> alertas) {
+    private void avaliarRiscoFragilidadeQueda(List<Fonte> fontes, String texto, List<AlertaPreventivo> alertas) {
         List<Evidencia> evidencias = new ArrayList<>();
-        int quedas = ocorrencias(texto, "\\bqueda\\b|\\bquedas\\b|\\bcaiu\\b|\\btrauma por queda\\b");
-        int fragilidade = ocorrencias(texto, "\\bfragilidade\\b|\\bidoso fragil\\b|\\bdesnutr\\w*|\\bperda funcional\\b|\\bdependencia funcional\\b");
-        int mobilidade = ocorrencias(texto, "\\bdificuldade de marcha\\b|\\bmarcha instavel\\b|\\btontura\\b|\\bsincope\\b|\\brisco de queda\\b");
-        if (quedas > 0) evidencias.add(new Evidencia("Queda registrada", quedas + " menção(ões)"));
-        if (fragilidade > 0) evidencias.add(new Evidencia("Fragilidade ou perda funcional", fragilidade + " menção(ões)"));
-        if (mobilidade > 0) evidencias.add(new Evidencia("Mobilidade ou equilíbrio alterado", mobilidade + " menção(ões)"));
+        String regexQuedas = "\\bqueda\\b|\\bquedas\\b|\\bcaiu\\b|\\btrauma por queda\\b";
+        String regexFragilidade = "\\bfragilidade\\b|\\bidoso fragil\\b|\\bdesnutr\\w*|\\bperda funcional\\b|\\bdependencia funcional\\b";
+        String regexMobilidade = "\\bdificuldade de marcha\\b|\\bmarcha instavel\\b|\\btontura\\b|\\bsincope\\b|\\brisco de queda\\b";
+        int quedas = ocorrencias(texto, regexQuedas);
+        int fragilidade = ocorrencias(texto, regexFragilidade);
+        int mobilidade = ocorrencias(texto, regexMobilidade);
+        if (quedas > 0) evidencias.add(new Evidencia("Queda registrada", quedas + " menção(ões)", ocorrenciasTexto(fontes, regexQuedas)));
+        if (fragilidade > 0) evidencias.add(new Evidencia("Fragilidade ou perda funcional", fragilidade + " menção(ões)", ocorrenciasTexto(fontes, regexFragilidade)));
+        if (mobilidade > 0) evidencias.add(new Evidencia("Mobilidade ou equilíbrio alterado", mobilidade + " menção(ões)", ocorrenciasTexto(fontes, regexMobilidade)));
         if (evidencias.size() >= 2 || quedas >= 2) {
             alertas.add(alertaPreventivo("CDSS_PREV_FRAGILIDADE_QUEDA", "Risco de fragilidade/queda", evidencias.size() >= 3 || quedas >= 2 ? "HIGH" : "MODERATE",
                     "Geriatria, fisioterapia ou clínica médica", "Histórico sugere risco prevenível de queda, perda funcional ou fragilidade.",
@@ -299,18 +323,20 @@ public class PreventivoService {
         }
     }
 
-    private void avaliarRiscoInfeccioso(List<Vital> vitais, String texto, List<AlertaPreventivo> alertas) {
+    private void avaliarRiscoInfeccioso(List<Fonte> fontes, List<Vital> vitais, String texto, List<AlertaPreventivo> alertas) {
         List<Evidencia> evidencias = new ArrayList<>();
-        int termos = ocorrencias(texto, "\\bfebre\\b|\\bcalafrio\\w*|\\bsepse\\b|\\bsept\\w*|\\bfoco infeccioso\\b|\\binfecca\\w*|\\binfeccios\\w*");
-        if (termos >= 2) evidencias.add(new Evidencia("Sinais infecciosos recorrentes", termos + " menção(ões)"));
+        String regexTermos = "\\bfebre\\b|\\bcalafrio\\w*|\\bsepse\\b|\\bsept\\w*|\\bfoco infeccioso\\b|\\binfecca\\w*|\\binfeccios\\w*";
+        int termos = ocorrencias(texto, regexTermos);
+        if (termos >= 2) evidencias.add(new Evidencia("Sinais infecciosos recorrentes", termos + " menção(ões)", ocorrenciasTexto(fontes, regexTermos)));
 
-        long encontrosComCriteriosSirs = vitais.stream().filter(this::atendeCriteriosSirs).count();
+        List<Vital> encontrosComCriteriosSirs = vitais.stream().filter(this::atendeCriteriosSirs).toList();
         boolean maisRecenteComSirs = !vitais.isEmpty() && atendeCriteriosSirs(vitais.get(0));
         if (maisRecenteComSirs) {
             evidencias.add(new Evidencia("Critérios SIRS no atendimento mais recente (medição estruturada)",
-                    "Febre/hipotermia, taquicardia ou taquipneia combinadas"));
-        } else if (encontrosComCriteriosSirs >= 2) {
-            evidencias.add(new Evidencia("Critérios SIRS recorrentes (medição estruturada)", encontrosComCriteriosSirs + " atendimento(s)"));
+                    "Febre/hipotermia, taquicardia ou taquipneia combinadas", List.of(ocorrenciaVital(vitais.get(0)))));
+        } else if (encontrosComCriteriosSirs.size() >= 2) {
+            evidencias.add(new Evidencia("Critérios SIRS recorrentes (medição estruturada)", encontrosComCriteriosSirs.size() + " atendimento(s)",
+                    encontrosComCriteriosSirs.stream().map(this::ocorrenciaVital).toList()));
         }
 
         if (!evidencias.isEmpty()) {
@@ -338,9 +364,58 @@ public class PreventivoService {
         return new AlertaPreventivo(codigo, condicao, severidade, especialista, mensagem, recomendacao, List.copyOf(evidencias), false);
     }
 
-    private void adicionarSeEncontrar(List<Evidencia> evidencias, String texto, String regex, String label) {
+    private void adicionarSeEncontrar(List<Evidencia> evidencias, List<Fonte> fontes, String texto, String regex, String label) {
         int total = ocorrencias(texto, regex);
-        if (total > 0) evidencias.add(new Evidencia(label, total + " menção(ões)"));
+        if (total > 0) evidencias.add(new Evidencia(label, total + " menção(ões)", ocorrenciasTexto(fontes, regex)));
+    }
+
+    // Documentos em que a mesma regra encontrou o termo, com o trecho ao redor da primeira ocorrencia.
+    private List<Ocorrencia> ocorrenciasTexto(List<Fonte> fontes, String regex) {
+        Pattern pattern = Pattern.compile(regex);
+        List<Ocorrencia> resultado = new ArrayList<>();
+        for (Fonte fonte : fontes) {
+            String limpo = texto(fonte.texto()).replaceAll("<[^>]*>", " ").replace("&nbsp;", " ").replaceAll("\\s+", " ").trim();
+            String normalizado = normalizar(limpo);
+            var matcher = pattern.matcher(normalizado);
+            if (!matcher.find()) continue;
+            String base = normalizado.length() == limpo.length() ? limpo : normalizado;
+            int inicio = Math.max(0, matcher.start() - 120);
+            int fim = Math.min(base.length(), matcher.end() + 180);
+            String trecho = (inicio > 0 ? "..." : "") + base.substring(inicio, fim) + (fim < base.length() ? "..." : "");
+            resultado.add(new Ocorrencia(fonte.tipo(), fonte.id(), fonte.bam(), fonte.data(), fonte.unidadeOrigem(), fonte.profissional(), trecho));
+        }
+        return resultado;
+    }
+
+    private Ocorrencia ocorrenciaVital(Vital vital) {
+        return new Ocorrencia("SINAIS_VITAIS", vital.idbam(), vital.idbam(), vital.data(), vital.unidadeOrigem(), null, resumoVital(vital));
+    }
+
+    private Ocorrencia ocorrenciaTriagem(Fonte fonte, List<Vital> vitais) {
+        String resumo = vitais.stream().filter(v -> texto(v.idbam()).equals(texto(fonte.bam()))).findFirst()
+                .map(this::resumoVital).orElse(texto(fonte.texto()).replaceAll("\\s+", " ").trim());
+        return new Ocorrencia(fonte.tipo(), fonte.id(), fonte.bam(), fonte.data(), fonte.unidadeOrigem(), fonte.profissional(), resumo);
+    }
+
+    private String resumoVital(Vital v) {
+        List<String> partes = new ArrayList<>();
+        if (positivo(v.pasist()) || positivo(v.padiast()))
+            partes.add("PA " + numeroVital(v.pasist()) + "/" + numeroVital(v.padiast()) + " mmHg");
+        if (positivo(v.fc())) partes.add("FC " + numeroVital(v.fc()) + " bpm");
+        if (positivo(v.fr())) partes.add("FR " + numeroVital(v.fr()) + " irpm");
+        if (positivo(v.spo())) partes.add("SpO2 " + numeroVital(v.spo()) + "%");
+        if (positivo(v.tax())) partes.add("Temp. " + numeroVital(v.tax()) + " °C");
+        if (positivo(v.peso())) partes.add("Peso " + numeroVital(v.peso()) + " kg");
+        return partes.isEmpty() ? "Sem sinais vitais registrados" : String.join(" · ", partes);
+    }
+
+    private static boolean positivo(Double valor) {
+        return valor != null && valor > 0;
+    }
+
+    private static String numeroVital(Double valor) {
+        if (!positivo(valor)) return "-";
+        return valor % 1 == 0 ? String.valueOf(valor.longValue()) : String.format(Locale.forLanguageTag("pt-BR"), "%.1f", valor);
     }
 
     private int ocorrencias(String texto, String regex) {

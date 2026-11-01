@@ -535,6 +535,19 @@ public class JornadaPaService implements Serializable {
             String risco,
             String status,
             int limite) {
+        return montarFilaPendenciasRapida(inicio, fim, unidade, risco, status, limite, null);
+    }
+
+    // Com "busca" (BAM, prontuario ou nome) o periodo e ignorado: procura em todo o
+    // historico da unidade, para achar o atendimento antigo de um paciente.
+    public Map<String, Object> montarFilaPendenciasRapida(
+            LocalDate inicio,
+            LocalDate fim,
+            String unidade,
+            String risco,
+            String status,
+            int limite,
+            String busca) {
         LocalDate dataInicio = inicio == null ? LocalDate.now() : inicio;
         LocalDate dataFim = fim == null ? dataInicio : fim;
         if (dataFim.isBefore(dataInicio)) {
@@ -546,8 +559,24 @@ public class JornadaPaService implements Serializable {
         String filtroStatus = status == null || status.isBlank() ? "PENDENTE" : status.trim().toUpperCase();
         String filtroRisco = risco == null || risco.isBlank() ? "TODOS" : risco.trim();
         boolean filtrarRisco = !"TODOS".equalsIgnoreCase(filtroRisco);
+        String termoBusca = busca == null ? "" : busca.trim();
 
-        List<Bam> bams = listarBamsLimitados(dataInicio, dataFim, unidade, limite);
+        List<Bam> bams = termoBusca.isEmpty()
+                ? listarBamsLimitados(dataInicio, dataFim, unidade, limite)
+                : listarBamsPorBusca(termoBusca, unidade, limite);
+        return montarFilaRapidaDeBams(bams, dataInicio, dataFim, unidade, filtroRisco, filtroStatus, limite, termoBusca);
+    }
+
+    private Map<String, Object> montarFilaRapidaDeBams(
+            List<Bam> bams,
+            LocalDate dataInicio,
+            LocalDate dataFim,
+            String unidade,
+            String filtroRisco,
+            String filtroStatus,
+            int limite,
+            String termoBusca) {
+        boolean filtrarRisco = !"TODOS".equalsIgnoreCase(filtroRisco);
         List<Integer> bamIds = bams.stream().map(Bam::getIdbam).toList();
         Map<Integer, List<Map<String, Object>>> eventosPorBam = listarEventosEmLote(bamIds);
         Map<Integer, Long> faturamentoPorBam = contarFaturamentoPorBam(bamIds);
@@ -611,9 +640,11 @@ public class JornadaPaService implements Serializable {
         filtros.put("status", filtroStatus);
         filtros.put("limite", normalizarLimite(limite));
         filtros.put("modo", "RAPIDO");
+        filtros.put("busca", termoBusca);
 
         Map<String, Object> resumo = new LinkedHashMap<>();
         resumo.put("total", itens.size());
+        resumo.put("analisados", conformes + pendentes + atencao);
         resumo.put("conformes", conformes);
         resumo.put("pendentes", pendentes);
         resumo.put("atencao", atencao);
@@ -669,13 +700,18 @@ public class JornadaPaService implements Serializable {
         }
 
         long inicioEtapa = System.nanoTime();
-        Map<String, Object> pendencias = montarFilaPendenciasRapida(
+        // Analisa o periodo inteiro (consulta leve). Antes eram so os 30 BAMs mais
+        // recentes, e por isso Hoje, 7 ou 30 dias davam o mesmo resultado.
+        Map<String, Object> pendencias = montarFilaRapidaDeBams(
+                listarBamsExecutivo(dataInicio, dataFim, unidadeNormalizada),
                 dataInicio,
                 dataFim,
                 unidadeNormalizada,
                 "TODOS",
                 "PENDENTE",
-                limitePendenciasNormalizado);
+                limitePendenciasNormalizado,
+                "");
+        desempenho.put("bamsAnalisados", numero(((Map<?, ?>) pendencias.getOrDefault("resumo", Map.of())).get("analisados")));
         desempenho.put("pendenciasMs", msDesde(inicioEtapa));
 
         inicioEtapa = System.nanoTime();
@@ -887,7 +923,9 @@ public class JornadaPaService implements Serializable {
     private String categoriaDaPendencia(String pendencia) {
         String value = pendencia == null ? "" : pendencia.toUpperCase();
         if (value.contains("ASSINATURA") || value.contains("DOCUMENTO")) return "Assinatura";
-        if (value.contains("MEDICACAO") || value.contains("CHECAGEM") || value.contains("RECEBIMENTO")) return "Medicacao";
+        // Prescricao parada e do fluxo de medicacao (medico/enfermagem), nao "Operacional".
+        if (value.contains("MEDICACAO") || value.contains("CHECAGEM") || value.contains("RECEBIMENTO")
+                || value.contains("PRESCRICAO")) return "Medicacao";
         if (value.contains("FARMACIA") || value.contains("DISPENSACAO")) return "Farmacia";
         if (value.contains("FATURAMENTO") || value.contains("PROCEDIMENTO")) return "Faturamento";
         if (value.contains("PEDIDO") || value.contains("EXAME")) return "Pedidos";
@@ -1157,6 +1195,184 @@ public class JornadaPaService implements Serializable {
                 .setMaxResults(normalizarLimite(limite));
         if (unidade != null && !unidade.isBlank() && !"TODAS".equalsIgnoreCase(unidade)) query.setParameter("unidade", unidade);
         return query.getResultList();
+    }
+
+    // Busca por nome ignora acento dos dois lados: translate() no banco (sem depender da
+    // extensao unaccent) e Normalizer no termo digitado.
+    private static final String ACENTOS_BUSCA = "ÁÀÂÃÄÉÈÊËÍÌÎÏÓÒÔÕÖÚÙÛÜÇÑ";
+    private static final String SEM_ACENTOS_BUSCA = "AAAAAEEEEIIIIOOOOOUUUUCN";
+
+    private static String termoSemAcento(String termo) {
+        return java.text.Normalizer.normalize(termo.toUpperCase(), java.text.Normalizer.Form.NFD)
+                .replaceAll("\\p{M}", "");
+    }
+
+    // So numeros: BAM ou prontuario exato. Com "-" (ano-id): prontuario. Texto: parte do nome.
+    private List<Bam> listarBamsPorBusca(String busca, String unidade, int limite) {
+        String termo = busca.trim();
+        boolean somenteNumeros = termo.matches("\\d{1,9}");
+        boolean formatoProntuario = termo.matches("[\\d\\s./-]+");
+        boolean filtrarUnidade = unidade != null && !unidade.isBlank() && !"TODAS".equalsIgnoreCase(unidade);
+
+        StringBuilder jpql = new StringBuilder("select b from Bam b where ");
+        if (somenteNumeros) {
+            jpql.append("(b.idbam = :idbam or b.paciente.prontuario = :prontuario)");
+        } else if (formatoProntuario) {
+            jpql.append("b.paciente.prontuario = :prontuario");
+        } else {
+            if (termo.length() < 3) return List.of();
+            jpql.append("function('translate', upper(b.paciente.nome), :acentos, :semAcentos) like :nome");
+        }
+        if (filtrarUnidade) jpql.append(" and upper(b.unidade) = upper(:unidade)");
+        jpql.append(" order by b.data desc, b.hora desc, b.idbam desc");
+
+        Query query = entityManager.createQuery(jpql.toString(), Bam.class)
+                .setMaxResults(normalizarLimite(limite));
+        if (somenteNumeros) {
+            query.setParameter("idbam", Integer.parseInt(termo));
+            query.setParameter("prontuario", termo);
+        } else if (formatoProntuario) {
+            query.setParameter("prontuario", termo.replaceAll("\\s", ""));
+        } else {
+            query.setParameter("nome", "%" + termoSemAcento(termo).replaceAll("\\s+", "%") + "%");
+            query.setParameter("acentos", ACENTOS_BUSCA);
+            query.setParameter("semAcentos", SEM_ACENTOS_BUSCA);
+        }
+        if (filtrarUnidade) query.setParameter("unidade", unidade);
+        return query.getResultList();
+    }
+
+    // Nome: comeca com o termo (palavras seguintes em qualquer ponto). Numeros: BAM ou prontuario.
+    public List<Map<String, Object>> sugestoesBuscaConformidade(String busca, String unidade) {
+        String termo = busca == null ? "" : busca.trim();
+        boolean somenteNumeros = termo.matches("\\d{1,9}");
+        boolean formatoProntuario = termo.matches("[\\d\\s./-]+");
+        if (termo.isEmpty() || (!formatoProntuario && termo.length() < 3)) return List.of();
+        boolean filtrarUnidade = unidade != null && !unidade.isBlank() && !"TODAS".equalsIgnoreCase(unidade);
+
+        StringBuilder sql = new StringBuilder("""
+                SELECT b.idbam, b.data, b.hora, p.nome, p.prontuario
+                FROM bam b
+                JOIN pacientes p ON p.idpaciente = b.paciente_idpaciente
+                WHERE """);
+        if (somenteNumeros) sql.append(" (b.idbam = :idbam OR p.prontuario = :prontuario)");
+        else if (formatoProntuario) sql.append(" p.prontuario = :prontuario");
+        else sql.append(" translate(upper(p.nome), :acentos, :semAcentos) LIKE :nome");
+        if (filtrarUnidade) sql.append(" AND upper(b.unidade) = upper(:unidade)");
+        sql.append(" ORDER BY b.data DESC, b.hora DESC, b.idbam DESC");
+
+        Query query = entityManager.createNativeQuery(sql.toString()).setMaxResults(15);
+        if (somenteNumeros) {
+            query.setParameter("idbam", Integer.parseInt(termo));
+            query.setParameter("prontuario", termo);
+        } else if (formatoProntuario) {
+            query.setParameter("prontuario", termo.replaceAll("\\s", ""));
+        } else {
+            query.setParameter("nome", termoSemAcento(termo).replaceAll("\\s+", "%") + "%");
+            query.setParameter("acentos", ACENTOS_BUSCA);
+            query.setParameter("semAcentos", SEM_ACENTOS_BUSCA);
+        }
+        if (filtrarUnidade) query.setParameter("unidade", unidade.split(":")[0].trim());
+
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (Object row : query.getResultList()) {
+            Object[] cols = (Object[]) row;
+            Map<String, Object> item = new LinkedHashMap<>();
+            item.put("idbam", (int) numero(cols[0]));
+            item.put("data", toLocalDate(cols[1]));
+            item.put("hora", cols[2] == null ? "" : String.valueOf(cols[2]));
+            item.put("paciente", cols[3] == null ? "" : String.valueOf(cols[3]));
+            item.put("prontuario", cols[4] == null ? "" : String.valueOf(cols[4]));
+            result.add(item);
+        }
+        return result;
+    }
+
+    // So identifica o paciente do BAM (historico completo abre por BAM em qualquer unidade),
+    // sem montar a analise de conformidade.
+    public Map<String, Object> pacienteDoBam(int idbam) {
+        List<?> linhas = entityManager.createNativeQuery("""
+                SELECT p.idpaciente, p.nome
+                FROM bam b
+                JOIN pacientes p ON p.idpaciente = b.paciente_idpaciente
+                WHERE b.idbam = :idbam""")
+                .setParameter("idbam", idbam)
+                .setMaxResults(1)
+                .getResultList();
+        Map<String, Object> resposta = new LinkedHashMap<>();
+        resposta.put("idbam", idbam);
+        if (linhas.isEmpty()) {
+            resposta.put("encontrado", false);
+            return resposta;
+        }
+        Object[] cols = (Object[]) linhas.get(0);
+        Map<String, Object> paciente = new LinkedHashMap<>();
+        paciente.put("idpaciente", cols[0] == null ? null : (int) numero(cols[0]));
+        paciente.put("nome", cols[1] == null ? "" : String.valueOf(cols[1]));
+        resposta.put("encontrado", true);
+        resposta.put("paciente", paciente);
+        return resposta;
+    }
+
+    // Detalhe da conformidade so para BAM da unidade da sessao. Sessao sem unidade (ou TODAS)
+    // e BAM legado sem unidade gravada continuam liberados, como nas listas.
+    public boolean bamPertenceUnidade(int idbam, String unidade) {
+        String unidadeSessao = unidade == null ? "" : unidade.split(":")[0].trim();
+        if (unidadeSessao.isEmpty() || "TODAS".equalsIgnoreCase(unidadeSessao)) return true;
+        List<?> linhas = entityManager.createNativeQuery("SELECT unidade FROM bam WHERE idbam = :idbam")
+                .setParameter("idbam", idbam)
+                .getResultList();
+        if (linhas.isEmpty() || linhas.get(0) == null) return true;
+        String unidadeBam = String.valueOf(linhas.get(0)).split(":")[0].trim();
+        return unidadeBam.isEmpty() || unidadeBam.equalsIgnoreCase(unidadeSessao);
+    }
+
+    private static final int MAX_BAMS_EXECUTIVO = 2000;
+
+    // Como listarBamsBi, com o que a analise rapida precisa (tratamento e idpaciente).
+    // Bam transitorio, nunca persistido.
+    private List<Bam> listarBamsExecutivo(LocalDate inicio, LocalDate fim, String unidade) {
+        boolean filtrarUnidade = unidade != null && !unidade.isBlank() && !"TODAS".equalsIgnoreCase(unidade);
+        StringBuilder sql = new StringBuilder("""
+                SELECT b.idbam, b.data, b.hora, b.unidade, b.cor, b.internar, a.risco, p.nome,
+                       p.idpaciente, b.tratamento_idtratamento
+                FROM bam b
+                LEFT JOIN avaliacao a ON a.idavaliacao = b.avaliacao_idavaliacao
+                LEFT JOIN pacientes p ON p.idpaciente = b.paciente_idpaciente
+                WHERE b.data BETWEEN :inicio AND :fim
+                """);
+        if (filtrarUnidade) sql.append(" AND upper(b.unidade) = upper(:unidade)");
+        sql.append(" ORDER BY b.data DESC, b.hora DESC, b.idbam DESC");
+
+        Query query = entityManager.createNativeQuery(sql.toString())
+                .setParameter("inicio", java.sql.Date.valueOf(inicio))
+                .setParameter("fim", java.sql.Date.valueOf(fim))
+                .setMaxResults(MAX_BAMS_EXECUTIVO);
+        if (filtrarUnidade) query.setParameter("unidade", unidade);
+
+        List<Bam> result = new ArrayList<>();
+        for (Object row : query.getResultList()) {
+            Object[] cols = (Object[]) row;
+            Bam bam = new Bam();
+            bam.setIdbam((int) numero(cols[0]));
+            LocalDate data = toLocalDate(cols[1]);
+            bam.setData(data == null ? null : java.sql.Date.valueOf(data));
+            bam.setHora(cols[2] == null ? null : String.valueOf(cols[2]));
+            bam.setUnidade(cols[3] == null ? null : String.valueOf(cols[3]));
+            bam.setCor((int) numero(cols[4]));
+            bam.setInternar(Boolean.TRUE.equals(cols[5]));
+            Avaliacao avaliacao = new Avaliacao();
+            avaliacao.setRisco(cols[6] == null ? null : String.valueOf(cols[6]));
+            bam.setAvaliacao(avaliacao);
+            Pacientes paciente = new Pacientes();
+            paciente.setNome(cols[7] == null ? "" : String.valueOf(cols[7]));
+            if (cols[8] != null) paciente.setIdpaciente((int) numero(cols[8]));
+            bam.setPaciente(paciente);
+            // A regra de faturamento olha so se ha tratamento; o construtor cria um vazio.
+            if (cols[9] == null) bam.setTratamento(null);
+            result.add(bam);
+        }
+        return result;
     }
 
     private static final int MAX_BAMS_BI = 5000;
@@ -2153,9 +2369,9 @@ public class JornadaPaService implements Serializable {
         agrupar("SELECT idprescricao, data, hora, medicoq, localsolicitante, prescricao, medicacao, feito, inativo, bam FROM prescricao WHERE bam IN (:bamIds) ORDER BY data DESC, hora DESC",
                 bamIds, agrupado, "PRESCRICAO", "Prescricao/medicamentos",
                 "idprescricao", "data", "hora", "medicoq", "localsolicitante", "prescricao", "medicacao", "feito", "inativo");
-        agrupar("SELECT idpedidomedico, dt, hr, medico, local, pedido, obs, efetuado, coletar, confirmado, internado, emergencia, liberoucoleta, bam FROM pedidomedico2 WHERE bam IN (:bamIds) ORDER BY dt DESC, hr DESC",
+        agrupar("SELECT idpedidomedico, dt, hr, medico, local, pedido, obs, crm AS crm_solicitante, obs2 AS resposta_execucao, executado_por, to_char(executado_em, 'DD/MM/YYYY HH24:MI') AS executado_em, liberouexame, efetuado, coletar, confirmado, internado, emergencia, liberoucoleta, bam FROM pedidomedico2 WHERE bam IN (:bamIds) ORDER BY dt DESC, hr DESC",
                 bamIds, agrupado, "PEDIDO", "Pedido de exame/medicacao",
-                "idpedidomedico", "dt", "hr", "medico", "local", "pedido", "obs", "efetuado", "coletar", "confirmado", "internado", "emergencia", "liberoucoleta");
+                "idpedidomedico", "dt", "hr", "medico", "local", "pedido", "obs", "crm_solicitante", "resposta_execucao", "executado_por", "executado_em", "liberouexame", "efetuado", "coletar", "confirmado", "internado", "emergencia", "liberoucoleta");
         agrupar("SELECT idpedidoresultado, dt, hr, medico, local, descricao, grupopedidos, arquivo, bam FROM pedidoresultadolaboratorio WHERE bam IN (:bamIds) ORDER BY dt DESC, hr DESC",
                 bamIds, agrupado, "RESULTADO_LAB", "Resultado de laboratorio",
                 "idpedidoresultado", "dt", "hr", "medico", "local", "descricao", "grupopedidos", "arquivo");
@@ -2232,8 +2448,8 @@ public class JornadaPaService implements Serializable {
     }
 
     private List<Map<String, Object>> listarPedidos(int bam) {
-        String sql = "SELECT idpedidomedico, dt, hr, medico, local, pedido, obs, efetuado, coletar, confirmado, internado, emergencia, liberoucoleta FROM pedidomedico2 WHERE bam = :bam ORDER BY dt DESC, hr DESC";
-        return eventos(sql, bam, "PEDIDO", "Pedido de exame/medicacao", "idpedidomedico", "dt", "hr", "medico", "local", "pedido", "obs", "efetuado", "coletar", "confirmado", "internado", "emergencia", "liberoucoleta");
+        String sql = "SELECT idpedidomedico, dt, hr, medico, local, pedido, obs, crm AS crm_solicitante, obs2 AS resposta_execucao, executado_por, to_char(executado_em, 'DD/MM/YYYY HH24:MI') AS executado_em, liberouexame, efetuado, coletar, confirmado, internado, emergencia, liberoucoleta FROM pedidomedico2 WHERE bam = :bam ORDER BY dt DESC, hr DESC";
+        return eventos(sql, bam, "PEDIDO", "Pedido de exame/medicacao", "idpedidomedico", "dt", "hr", "medico", "local", "pedido", "obs", "crm_solicitante", "resposta_execucao", "executado_por", "executado_em", "liberouexame", "efetuado", "coletar", "confirmado", "internado", "emergencia", "liberoucoleta");
     }
 
     private List<Map<String, Object>> listarResultadosLaboratorio(int bam) {
@@ -2381,6 +2597,11 @@ public class JornadaPaService implements Serializable {
             case "medicacao" -> "Medicacao";
             case "pedido" -> "Pedido";
             case "obs" -> "Observacao";
+            case "crm_solicitante" -> "CRM do solicitante";
+            case "resposta_execucao" -> "Resposta de quem realizou";
+            case "executado_por" -> "Realizado por";
+            case "executado_em" -> "Realizado em";
+            case "liberouexame" -> "Liberou exame";
             case "efetuado" -> "Efetuado";
             case "coletar" -> "Coletar";
             case "confirmado" -> "Confirmado";

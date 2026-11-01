@@ -493,6 +493,7 @@ public class AcessoIa {
     }
 
     private String extrairResposta(String jsonResponse) {
+        JsonNode content = null;
         try {
             JsonNode root = objectMapper.readTree(jsonResponse);
             JsonNode choices = root.get("choices");
@@ -500,12 +501,18 @@ public class AcessoIa {
                 JsonNode first = choices.get(0);
                 JsonNode message = first.get("message");
                 if (message != null && message.has("content")) {
-                    return message.get("content").asText();
+                    content = message.get("content");
                 }
             }
         } catch (Exception e) {
             return "Erro ao processar resposta da API: " + e.getMessage();
         }
-        return "Resposta nao encontrada na resposta da API";
+        if (content == null) return "Resposta nao encontrada na resposta da API";
+        // "content": null (resposta cortada/vazia) virava o texto "null" e era tratado como sucesso;
+        // falhar aqui deixa o fallback tentar o proximo provedor.
+        if (content.isNull() || content.asText().isBlank()) {
+            throw new IllegalStateException("Provedor de IA retornou resposta vazia");
+        }
+        return content.asText();
     }
 }

@@ -119,6 +119,10 @@ public class Servidor2 extends PanacheEntityBase implements Serializable {
 	@Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
 	private Boolean pcme;
 	@Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+	private Boolean palmoxarifado;
+	@Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+	private Boolean palmoxpedir;
+	@Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
 	private Boolean phemoterapia;
 	@Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
 	private Boolean psnd;
@@ -271,7 +275,7 @@ public class Servidor2 extends PanacheEntityBase implements Serializable {
 	private Boolean consultoriomedico;
 	@Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
 	private Boolean consultoriofinanceiro;
-	@Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+	@Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT TRUE")
 	private Boolean chatprofissionais;
 
 	// Define as permissões Monitoramento e RH
@@ -401,6 +405,8 @@ public class Servidor2 extends PanacheEntityBase implements Serializable {
 		pcirurgialistaespera = false;
 		papoioassistencial = false;
 		pcme = false;
+		palmoxarifado = false;
+		palmoxpedir = false;
 		phemoterapia = false;
 		psnd = false;
 		prnds = false;
@@ -474,7 +480,7 @@ public class Servidor2 extends PanacheEntityBase implements Serializable {
 		consultoriorecepcao = false;
 		consultoriomedico = false;
 		consultoriofinanceiro = false;
-		chatprofissionais = false;
+		chatprofissionais = true; // chat liberado por padrão (V221)
 
 		// Define as permissões Monitoramento e RH
 		monitoramento = false;

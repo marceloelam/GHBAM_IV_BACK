@@ -229,6 +229,18 @@ public class OcorrenciaSistemaService implements Serializable {
 
         String descricao = texto(dto == null ? null : dto.get("descricao"));
         String path = texto(dto == null ? null : dto.get("path"));
+        if ("frontend".equalsIgnoreCase(texto(dto == null ? null : dto.get("modulo")))) {
+            // Erro de JavaScript e do codigo, nao da tela: o mesmo erro em varias rotas vira uma ocorrencia so.
+            return OcorrenciaSistema.<OcorrenciaSistema>find(
+                    "upper(unidade) = upper(?1) and lower(tipo) = ?2 and lower(titulo) = lower(?3) "
+                            + "and lower(descricao) = lower(?4) and lower(modulo) = 'frontend' "
+                            + "and status <> 'resolvida' and lower(origem) = 'automatica' order by criadoEm desc",
+                    unidade,
+                    tipo,
+                    titulo,
+                    descricao)
+                    .firstResultOptional();
+        }
         return OcorrenciaSistema.<OcorrenciaSistema>find(
                 "upper(unidade) = upper(?1) and lower(tipo) = ?2 and lower(titulo) = lower(?3) "
                         + "and lower(descricao) = lower(?4) and lower(path) = lower(?5) "

@@ -58,8 +58,13 @@ public class RhService {
     @Transactional
     public void encerrarPlantao(int id) {
         Plantao p = em.find(Plantao.class, id);
-        if (p != null && p.getDataFim() == null) {
-            p.setDataFim(java.time.LocalDateTime.now());
+        if (p == null) return;
+        var agora = java.time.LocalDateTime.now();
+        // Plantão agendado nasce com data_fim futura; encerrar antecipa o fim para agora.
+        if (p.getDataInicio() != null && p.getDataInicio().isAfter(agora))
+            throw new IllegalStateException("Plantão ainda não começou; use Editar ou Excluir");
+        if (p.getDataFim() == null || p.getDataFim().isAfter(agora)) {
+            p.setDataFim(agora);
             em.merge(p);
         }
     }
@@ -108,6 +113,20 @@ public class RhService {
     public void excluirPlantao(int id) {
         Plantao p = em.find(Plantao.class, id);
         if (p != null) em.remove(p);
+    }
+
+    // Exclui a escala do servidor a partir deste plantão (inclusive); o histórico anterior é preservado.
+    @Transactional
+    public int excluirEscala(int id) {
+        Plantao p = em.find(Plantao.class, id);
+        if (p == null || p.getServidor() == null || p.getDataInicio() == null) return 0;
+        return em.createNativeQuery(
+                "DELETE FROM plantao WHERE servidor_idservidor = :servidor AND unidade = :unidade "
+                + "AND data_inicio >= :inicio")
+            .setParameter("servidor", p.getServidor().getIdservidor())
+            .setParameter("unidade", p.getUnidade())
+            .setParameter("inicio", p.getDataInicio())
+            .executeUpdate();
     }
 
     public List<RhDto.ServidorSimples> listarServidoresPorTipo(String unidade, String tipo) {
@@ -165,8 +184,8 @@ public class RhService {
             @SuppressWarnings("unchecked")
             List<Object[]> rows = q.getResultList();
             for (Object[] r : rows) {
-                var ini = r[5] != null ? ((java.sql.Timestamp) r[5]).toLocalDateTime() : null;
-                var fim2 = r[6] != null ? ((java.sql.Timestamp) r[6]).toLocalDateTime() : null;
+                var ini = dataHora(r[5]);
+                var fim2 = dataHora(r[6]);
                 String duracao = calcularDuracao(ini, fim2);
                 lista.add(new RhDto.PlantaoResponse(
                     ((Number) r[0]).intValue(),
@@ -175,10 +194,21 @@ public class RhService {
                     ini != null ? ini.format(DT_FMT) : "",
                     fim2 != null ? fim2.format(DT_FMT) : "",
                     txt(r[7]), txt(r[8]), txt(r[9]),
-                    duracao, fim2 == null || fim2.isAfter(java.time.LocalDateTime.now())));
+                    duracao, (ini == null || !ini.isAfter(java.time.LocalDateTime.now()))
+                        && (fim2 == null || fim2.isAfter(java.time.LocalDateTime.now()))));
             }
-        } catch (Exception ignored) {}
+        } catch (Exception e) {
+            org.jboss.logging.Logger.getLogger(RhService.class).warn("[RH] Falha ao listar plantões da unidade " + unidade, e);
+        }
         return lista;
+    }
+
+    // Hibernate 6+ devolve LocalDateTime em query nativa; versões antigas devolviam Timestamp.
+    private static java.time.LocalDateTime dataHora(Object v) {
+        if (v instanceof java.time.LocalDateTime l) return l;
+        if (v instanceof java.sql.Timestamp t) return t.toLocalDateTime();
+        if (v instanceof java.time.OffsetDateTime o) return o.toLocalDateTime();
+        return null;
     }
 
     // ===== PRODUTIVIDADE =====

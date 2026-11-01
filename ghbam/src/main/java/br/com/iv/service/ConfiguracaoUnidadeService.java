@@ -66,9 +66,23 @@ public class ConfiguracaoUnidadeService implements Serializable {
 		return configuracaoUnidadeOp;
 	}
 
+	// O codIbge define a que municipio a unidade pertence (faturamento SUS e separacao
+	// dos dados por municipio); sem ele a unidade cairia no municipio de outra.
+	static void validarMunicipioECnes(ConfiguracaoUnidadeDto dto) {
+		int ibge = dto == null ? 0 : dto.getCodIbge();
+		if (ibge < 100000 || ibge > 9999999) {
+			throw new jakarta.ws.rs.BadRequestException("Informe o codigo IBGE do municipio da unidade (6 ou 7 digitos).");
+		}
+		String cnes = dto.getCnesDoHospital() == null ? "" : dto.getCnesDoHospital().trim();
+		if (!cnes.matches("\\d{7}")) {
+			throw new jakarta.ws.rs.BadRequestException("Informe o CNES da unidade (7 digitos).");
+		}
+	}
+
 	// Salvar os setores
 	@Transactional
 	public ConfiguracaoUnidade salvarUnidadeHospitalar(ConfiguracaoUnidadeDto dto) {
+		validarMunicipioECnes(dto);
 
 		ConfiguracaoUnidade configuracaoUnidade = new ConfiguracaoUnidade();
 		configuracaoUnidade.setPrefeitura(dto.getPrefeitura());
@@ -123,6 +137,7 @@ public class ConfiguracaoUnidadeService implements Serializable {
 		if (configuracaoUnidadeOp.isEmpty()) {
 			throw new EntityNotFoundException("Unidade hospitalar não foi encontrada...");
 		}
+		validarMunicipioECnes(dto);
 
 		ConfiguracaoUnidade configuracaoUnidade = configuracaoUnidadeOp.get();
 		configuracaoUnidade.setPrefeitura(dto.getPrefeitura());

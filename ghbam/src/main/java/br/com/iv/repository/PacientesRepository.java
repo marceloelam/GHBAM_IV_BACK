@@ -1267,7 +1267,7 @@ public class PacientesRepository implements PanacheRepository<Pacientes> {
 					+ " b.idbam, b.prioridade, a.hora, r.idregistro, r.atendidopor, r.eletivo, r.setor, t.idtratamento, t.tratado  from pacientes as p, bam as b, registro as r , avaliacao as a, tratamento as t , escalapaciente e where   b.idbam = e.agbam and e.agenda = false  and  b.paciente_idpaciente=p.idpaciente "
 					+ " and b.registro_idregistro=r.idregistro  and b.tratamento_idtratamento=t.idtratamento"
 					+ " and b.unidade = :unidade"
-					+ " and b.avaliacao_idavaliacao=a.idavaliacao and (r.atendidopor != '.' and r.atendidopor != '')  and t.tratado=0 and t.tipo_alta='-' "
+					+ " and b.avaliacao_idavaliacao=a.idavaliacao and r.atendidopor not in ('.', '', '-')  and t.tratado=0 and t.tipo_alta='-' "
 					+ filtroSetor
 					+ " order by  cast(b.data as date) desc, cast(b.hora as time),r.setor, r.atendidopor";
 		} else {
@@ -1275,7 +1275,7 @@ public class PacientesRepository implements PanacheRepository<Pacientes> {
 					+ " b.idbam, b.prioridade, a.hora, r.idregistro , r.atendidopor, r.eletivo, r.setor, t.idtratamento, t.tratado  from pacientes as p, bam as b, registro as r , avaliacao as a, tratamento as t , escalapaciente e where   b.idbam = e.agbam and e.agenda = false  and  b.paciente_idpaciente=p.idpaciente "
 					+ " and b.registro_idregistro=r.idregistro  and b.tratamento_idtratamento=t.idtratamento"
 					+ " and b.unidade = :unidade and ( p.nome like :nome or r.atendidopor like :nome )"
-					+ "  and b.avaliacao_idavaliacao=a.idavaliacao  and (r.atendidopor != '.' and r.atendidopor != '')  and t.tratado=0  and t.tipo_alta='-' "
+					+ "  and b.avaliacao_idavaliacao=a.idavaliacao  and r.atendidopor not in ('.', '', '-')  and t.tratado=0  and t.tipo_alta='-' "
 					+ filtroSetor
 					+ "  order by  cast(b.data as date) desc, cast(b.hora as time),r.setor, r.atendidopor";
 		}

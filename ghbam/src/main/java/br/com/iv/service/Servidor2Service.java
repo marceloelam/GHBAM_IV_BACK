@@ -141,6 +141,8 @@ public class Servidor2Service implements Serializable {
 		Servidor2.setPcirurgialistaespera(dto.getPcirurgialistaespera() != null ? dto.getPcirurgialistaespera() : false);
 		Servidor2.setPapoioassistencial(dto.getPapoioassistencial() != null ? dto.getPapoioassistencial() : false);
 		Servidor2.setPcme(dto.getPcme() != null ? dto.getPcme() : false);
+		Servidor2.setPalmoxarifado(dto.getPalmoxarifado() != null ? dto.getPalmoxarifado() : false);
+		Servidor2.setPalmoxpedir(dto.getPalmoxpedir() != null ? dto.getPalmoxpedir() : false);
 		Servidor2.setPhemoterapia(dto.getPhemoterapia() != null ? dto.getPhemoterapia() : false);
 		Servidor2.setPsnd(dto.getPsnd() != null ? dto.getPsnd() : false);
 		Servidor2.setPrnds(dto.getPrnds() != null ? dto.getPrnds() : false);
@@ -314,6 +316,8 @@ public class Servidor2Service implements Serializable {
 		Servidor2.setPcirurgialistaespera(dto.getPcirurgialistaespera() != null ? dto.getPcirurgialistaespera() : Servidor2.getPcirurgialistaespera());
 		Servidor2.setPapoioassistencial(dto.getPapoioassistencial() != null ? dto.getPapoioassistencial() : Servidor2.getPapoioassistencial());
 		Servidor2.setPcme(dto.getPcme() != null ? dto.getPcme() : Servidor2.getPcme());
+		Servidor2.setPalmoxarifado(dto.getPalmoxarifado() != null ? dto.getPalmoxarifado() : Servidor2.getPalmoxarifado());
+		Servidor2.setPalmoxpedir(dto.getPalmoxpedir() != null ? dto.getPalmoxpedir() : Servidor2.getPalmoxpedir());
 		Servidor2.setPhemoterapia(dto.getPhemoterapia() != null ? dto.getPhemoterapia() : Servidor2.getPhemoterapia());
 		Servidor2.setPsnd(dto.getPsnd() != null ? dto.getPsnd() : Servidor2.getPsnd());
 		Servidor2.setPrnds(dto.getPrnds() != null ? dto.getPrnds() : Servidor2.getPrnds());

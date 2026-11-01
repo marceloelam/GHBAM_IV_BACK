@@ -9,7 +9,6 @@ import br.com.iv.dto.AvaliacaoDto;
 import br.com.iv.entity.Avaliacao;
 import br.com.iv.service.AvaliacaoService;
 import br.com.iv.util.ClassificacaoRiscoResponse;
-import jakarta.annotation.security.PermitAll;
 import jakarta.inject.Inject;
 import jakarta.json.Json;
 import jakarta.json.JsonException;
@@ -88,7 +87,6 @@ public class AvaliacaoController {
 	}
 
 	@GET
-	@PermitAll
 	@Path("/unidadever/{unidade}/data/{data}")
 	public Response contagemDeAtendimentos(@PathParam("unidade") String unidade, @PathParam("data") String data) {
 		long resultado = avaliacaoService.contagemDeAtendimentos(unidade, data);
@@ -96,7 +94,6 @@ public class AvaliacaoController {
 	}
 	
 	@GET
-	@PermitAll
 	@Path("/unidadeverhoje/{unidade}/data/{data}")
 	public Response contagemDeAtendimentosHoje(@PathParam("unidade") String unidade, @PathParam("data") String data) {
 		long resultado = avaliacaoService.contagemDeAtendimentosHoje(unidade, data);
@@ -104,28 +101,24 @@ public class AvaliacaoController {
 	}
 
 	@GET
-	@PermitAll
 	@Path("/unidadeversetorhoje/{unidade}/data/{data}")
 	public Response contagemDeAtendimentosHojePorSetor(@PathParam("unidade") String unidade, @PathParam("data") String data) {
 		return Response.ok(avaliacaoService.contagemDeAtendimentosHojePorSetor(unidade, data)).build();
 	}
 
 	@GET
-	@PermitAll
 	@Path("/unidadeversetorsemana/{unidade}/data/{data}")
 	public Response contagemDeAtendimentosSemanaPorSetor(@PathParam("unidade") String unidade, @PathParam("data") String data) {
 		return Response.ok(avaliacaoService.contagemDeAtendimentosSemanaPorSetor(unidade, data)).build();
 	}
 
 	@GET
-	@PermitAll
 	@Path("/unidadeversetormes/{unidade}/data/{data}")
 	public Response contagemDeAtendimentosMesPorSetor(@PathParam("unidade") String unidade, @PathParam("data") String data) {
 		return Response.ok(avaliacaoService.contagemDeAtendimentosMesPorSetor(unidade, data)).build();
 	}
 
 	@GET
-	@PermitAll
 	@Path("/unidadeversetorano/{unidade}/data/{data}")
 	public Response contagemDeAtendimentosAnoPorSetor(@PathParam("unidade") String unidade, @PathParam("data") String data) {
 		return Response.ok(avaliacaoService.contagemDeAtendimentosAnoPorSetor(unidade, data)).build();

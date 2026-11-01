@@ -55,6 +55,12 @@ public class CdssResource {
     PlantaoEnfermagemService plantaoService;
 
     @Inject
+    br.com.iv.cdss.service.DeterioracaoNews2Service news2Service;
+
+    @Inject
+    br.com.iv.cdss.service.CicloMedicacaoFilaService cicloFilaService;
+
+    @Inject
     br.com.iv.cdss.service.DispositivoInvasivoService dispositivoService;
 
     @Inject
@@ -144,6 +150,62 @@ public class CdssResource {
         try {
             // Unidade sempre da sessao: nunca aceita unidade vinda do cliente.
             return Response.ok(plantaoService.montar(usuario == null ? null : usuario.unidade())).build();
+        } catch (SecurityException e) {
+            return Response.status(Response.Status.UNAUTHORIZED).entity(Map.of("erro", e.getMessage())).build();
+        }
+    }
+
+    /** Fila do ciclo de medicacao da unidade da sessao: pacientes com etapa pendente para o perfil. */
+    @GET
+    @Path("ciclo/fila")
+    public Response filaCicloMedicacao(@jakarta.ws.rs.QueryParam("perfil") String perfil, @Context ContainerRequestContext context) {
+        return executar(() -> {
+            AuthenticatedUser u = usuarioDaSessao(context);
+            return Response.ok(cicloFilaService.fila(u == null ? null : u.unidade(), perfil)).build();
+        });
+    }
+
+    @GET
+    @Path("ciclo/config")
+    public Response configCicloMedicacao(@Context ContainerRequestContext context) {
+        return executar(() -> {
+            AuthenticatedUser u = usuarioDaSessao(context);
+            return Response.ok(cicloFilaService.config(u == null ? null : u.unidade())).build();
+        });
+    }
+
+    /** Somente administrador (kadm); a unidade e sempre a da sessao. */
+    @jakarta.ws.rs.PUT
+    @Path("ciclo/config")
+    public Response salvarConfigCicloMedicacao(Map<String, Object> corpo, @Context ContainerRequestContext context) {
+        return executar(() -> Response.ok(cicloFilaService.salvarConfig(
+                !Boolean.FALSE.equals(corpo == null ? null : corpo.get("farmaciaDispensa")), usuarioDaSessao(context))).build());
+    }
+
+    /** Peso mais recente do BAM (sinais vitais ou triagem) para a calculadora de dose. 204 sem dado. */
+    @GET
+    @Path("peso/bam/{idbam}")
+    public Response pesoDoBam(@PathParam("idbam") int idbam) {
+        Map<String, Object> r = news2Service.pesoDoBam(idbam);
+        return r == null ? Response.noContent().build() : Response.ok(r).build();
+    }
+
+    /** NEWS2/qSOFA de um BAM (sinais vitais da enfermagem ou, sem eles, da triagem). 204 sem dado. */
+    @GET
+    @Path("news2/bam/{idbam}")
+    public Response news2DoBam(@PathParam("idbam") int idbam) {
+        Map<String, Object> r = news2Service.doBam(idbam);
+        return r == null ? Response.noContent().build() : Response.ok(r).build();
+    }
+
+    /** NEWS2 automatico dos internados da unidade da sessao (idbam -> escore), para a visao medica. */
+    @GET
+    @Path("news2/internados")
+    public Response news2Internados(@Context ContainerRequestContext context) {
+        Object value = context == null ? null : context.getProperty("ghbam.user");
+        AuthenticatedUser usuario = value instanceof AuthenticatedUser user ? user : null;
+        try {
+            return Response.ok(news2Service.internadosDaUnidade(usuario == null ? null : usuario.unidade())).build();
         } catch (SecurityException e) {
             return Response.status(Response.Status.UNAUTHORIZED).entity(Map.of("erro", e.getMessage())).build();
         }

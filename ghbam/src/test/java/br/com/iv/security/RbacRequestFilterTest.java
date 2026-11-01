@@ -626,13 +626,14 @@ class RbacRequestFilterTest {
     }
 
     @Test
-    void deveLiberarSomenteEstatisticasAgregadasDosPaineis() throws Exception {
-        assertTrue(isPublic("/avaliacao/unidadever/HOSPITAL/data/2026-07-22"));
-        assertTrue(isPublic("/avaliacao/unidadeverhoje/HOSPITAL/data/2026-07-22"));
-        assertTrue(isPublic("/avaliacao/unidadeversetorhoje/HOSPITAL/data/2026-07-22"));
-        assertTrue(isPublic("/avaliacao/unidadeversetorsemana/HOSPITAL/data/2026-07-22"));
-        assertTrue(isPublic("/avaliacao/unidadeversetormes/HOSPITAL/data/2026-07-22"));
-        assertTrue(isPublic("/avaliacao/unidadeversetorano/HOSPITAL/data/2026-07-22"));
+    void naoDeveLiberarEstatisticasDeAtendimentoSemLogin() throws Exception {
+        // Contagens por unidade exigem sessao: publicas, qualquer um contava atendimentos de qualquer unidade.
+        assertFalse(isPublic("/avaliacao/unidadever/HOSPITAL/data/2026-07-22"));
+        assertFalse(isPublic("/avaliacao/unidadeverhoje/HOSPITAL/data/2026-07-22"));
+        assertFalse(isPublic("/avaliacao/unidadeversetorhoje/HOSPITAL/data/2026-07-22"));
+        assertFalse(isPublic("/avaliacao/unidadeversetorsemana/HOSPITAL/data/2026-07-22"));
+        assertFalse(isPublic("/avaliacao/unidadeversetormes/HOSPITAL/data/2026-07-22"));
+        assertFalse(isPublic("/avaliacao/unidadeversetorano/HOSPITAL/data/2026-07-22"));
 
         assertFalse(isPublic("/avaliacao/avaliado/123/avaliacao/1"));
         assertFalse(isPublic("/avaliacao/123"));

@@ -348,8 +348,8 @@ public class HistoricoPacienteController {
     }
 
     private List<Map<String, Object>> listarPedidos(int bam) {
-        String sql = "SELECT idpedidomedico, dt, hr, medico, local, pedido, obs, efetuado, coletar, confirmado, internado, emergencia FROM pedidomedico2 WHERE bam = :bam ORDER BY dt DESC, hr DESC";
-        return eventos(sql, bam, "PEDIDO", "Pedido de exame/medicacao", "idpedidomedico", "dt", "hr", "medico", "local", "pedido", "obs", "efetuado", "coletar", "confirmado", "internado", "emergencia");
+        String sql = "SELECT idpedidomedico, dt, hr, medico, local, pedido, obs, crm AS crm_solicitante, obs2 AS resposta_execucao, executado_por, to_char(executado_em, 'DD/MM/YYYY HH24:MI') AS executado_em, liberouexame, efetuado, coletar, confirmado, internado, emergencia FROM pedidomedico2 WHERE bam = :bam ORDER BY dt DESC, hr DESC";
+        return eventos(sql, bam, "PEDIDO", "Pedido de exame/medicacao", "idpedidomedico", "dt", "hr", "medico", "local", "pedido", "obs", "crm_solicitante", "resposta_execucao", "executado_por", "executado_em", "liberouexame", "efetuado", "coletar", "confirmado", "internado", "emergencia");
     }
 
     private List<Map<String, Object>> listarResultadosLaboratorio(int bam) {
@@ -673,6 +673,15 @@ public class HistoricoPacienteController {
             case "data_solicitacao" -> "Data da solicitacao";
             case "pedido" -> "Pedido";
             case "obs" -> "Observacao";
+            case "resposta_execucao" -> "Resposta de quem realizou";
+            case "executado_por" -> "Realizado por";
+            case "executado_em" -> "Realizado em";
+            case "liberouexame" -> "Liberou exame";
+            case "efetuado" -> "Efetuado";
+            case "coletar" -> "Coletar";
+            case "confirmado" -> "Confirmado";
+            case "internado" -> "Internado";
+            case "emergencia" -> "Emergencia";
             case "grupopedidos" -> "Grupo de pedidos";
             case "arquivo" -> "Arquivo";
             case "cid", "cid2" -> "CID";

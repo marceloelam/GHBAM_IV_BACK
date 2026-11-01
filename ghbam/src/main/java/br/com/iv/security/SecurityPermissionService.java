@@ -369,6 +369,8 @@ public class SecurityPermissionService {
         put(p, "pcirurgialistaespera", s2 != null && Boolean.TRUE.equals(s2.getPcirurgialistaespera()));
         put(p, "papoioassistencial", s2 != null && Boolean.TRUE.equals(s2.getPapoioassistencial()));
         put(p, "pcme", s2 != null && Boolean.TRUE.equals(s2.getPcme()));
+        put(p, "palmoxarifado", s2 != null && Boolean.TRUE.equals(s2.getPalmoxarifado()));
+        put(p, "palmoxpedir", s2 != null && Boolean.TRUE.equals(s2.getPalmoxpedir()));
         put(p, "phemoterapia", s2 != null && Boolean.TRUE.equals(s2.getPhemoterapia()));
         put(p, "psnd", s2 != null && Boolean.TRUE.equals(s2.getPsnd()));
         put(p, "prnds", s2 != null && Boolean.TRUE.equals(s2.getPrnds()));
@@ -464,7 +466,15 @@ public class SecurityPermissionService {
      * na troca de unidade). Vazio quando nao ha Bearer valido (ex.: header legado em dev).
      */
     public String unidadeDaSessao(ContainerRequestContext requestContext) {
-        String authorization = requestContext.getHeaderString("Authorization");
+        return unidadeDoAuthorization(requestContext.getHeaderString("Authorization"));
+    }
+
+    /** Resolucao a partir do valor "Bearer ..." recebido fora do JAX-RS (ex.: WebSocket). Sem fallback legado. */
+    public AuthenticatedUser resolveFromAuthorization(String authorization) {
+        return resolveFromHeaderLookup(header -> HttpHeaders.AUTHORIZATION.equalsIgnoreCase(header) ? authorization : null);
+    }
+
+    public String unidadeDoAuthorization(String authorization) {
         if (authorization == null || !authorization.regionMatches(true, 0, "Bearer ", 0, 7)) {
             return "";
         }
