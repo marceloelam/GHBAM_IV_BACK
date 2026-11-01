@@ -39,7 +39,9 @@ public class RbacRequestFilter implements ContainerRequestFilter {
             // As rotas publicas do pareamento retornam antes deste controle;
             // as demais operacoes do recurso exigem sessao autenticada.
             "push/pareamento",
-            "push/pareamento/dispositivos");
+            "push/pareamento/dispositivos",
+            // Espelho de ponto do proprio servidor; o controller usa a matricula do token.
+            "rh/ponto/meu");
 
     // Criar uma ocorrencia de sistema (POST na raiz) e' liberado a qualquer
     // usuario autenticado: e' o mesmo endpoint usado tanto por um registro
@@ -106,14 +108,6 @@ public class RbacRequestFilter implements ContainerRequestFilter {
             "setorcenso/hospitaldistintosbylocal",
             "setorcenso/unidadenir",
             "setorcenso/titulo");
-
-    private static final Set<String> PUBLIC_AGGREGATE_STAT_ROUTES = Set.of(
-            "unidadever",
-            "unidadeverhoje",
-            "unidadeversetorhoje",
-            "unidadeversetorsemana",
-            "unidadeversetormes",
-            "unidadeversetorano");
 
     private static final Set<String> PUBLIC_EXACT_PATHS = Set.of(
             "ad/verificar");
@@ -670,19 +664,8 @@ public class RbacRequestFilter implements ContainerRequestFilter {
         String normalizedPath = normalizePath(path);
         return normalizedPath.isBlank()
                 || PUBLIC_EXACT_PATHS.contains(normalizedPath)
-                || isPublicAggregateStats(normalizedPath)
                 || PUBLIC_PATH_PREFIXES.stream()
                         .anyMatch(prefix -> normalizedPath.equals(prefix) || normalizedPath.startsWith(prefix + "/"));
-    }
-
-    private boolean isPublicAggregateStats(String path) {
-        String[] parts = normalizePath(path).split("/");
-        return parts.length == 5
-                && "avaliacao".equals(parts[0])
-                && PUBLIC_AGGREGATE_STAT_ROUTES.contains(parts[1])
-                && !parts[2].isBlank()
-                && "data".equals(parts[3])
-                && !parts[4].isBlank();
     }
 
     // Modo shadow: registra as decisoes que BLOQUEARIAM a requisicao (unmapped/

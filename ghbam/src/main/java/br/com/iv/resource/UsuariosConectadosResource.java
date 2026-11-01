@@ -25,6 +25,8 @@ import br.com.iv.service.SessaoAtivaService;
 import br.com.iv.service.ConfiguracaoUnidadeService;
 import br.com.iv.util.UsuarioConectado;
 import br.com.iv.util.UsuariosConectadosUtil;
+import br.com.iv.security.AuthenticatedUser;
+import br.com.iv.security.SecurityPermissionService;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DefaultValue;
@@ -45,6 +47,9 @@ public class UsuariosConectadosResource {
 
     private static final Map<String, ViaCepResult> CEP_CACHE = new ConcurrentHashMap<>();
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
+    @Inject
+    SecurityPermissionService securityPermissionService;
 
     @Inject
     Servidor2Repository servidor2Repository;
@@ -110,7 +115,7 @@ public class UsuariosConectadosResource {
                 request.cargo,
                 especialidade,
                 request.foto,
-                request.chatprofissionais,
+                chatLiberado(authorization, request.chatprofissionais),
                 request.sala
         );
 
@@ -344,6 +349,22 @@ public class UsuariosConectadosResource {
     }
 
     private record ViaCepResult(String logradouro, String bairro, String localidade, String uf) {}
+
+    /**
+     * O chat liberado vem do cadastro (servidor2), não do navegador: quem entrou antes de uma
+     * mudança de permissão ainda manda o valor antigo guardado no login e sumia da lista do chat.
+     */
+    private Boolean chatLiberado(String authorization, Boolean informado) {
+        try {
+            AuthenticatedUser user = securityPermissionService.resolveFromAuthorization(authorization);
+            if (user != null && user.matricula() != null && !user.matricula().isBlank()) {
+                return user.hasPermission("pchatprofissionais") || user.hasPermission("kadm");
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.FINE, "[HEARTBEAT] Permissao de chat nao resolvida: {0}", e.getMessage());
+        }
+        return informado;
+    }
 
     private String bearerToken(String authorization) {
         if (authorization == null || !authorization.regionMatches(true, 0, "Bearer ", 0, 7)) {

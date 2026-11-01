@@ -28,6 +28,34 @@ public class PedidoMedico2Controller {
 	@Inject
 	PedidoMedico2Service pedidoMedico2Service;
 
+	@Inject
+	br.com.iv.service.PedidoMedicoRastreioService rastreioService;
+
+	private static br.com.iv.security.AuthenticatedUser usuarioDaSessao(jakarta.ws.rs.container.ContainerRequestContext context) {
+		Object value = context == null ? null : context.getProperty("ghbam.user");
+		return value instanceof br.com.iv.security.AuthenticatedUser user ? user : null;
+	}
+
+	/** Rastreio do pedido do BAM: quem pediu/quando e quem executou/quando (local opcional). */
+	@GET
+	@Path("/bam/{bam}/rastreio")
+	public Response rastreio(@PathParam("bam") int bam, @jakarta.ws.rs.QueryParam("local") String local) {
+		return Response.ok(rastreioService.rastreio(bam, local)).build();
+	}
+
+	/** Executa um item do pedido; quem e quando vem da sessao. */
+	@POST
+	@Path("/{id}/executar")
+	public Response executarItem(@PathParam("id") int id, @jakarta.ws.rs.core.Context jakarta.ws.rs.container.ContainerRequestContext context) {
+		try {
+			return Response.ok(rastreioService.executarItem(id, usuarioDaSessao(context))).build();
+		} catch (SecurityException e) {
+			return Response.status(Response.Status.UNAUTHORIZED).entity(java.util.Map.of("erro", e.getMessage())).build();
+		} catch (IllegalStateException e) {
+			return Response.status(Response.Status.CONFLICT).entity(java.util.Map.of("erro", e.getMessage())).build();
+		}
+	}
+
 	@GET
 	@Path("/bam/{idbam}")
 	public Response xlistarPedidos(@PathParam("idbam") int idbam) {
@@ -329,18 +357,20 @@ public class PedidoMedico2Controller {
 	@GET
 	@Path("/alterarRespostaExames/{bam}/resposta/{resposta}/local/{local}")
 	public void atualizarAoMedicoRespostaExames(@PathParam("bam") int bam, @PathParam("resposta") String resposta,
-			@PathParam("local") String local) {
-		atualizarRespostaExamesPorBam(bam, resposta, local);
+			@PathParam("local") String local, @jakarta.ws.rs.core.Context jakarta.ws.rs.container.ContainerRequestContext context) {
+		atualizarRespostaExamesPorBam(bam, resposta, local, usuarioDaSessao(context));
 	}
 
 	@PATCH
 	@Path("/{bam}/resposta-exames/resposta/{resposta}/local/{local}")
 	public void atualizarAoMedicoRespostaExamesPatch(@PathParam("bam") int bam, @PathParam("resposta") String resposta,
-			@PathParam("local") String local) {
-		atualizarRespostaExamesPorBam(bam, resposta, local);
+			@PathParam("local") String local, @jakarta.ws.rs.core.Context jakarta.ws.rs.container.ContainerRequestContext context) {
+		atualizarRespostaExamesPorBam(bam, resposta, local, usuarioDaSessao(context));
 	}
 
-	private void atualizarRespostaExamesPorBam(int bam, String resposta, String local) {
+	private void atualizarRespostaExamesPorBam(int bam, String resposta, String local, br.com.iv.security.AuthenticatedUser usuario) {
+		// Carimba quem/quando nos itens ainda pendentes antes da finalizacao em lote marcar efetuado.
+		rastreioService.carimbarPendentes(bam, local, usuario);
 		pedidoMedico2Service.atualizarAoMedicoRespostaExames(bam, resposta, local);
 	}
 
@@ -399,9 +429,13 @@ public Response xlistarPacientesDiretoSetor(@PathParam("unidade") String unidade
 public Response xfinalizarExameDiretoSetor(@PathParam("idbam") int idbam,
 		@jakarta.ws.rs.QueryParam("local") String local,
 		@jakarta.ws.rs.QueryParam("procedimento") String procedimento,
-		@jakarta.ws.rs.QueryParam("descricao") String descricao) {
+		@jakarta.ws.rs.QueryParam("descricao") String descricao,
+		@jakarta.ws.rs.core.Context jakarta.ws.rs.container.ContainerRequestContext context) {
 	// local/procedimento/descricao sao opcionais (telas antigas nao mandam): sem eles so finaliza.
 	try {
+		if (local != null && !local.isBlank()) {
+			rastreioService.carimbarPendentes(idbam, local, usuarioDaSessao(context));
+		}
 		pedidoMedico2Service.finalizarExameDiretoSetor(idbam, local, procedimento, descricao);
 	} catch (IllegalArgumentException e) {
 		return Response.status(Response.Status.BAD_REQUEST).entity(e.getMessage()).build();

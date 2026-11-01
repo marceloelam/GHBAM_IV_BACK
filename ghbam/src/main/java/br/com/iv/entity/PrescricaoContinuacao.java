@@ -53,6 +53,9 @@ public class PrescricaoContinuacao  extends PanacheEntityBase implements Seriali
 	private String uuid; // UUID para controle frontend
 	@Column(length = 30)
 	private String criadopor; // matricula do profissional que registrou
+	private Boolean o2suplementar; // NEWS2: null = nao registrado
+	@Column(length = 1)
+	private String consciencia; // NEWS2: A, C, V, P ou U; null = nao registrado
 
 	
 	public PrescricaoContinuacao() {

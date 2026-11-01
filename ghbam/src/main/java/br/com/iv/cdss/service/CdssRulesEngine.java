@@ -234,7 +234,7 @@ public class CdssRulesEngine {
         };
     }
 
-    private int scoreRespiratorio(int v) {
+    int scoreRespiratorio(int v) {
         if (v <= 8) return 3;
         if (v <= 11) return 1;
         if (v <= 20) return 0;
@@ -242,14 +242,14 @@ public class CdssRulesEngine {
         return 3;
     }
 
-    private int scoreSaturacao(int v) {
+    int scoreSaturacao(int v) {
         if (v <= 91) return 3;
         if (v <= 93) return 2;
         if (v <= 95) return 1;
         return 0;
     }
 
-    private int scoreTemperatura(double v) {
+    int scoreTemperatura(double v) {
         if (v <= 35.0) return 3;
         if (v <= 36.0) return 1;
         if (v <= 38.0) return 0;
@@ -257,7 +257,7 @@ public class CdssRulesEngine {
         return 2;
     }
 
-    private int scorePressao(int v) {
+    int scorePressao(int v) {
         if (v <= 90) return 3;
         if (v <= 100) return 2;
         if (v <= 110) return 1;
@@ -265,7 +265,7 @@ public class CdssRulesEngine {
         return 3;
     }
 
-    private int scoreCardiaco(int v) {
+    int scoreCardiaco(int v) {
         if (v <= 40) return 3;
         if (v <= 50) return 1;
         if (v <= 90) return 0;
@@ -274,18 +274,18 @@ public class CdssRulesEngine {
         return 3;
     }
 
-    private String riscoNews2(int total, Map<String, Integer> componentes) {
+    String riscoNews2(int total, Map<String, Integer> componentes) {
         if (total >= 7) return "ALTO";
         if (total >= 5 || componentes.values().stream().anyMatch(score -> score == 3)) return "MEDIO";
         if (total >= 1) return "BAIXO_MEDIO";
         return "BAIXO";
     }
 
-    private String orientacaoNews2(String risco) {
+    String orientacaoNews2(String risco) {
         return switch (risco) {
-            case "ALTO" -> "Acionar avaliacao clinica urgente e considerar cuidado intensivo conforme protocolo institucional.";
-            case "MEDIO" -> "Priorizar reavaliacao clinica e aumentar frequencia de monitoramento.";
-            case "BAIXO_MEDIO" -> "Manter monitoramento e reavaliar se houver piora clinica.";
+            case "ALTO" -> "Acionar avaliação clínica urgente e considerar cuidado intensivo conforme protocolo institucional.";
+            case "MEDIO" -> "Priorizar reavaliação clínica e aumentar a frequência de monitoramento.";
+            case "BAIXO_MEDIO" -> "Manter monitoramento e reavaliar se houver piora clínica.";
             default -> "Manter rotina assistencial conforme protocolo.";
         };
     }

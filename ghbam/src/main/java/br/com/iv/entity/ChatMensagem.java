@@ -75,6 +75,15 @@ public class ChatMensagem extends PanacheEntityBase implements Serializable {
     @Column(name = "visualizada_em")
     private LocalDateTime visualizadaEm;
 
+    @Column(length = 10)
+    private String prioridade;
+
+    @Column(name = "ciencia_em")
+    private LocalDateTime cienciaEm;
+
+    @Column(name = "ciencia_por", length = 120)
+    private String cienciaPor;
+
     @PrePersist
     protected void onCreate() {
         if (criadoEm == null) {

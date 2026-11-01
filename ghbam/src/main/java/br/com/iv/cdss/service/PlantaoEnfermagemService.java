@@ -47,6 +47,19 @@ public class PlantaoEnfermagemService {
     @Inject
     DispositivoInvasivoService dispositivoService;
 
+    @Inject
+    DeterioracaoNews2Service news2Service;
+
+    // NEWS2 e apoio: se o calculo falhar, o painel do plantao abre sem ele.
+    private Map<Integer, Map<String, Object>> news2PorBam(List<Integer> bams) {
+        if (news2Service == null) return Map.of();
+        try {
+            return news2Service.porBam(bams);
+        } catch (RuntimeException e) {
+            return Map.of();
+        }
+    }
+
     @SuppressWarnings("unchecked")
     public Map<String, Object> montar(String unidade) {
         if (unidade == null || unidade.isBlank()) {
@@ -73,6 +86,7 @@ public class PlantaoEnfermagemService {
         Map<Integer, Map<String, Object>> passagens = ultimasPassagens(bams, LocalDateTime.now());
         Map<Integer, List<Map<String, Object>>> dispositivos = dispositivoService == null
                 ? Map.of() : dispositivoService.ativosPorBam(bams);
+        Map<Integer, Map<String, Object>> news2 = news2PorBam(bams);
 
         List<Map<String, Object>> pacientes = new ArrayList<>();
         for (Object[] l : linhas) {
@@ -88,6 +102,7 @@ public class PlantaoEnfermagemService {
             p.put("aprazamentosAtrasados", atrasos.getOrDefault(idbam, List.of()));
             p.put("ultimaPassagem", passagens.get(idbam));
             p.put("dispositivos", dispositivos.getOrDefault(idbam, List.of()));
+            p.put("news2", news2.get(idbam));
             try {
                 p.put("alergias", alergias(idpaciente));
                 p.put("criticosPendentes", resultadoCriticoService.listarPorBam(idbam).stream()

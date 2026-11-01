@@ -132,6 +132,14 @@ public class PrescricaoContinuacaoService implements Serializable {
         prescricaoContinuacao.setChecado(dto.isChecado());
         prescricaoContinuacao.setIdprescricao(dto.getIdprescricao());
         prescricaoContinuacao.setUuid(dto.getUuid());
+        // Telas antigas nao enviam estes campos: nao apagar o que ja foi registrado.
+        if (dto.getO2suplementar() != null) {
+            prescricaoContinuacao.setO2suplementar(dto.getO2suplementar());
+        }
+        String consciencia = dto.getConsciencia() == null ? "" : dto.getConsciencia().trim().toUpperCase();
+        if ("ACVPU".contains(consciencia) && consciencia.length() == 1) {
+            prescricaoContinuacao.setConsciencia(consciencia);
+        }
     }
 
     private void validarDocumentoAberto(PrescricaoContinuacao prescricaoContinuacao) {

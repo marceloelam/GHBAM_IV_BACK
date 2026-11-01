@@ -37,4 +37,6 @@ public class PrescricaoContinuacaoDto implements Serializable {
 	private boolean checado;
 	private int idprescricao;
 	private String uuid; // UUID para controle frontend
+	private Boolean o2suplementar;
+	private String consciencia;
 }

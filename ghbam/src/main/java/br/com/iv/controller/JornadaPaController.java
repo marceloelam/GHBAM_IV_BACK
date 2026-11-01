@@ -138,9 +138,40 @@ public class JornadaPaController {
         return Response.noContent().build();
     }
 
+    // Autocompletar da busca da conformidade: so identifica o BAM, sem montar a analise.
+    @GET
+    @Path("/conformidade/sugestoes")
+    public Response sugestoesConformidade(
+            @QueryParam("busca") String busca,
+            @QueryParam("unidade") String unidade,
+            @HeaderParam("X-GHBAM-UNIT") String unidadeLogada) {
+        String unidadeEfetiva = unidadeLogada == null || unidadeLogada.isBlank() ? unidade : unidadeLogada;
+        return Response.ok(jornadaPaService.sugestoesBuscaConformidade(busca, unidadeEfetiva)).build();
+    }
+
+    @GET
+    @Path("/bam/{idbam}/paciente")
+    public Response pacienteDoBam(@PathParam("idbam") int idbam) {
+        Map<String, Object> resposta = jornadaPaService.pacienteDoBam(idbam);
+        if (Boolean.FALSE.equals(resposta.get("encontrado"))) {
+            return erro(Response.Status.NOT_FOUND, "BAM nao encontrado.");
+        }
+        return Response.ok(resposta).build();
+    }
+
     @GET
     @Path("/conformidade/{idbam}")
-    public Response conformidade(@PathParam("idbam") int idbam) {
+    public Response conformidade(
+            @PathParam("idbam") int idbam,
+            @HeaderParam("X-GHBAM-UNIT") String unidadeLogada) {
+        // Unidade do token tem precedencia sobre o header, que o navegador controla.
+        Object usuario = requestContext.getProperty("ghbam.user");
+        String unidadeSessao = usuario instanceof AuthenticatedUser autenticado
+                && autenticado.unidade() != null && !autenticado.unidade().isBlank()
+                ? autenticado.unidade() : unidadeLogada;
+        if (!jornadaPaService.bamPertenceUnidade(idbam, unidadeSessao)) {
+            return erro(Response.Status.FORBIDDEN, "Este BAM pertence a outra unidade.");
+        }
         Map<String, Object> conformidade = jornadaPaService.montarConformidadeAtendimento(idbam);
         if (Boolean.FALSE.equals(conformidade.get("encontrado"))) {
             return Response.status(Response.Status.NOT_FOUND).entity(conformidade).build();
@@ -158,11 +189,12 @@ public class JornadaPaController {
             @QueryParam("risco") String risco,
             @QueryParam("status") String status,
             @QueryParam("limite") @DefaultValue("30") int limite,
+            @QueryParam("busca") String busca,
             @HeaderParam("X-GHBAM-UNIT") String unidadeLogada) {
         LocalDate dataFim = parseData(fim, LocalDate.now());
         LocalDate dataInicio = parseData(inicio, dataFim.minusDays(Math.max(1, dias) - 1L));
         String unidadeEfetiva = unidadeLogada == null || unidadeLogada.isBlank() ? unidade : unidadeLogada;
-        return Response.ok(jornadaPaService.montarFilaPendenciasRapida(dataInicio, dataFim, unidadeEfetiva, risco, status, limite)).build();
+        return Response.ok(jornadaPaService.montarFilaPendenciasRapida(dataInicio, dataFim, unidadeEfetiva, risco, status, limite, busca)).build();
     }
 
     @GET
