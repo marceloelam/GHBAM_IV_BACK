@@ -290,6 +290,7 @@ public class ClinicalSchemaInitializer {
                     )
                     """);
             statement.execute("ALTER TABLE prescricao_item_estruturado ADD COLUMN IF NOT EXISTS tipo_item VARCHAR(40) NOT NULL DEFAULT 'MEDICAMENTO'");
+            statement.execute("ALTER TABLE prescricao_item_estruturado ADD COLUMN IF NOT EXISTS setor_execucao VARCHAR(20)");
             statement.execute("""
                     CREATE INDEX IF NOT EXISTS idx_prescricao_item_estruturado_bam
                     ON prescricao_item_estruturado (idbam, status)

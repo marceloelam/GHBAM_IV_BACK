@@ -24,7 +24,7 @@ import java.util.function.Supplier;
 
 /**
  * Gestao do ponto (RH): resumo e banco de horas, espelho, ajuste, anulacao e
- * exportacao para a folha. Exige krh, pcontroleplantoes ou kadm (catalogo "rh/ponto").
+ * exportacao para a folha. Exige krh, prhponto ou kadm (catalogo "rh/ponto").
  * "rh/ponto/meu" e o espelho do proprio servidor (qualquer usuario logado).
  */
 @Path("rh/ponto")
@@ -32,7 +32,7 @@ import java.util.function.Supplier;
 @Produces(MediaType.APPLICATION_JSON)
 public class PontoController {
 
-    private static final List<String> GESTAO = List.of("krh", "pcontroleplantoes", "kadm");
+    private static final List<String> GESTAO = List.of("krh", "prhponto", "kadm");
 
     @Context
     ContainerRequestContext context;

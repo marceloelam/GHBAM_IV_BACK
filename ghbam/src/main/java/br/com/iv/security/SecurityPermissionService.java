@@ -5,6 +5,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import br.com.iv.ad.UsuarioAdRegras;
 import br.com.iv.entity.Servidor;
 import br.com.iv.entity.Servidor2;
 import br.com.iv.repository.Servidor2Repository;
@@ -60,7 +61,7 @@ public class SecurityPermissionService {
     @Transactional
     public AuthenticatedUser authenticate(String matricula, String senha, String senhaMontada) {
         Servidor servidor = servidorRepository.localizarMatricula(safe(matricula));
-        if (servidor == null || !Boolean.TRUE.equals(servidor.getAtivo())) {
+        if (!acessoPermitido(servidor)) {
             return null;
         }
         String storedPassword = safe(servidor.getPwd());
@@ -209,12 +210,18 @@ public class SecurityPermissionService {
 
     private AuthenticatedUser loadServidorAtivo(String matricula, Boolean senhaInicialToken) {
         Servidor servidor = servidorRepository.localizarMatricula(matricula);
-        if (servidor == null || !Boolean.TRUE.equals(servidor.getAtivo())) {
+        if (!acessoPermitido(servidor)) {
             return AuthenticatedUser.empty();
         }
         return senhaInicialToken == null
                 ? fromServidor(servidor)
                 : fromServidor(servidor, senhaInicialToken);
+    }
+
+    public boolean acessoPermitido(Servidor servidor) {
+        return servidor != null
+                && Boolean.TRUE.equals(servidor.getAtivo())
+                && !UsuarioAdRegras.bloqueado(servidor.getUsuarioad());
     }
 
     public void invalidateUserCache(String matricula) {
@@ -284,10 +291,10 @@ public class SecurityPermissionService {
         put(p, "ktcenfermagem", s.getTcenfermagem());
         put(p, "kcriaragenda", s.getCriaragenda());
         put(p, "kagendarpaciente", s.getAgendarpaciente());
-        put(p, "kconsultorio_admin", s.getConsultorioadmin());
-        put(p, "kconsultorio_recepcao", s.getConsultoriorecepcao());
-        put(p, "kconsultorio_medico", s.getConsultoriomedico());
-        put(p, "kconsultorio_financeiro", s.getConsultoriofinanceiro());
+        put(p, "kconsultorio_admin", s2 != null && Boolean.TRUE.equals(s2.getConsultorioadmin())); // a tela de permissoes grava em servidor2
+        put(p, "kconsultorio_recepcao", s2 != null && Boolean.TRUE.equals(s2.getConsultoriorecepcao())); // a tela de permissoes grava em servidor2
+        put(p, "kconsultorio_medico", s2 != null && Boolean.TRUE.equals(s2.getConsultoriomedico())); // a tela de permissoes grava em servidor2
+        put(p, "kconsultorio_financeiro", s2 != null && Boolean.TRUE.equals(s2.getConsultoriofinanceiro())); // a tela de permissoes grava em servidor2
         put(p, "krh", s.getRh());
 
         boolean superusuario = s2 != null && Boolean.TRUE.equals(s2.getSuperusuario());
@@ -371,6 +378,8 @@ public class SecurityPermissionService {
         put(p, "pcme", s2 != null && Boolean.TRUE.equals(s2.getPcme()));
         put(p, "palmoxarifado", s2 != null && Boolean.TRUE.equals(s2.getPalmoxarifado()));
         put(p, "palmoxpedir", s2 != null && Boolean.TRUE.equals(s2.getPalmoxpedir()));
+        put(p, "prhponto", s2 != null && Boolean.TRUE.equals(s2.getPrhponto()));
+        put(p, "pfluxopacientes", s2 != null && Boolean.TRUE.equals(s2.getPfluxopacientes()));
         put(p, "phemoterapia", s2 != null && Boolean.TRUE.equals(s2.getPhemoterapia()));
         put(p, "psnd", s2 != null && Boolean.TRUE.equals(s2.getPsnd()));
         put(p, "prnds", s2 != null && Boolean.TRUE.equals(s2.getPrnds()));
@@ -383,6 +392,7 @@ public class SecurityPermissionService {
         put(p, "pminhasassinaturas", s2 != null && Boolean.TRUE.equals(s2.getMinhasassinaturas()));
         put(p, "pavaliacaopacienteia", s2 != null && Boolean.TRUE.equals(s2.getAvaliacaopacienteia()));
         put(p, "pbulario", s2 != null && Boolean.TRUE.equals(s2.getBulario()));
+        put(p, "pbulariomedico", s2 != null && Boolean.TRUE.equals(s2.getBulariomedico()));
         put(p, "pciclomedicacao", s2 != null && Boolean.TRUE.equals(s2.getCiclomedicacao()));
         // Item "Histórico completo" do menu NIR usa as mesmas APIs da tela original.
         put(p, "phistoricocompleto", s2 != null && (Boolean.TRUE.equals(s2.getHistoricocompleto()) || Boolean.TRUE.equals(s2.getNirhistoricocompleto())));

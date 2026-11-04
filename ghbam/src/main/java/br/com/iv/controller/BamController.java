@@ -29,6 +29,9 @@ public class BamController {
 	@Inject
 	BamService bamService;
 
+	@Inject
+	br.com.iv.service.SituacaoPacienteService situacaoPacienteService;
+
 	@GET
 	@Path("/unidade/{yunidade}/inicio/{dt_inicio}/fim/{dt_fim}")
 	public Response xlistarUnidadesPorDatas(@PathParam("yunidade") String yunidade,
@@ -133,6 +136,13 @@ public class BamController {
 			return Response.ok(Map.of()).build();
 		}
 		return Response.ok(bam).build();
+	}
+
+	/** Situacao atual do paciente na unidade (busca do cabecalho): etapa, linha do tempo e pendencias. */
+	@GET
+	@Path("/situacaoatual/{idpac}/unidade/{unidade}")
+	public Response situacaoAtual(@PathParam("idpac") int idpac, @PathParam("unidade") String unidade) {
+		return Response.ok(situacaoPacienteService.situacao(idpac, unidade)).build();
 	}
 
 	@GET

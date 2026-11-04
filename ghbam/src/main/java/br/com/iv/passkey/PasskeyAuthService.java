@@ -207,7 +207,7 @@ public class PasskeyAuthService {
 
             String matricula = result.getUsername();
             Servidor servidor = servidorRepository.localizarMatricula(matricula);
-            if (servidor == null || !Boolean.TRUE.equals(servidor.getAtivo())) {
+            if (!securityPermissionService.acessoPermitido(servidor)) {
                 throw new NotAuthorizedException("Usuario inativo ou nao encontrado.");
             }
 

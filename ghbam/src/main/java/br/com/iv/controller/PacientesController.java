@@ -120,6 +120,23 @@ public class PacientesController {
 		return Response.ok(pacientes).build();
 	}
 
+	// Devolve so a identificacao: quem localiza o paciente aqui nao precisa do cadastro nem do historico.
+	@GET
+	@Path("/por-prontuario/{prontuario}")
+	public Response listarPorProntuario(@PathParam("prontuario") String prontuario) {
+		List<Map<String, Object>> pacientes = pacientesService.localizarPorProntuario(prontuario).stream()
+				.map(paciente -> {
+					Map<String, Object> identificacao = new LinkedHashMap<>();
+					identificacao.put("idpaciente", paciente.getIdpaciente());
+					identificacao.put("nome", paciente.getNome());
+					identificacao.put("idade", paciente.getIdade());
+					identificacao.put("prontuario", paciente.getProntuario());
+					return identificacao;
+				})
+				.collect(Collectors.toList());
+		return Response.ok(pacientes).build();
+	}
+
 	@GET
 	@Path("/recentes/{nome}/unidade/{unidade}")
 	public Response listarPacientesComBamRecente(

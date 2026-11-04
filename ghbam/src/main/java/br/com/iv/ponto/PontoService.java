@@ -3,6 +3,7 @@ package br.com.iv.ponto;
 import br.com.iv.biofingertech.SourceAfisFingerprintService;
 import br.com.iv.entity.Servidor;
 import br.com.iv.repository.ServidorRepository;
+import br.com.iv.security.SecurityPermissionService;
 import br.com.iv.service.IdentificacaoFacialService;
 import br.com.iv.service.ProvaVidaFacialService;
 import br.com.iv.service.ReconhecimentoFacialService;
@@ -19,6 +20,7 @@ import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -37,6 +39,9 @@ public class PontoService {
 
     @Inject
     ServidorRepository servidorRepository;
+
+    @Inject
+    SecurityPermissionService securityPermissionService;
 
     @Inject
     ProvaVidaFacialService provaVidaFacialService;
@@ -129,7 +134,8 @@ public class PontoService {
      * cadastradas nunca saem do servidor.
      */
     @Transactional
-    public Map<String, Object> registrarBiometria(String imagemBase64, Double dpi, String unidadeTerminal, String terminal) {
+    public Map<String, Object> registrarBiometria(String imagemBase64, Double dpi, String unidadeTerminal, String terminal,
+            java.util.function.Supplier<Servidor> conferenciaNitgen) {
         limitarPorIp(terminal);
         if (vazio(imagemBase64)) throw new IllegalArgumentException("Digital nao capturada. Coloque o dedo no leitor.");
         String modelo;
@@ -139,13 +145,17 @@ public class PontoService {
             throw new IllegalArgumentException("Leitura da digital invalida. Limpe o leitor e tente de novo.");
         }
         List<Servidor> comModelo = servidorRepository.findAllComSourceafis();
-        if (comModelo.isEmpty()) throw new IllegalStateException("Nenhum servidor com digital cadastrada. Cadastre em RH > Servidores.");
-        SourceAfisFingerprintService.MatchResult r = sourceAfis.identifyServidores(modelo, comModelo, limiarBiometria);
-        if (!r.matched() || r.servidor() == null)
+        SourceAfisFingerprintService.MatchResult r = comModelo.isEmpty() ? null : sourceAfis.identifyServidores(modelo, comModelo, limiarBiometria);
+        if (r != null && r.matched() && r.servidor() != null) {
+            exigirSemBloqueio(r.servidor().getMatricula());
+            return gravarBatida(r.servidor(), unidadeTerminal, terminal, "BIOMETRIA", Math.min(1.0, r.percentual() / 100.0));
+        }
+        // Como no login: na rede interna, confere pelo SDK Nitgen do agente da estacao.
+        Servidor s = conferenciaNitgen == null ? null : conferenciaNitgen.get();
+        if (s == null)
             throw new IllegalArgumentException("Digital nao reconhecida. Tente outro dedo cadastrado ou use o rosto.");
-        Servidor s = r.servidor();
         exigirSemBloqueio(s.getMatricula());
-        return gravarBatida(s, unidadeTerminal, terminal, "BIOMETRIA", Math.min(1.0, r.percentual() / 100.0));
+        return gravarBatida(s, unidadeTerminal, terminal, "BIOMETRIA", 1.0);
     }
 
     private void limitarPorIp(String ip) {
@@ -162,6 +172,7 @@ public class PontoService {
 
     /** Grava a batida ja identificada (rosto ou digital): escala da unidade, duplicidade e entrada/saida. */
     private Map<String, Object> gravarBatida(Servidor s, String unidadeTerminal, String terminal, String origem, double similaridade) {
+        exigirAcesso(s);
         LocalDateTime agora = LocalDateTime.now();
         if (!vazio(unidadeTerminal)) exigirEscalaNestaUnidade(s.getMatricula(), unidadeTerminal.trim().toUpperCase(), agora);
         PontoMarcacao ultima = ultimaValida(s.getMatricula());
@@ -182,6 +193,14 @@ public class PontoService {
             m.tipo = PontoRules.ENTRADA;
             aviso = "Você não registrou a saída do plantão de " + ultima.dataHora.format(DateTimeFormatter.ofPattern("dd/MM 'às' HH:mm"))
                     + ". Procure o RH para regularizar.";
+        } else if (PontoRules.ENTRADA.equals(m.tipo) && ultima != null && PontoRules.SAIDA.equals(ultima.tipo)
+                && ultima.dataHora.toLocalDate().equals(agora.toLocalDate())
+                && ultima.dataHora.plusHours(3).isBefore(agora)
+                && !iniciaPlantaoNovo(s.getMatricula(), ultima.dataHora, agora)) {
+            // Saida e entrada longe uma da outra no mesmo dia, sem plantao novo: provavel batida
+            // esquecida (ex.: volta do almoco). So avisa; a correcao e do RH, com justificativa.
+            aviso = "Sua última batida foi a SAÍDA das " + ultima.dataHora.format(DateTimeFormatter.ofPattern("HH:mm"))
+                    + ". Se você esqueceu de bater a volta (ex.: do almoço), procure o RH para incluir.";
         }
         m.dataHora = agora;
         m.origem = origem;
@@ -281,9 +300,11 @@ public class PontoService {
         LocalDateTime inicio = de.atStartOfDay();
         LocalDateTime fim = ate.plusDays(1).atStartOfDay();
         Map<String, String> pessoas = new TreeMap<>();
+        Map<String, PontoMarcacao> ultimas = new HashMap<>();
         for (PontoMarcacao m : PontoMarcacao.<PontoMarcacao>find(
                 "unidade = ?1 and dataHora >= ?2 and dataHora < ?3 and anulada = false", unidade, inicio, fim).list()) {
             pessoas.putIfAbsent(m.matricula, m.nome);
+            ultimas.merge(m.matricula, m, (a, b) -> b.dataHora.isAfter(a.dataHora) ? b : a);
         }
         @SuppressWarnings("unchecked")
         List<Object[]> escalados = em.createQuery(
@@ -299,6 +320,11 @@ public class PontoService {
             l.put("matricula", p.getKey());
             l.put("nome", p.getValue());
             preencherResumo(l, c);
+            PontoMarcacao ult = ultimas.get(p.getKey());
+            if (ult != null) {
+                l.put("ultimaMarcacaoTipo", ult.tipo);
+                l.put("ultimaMarcacaoDataHora", ult.dataHora);
+            }
             l.put("totais", c.totais());
             if (dias) {
                 Servidor s = servidorRepository.localizarMatricula(p.getKey());
@@ -404,8 +430,16 @@ public class PontoService {
             .setParameter(3, quando.plusHours(6))
             .setParameter(4, quando.minusHours(6))
             .getSingleResult();
-        if (escalado == null || escalado == 0)
-            throw new IllegalArgumentException("Servidor sem plantao no Controle de Plantoes para esse dia e horario. Registre o plantao antes de incluir a marcacao.");
+        // Sem escala, o terminal aceita a batida (cobertura de ultima hora); o RH entao pode
+        // completar essa jornada: precisa haver batida real do terminal (nao ajuste) na
+        // unidade dentro da janela da jornada. Ajuste solto, sem plantao nem batida, segue barrado.
+        if (escalado == null || escalado == 0) {
+            long batidasTerminal = PontoMarcacao.count(
+                    "matricula = ?1 and unidade = ?2 and anulada = false and origem <> 'AJUSTE' and dataHora between ?3 and ?4",
+                    s.getMatricula(), unidade, quando.minusHours(PontoRules.JANELA_SAIDA_HORAS), quando.plusHours(PontoRules.JANELA_SAIDA_HORAS));
+            if (batidasTerminal == 0)
+                throw new IllegalArgumentException("Servidor sem plantao no Controle de Plantoes e sem batida no terminal perto desse horario. Registre o plantao antes de incluir a marcacao.");
+        }
         PontoMarcacao m = new PontoMarcacao();
         m.unidade = unidade;
         m.matricula = s.getMatricula();
@@ -781,8 +815,15 @@ public class PontoService {
         if (!reconhecimentoFacialService.configurado()) throw new IllegalStateException("Reconhecimento facial nao configurado no servidor.");
         Servidor s = servidorRepository.localizarMatricula(mat);
         if (s == null) throw new IllegalArgumentException("Matricula nao encontrada.");
+        exigirAcesso(s);
         if (s.getFoto() == null || s.getFoto().isBlank()) throw new IllegalArgumentException("Servidor sem foto cadastrada. Procure o RH.");
         return s;
+    }
+
+    private void exigirAcesso(Servidor s) {
+        if (!securityPermissionService.acessoPermitido(s)) {
+            throw new IllegalArgumentException("Ponto bloqueado. Procure a administracao da unidade para regularizar o cadastro.");
+        }
     }
 
     private void exigirSemBloqueio(String matricula) {

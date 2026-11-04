@@ -29,6 +29,12 @@ public class ProntuarioClinicoItemController {
     ProntuarioClinicoItemService service;
 
     @GET
+    @Path("/alergias-ativas/{idpaciente}")
+    public Response listarAlergiasAtivas(@PathParam("idpaciente") int idpaciente) {
+        return Response.ok(service.listarAlergiasAtivas(idpaciente)).build();
+    }
+
+    @GET
     @Path("/paciente/{idpaciente}/unidade/{unidade}")
     public Response listar(@PathParam("idpaciente") int idpaciente, @PathParam("unidade") String unidade) {
         List<ProntuarioClinicoItem> itens = service.listar(idpaciente, unidade);

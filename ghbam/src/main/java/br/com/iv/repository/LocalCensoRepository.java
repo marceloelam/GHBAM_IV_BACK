@@ -54,6 +54,9 @@ public class LocalCensoRepository implements PanacheRepository<LocalCenso> {
 	        "AND f.idsetorlocalcenso NOT IN (" +
 	        "  SELECT n.local.idsetorlocalcenso FROM NovoInternado n WHERE n.alta != TRUE AND n.unidade = :unidade" +
 	        ") " +
+	        "AND f.idsetorlocalcenso NOT IN (" +
+	        "  SELECT r.idleito FROM LeitoReserva r WHERE r.status = 'ATIVA' AND r.expiraEm > CURRENT_TIMESTAMP" +
+	        ") " +
 	        "ORDER BY f.local ASC", Object[].class)
 	        .setParameter("setor", setor)
 	        .setParameter("unidade", unidade)
@@ -89,6 +92,9 @@ public class LocalCensoRepository implements PanacheRepository<LocalCenso> {
 	        "AND f.idsetorlocalcenso NOT IN (" +
 	        "  SELECT n.local.idsetorlocalcenso FROM NovoInternado n WHERE n.alta != TRUE AND n.unidade = :unidade" +
 	        ") " +
+	        "AND f.idsetorlocalcenso NOT IN (" +
+	        "  SELECT r.idleito FROM LeitoReserva r WHERE r.status = 'ATIVA' AND r.expiraEm > CURRENT_TIMESTAMP" +
+	        ") " +
 	        "ORDER BY f.local ASC", Object[].class)
 	        .setParameter("unidade", unidade)
 	        .getResultList();
@@ -118,6 +124,9 @@ public class LocalCensoRepository implements PanacheRepository<LocalCenso> {
 	        "AND (s.setor = 'OBSERVACAO' OR s.setor = 'OBSERVAÇÃO')" +
 	        "AND f.idsetorlocalcenso NOT IN (" +
 	        "  SELECT n.local.idsetorlocalcenso FROM NovoInternado n WHERE n.alta != TRUE AND n.unidade = :unidade" +
+	        ") " +
+	        "AND f.idsetorlocalcenso NOT IN (" +
+	        "  SELECT r.idleito FROM LeitoReserva r WHERE r.status = 'ATIVA' AND r.expiraEm > CURRENT_TIMESTAMP" +
 	        ") " +
 	        "ORDER BY f.local ASC", Object[].class)
 	        .setParameter("setor", setor)

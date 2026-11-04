@@ -17,6 +17,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -31,8 +32,7 @@ public class AcessoIa {
     private static final String OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions";
     private static final String GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
     private static final String DEFAULT_MODEL_HF = "Qwen/Qwen2.5-7B-Instruct";
-    private static final String DEFAULT_MODEL_OPENROUTER = "openrouter/free";
-    private static final String DEFAULT_MODEL_GROQ = "llama-3.3-70b-versatile";
+    private static final String DEFAULT_MODEL_GROQ = "openai/gpt-oss-120b";
     private static final Duration TIMEOUT_GROQ = Duration.ofSeconds(15);
     private static final Duration TIMEOUT_HF = Duration.ofSeconds(12);
     private static final Duration TIMEOUT_OPENROUTER = Duration.ofSeconds(20);
@@ -138,6 +138,38 @@ public class AcessoIa {
     //  Implementacao (sem auditoria)                                      //
     // ------------------------------------------------------------------ //
 
+    @FunctionalInterface
+    private interface ChamadaModelo<T> {
+        T executar(String modelo) throws Exception;
+    }
+
+    /** Lista de modelos separada por virgula, na ordem de tentativa. */
+    public static List<String> listaModelos(String texto) {
+        if (texto == null) return List.of();
+        return Arrays.stream(texto.split(",")).map(String::trim).filter(s -> !s.isEmpty()).toList();
+    }
+
+    /** Ultimo recurso: percorre OPENROUTER_MODELS, sempre com a exigencia de privacidade de comPrivacidade. */
+    private <T> T reservaOpenRouter(ChamadaModelo<T> chamada) throws Exception {
+        Exception ultima = null;
+        for (String modelo : listaModelos(AppSecrets.OPENROUTER_MODELS)) {
+            try {
+                return chamada.executar(modelo);
+            } catch (Exception e) {
+                ultima = e;
+                System.out.println("[AcessoIa] Reserva " + modelo + " falhou: " + e.getClass().getSimpleName());
+            }
+        }
+        throw new IllegalStateException("IA indisponivel: Groq, Hugging Face e a lista do OpenRouter falharam", ultima);
+    }
+
+    /** O OpenRouter so encaminha para provedores que nao guardam nem treinam com os dados. */
+    private String comPrivacidade(String json) throws Exception {
+        ObjectNode corpo = (ObjectNode) objectMapper.readTree(json);
+        corpo.putObject("provider").put("data_collection", "deny");
+        return objectMapper.writeValueAsString(corpo);
+    }
+
     private String enviarPerguntaSemAuditoria(String pergunta) throws Exception {
         if (AppSecrets.GROQ_API_KEY != null && !AppSecrets.GROQ_API_KEY.isBlank()) {
             try {
@@ -151,11 +183,7 @@ public class AcessoIa {
         } catch (Exception e) {
             System.out.println("[AcessoIa] HF falhou, tentando OpenRouter: " + e.getMessage());
         }
-        if (AppSecrets.OPENROUTER_API_KEY != null && !AppSecrets.OPENROUTER_API_KEY.isBlank()) {
-            return enviarPerguntaOpenRouter(pergunta, DEFAULT_MODEL_OPENROUTER);
-        } else {
-            throw new IllegalStateException("Nenhuma API key configurada (Groq, HF ou OpenRouter) em AppSecrets");
-        }
+        return reservaOpenRouter(m -> enviarPerguntaOpenRouter(pergunta, m));
     }
 
     private String enviarPerguntaSemAuditoria(String pergunta, String modelo) throws Exception {
@@ -174,7 +202,7 @@ public class AcessoIa {
             throw new IllegalStateException("OpenRouter API key nao configurada em AppSecrets");
         }
 
-        String json = montarJsonSimples(modelo, pergunta);
+        String json = comPrivacidade(montarJsonSimples(modelo, pergunta));
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(OPENROUTER_API_URL))
                 .header("Authorization", "Bearer " + AppSecrets.OPENROUTER_API_KEY)
@@ -250,11 +278,7 @@ public class AcessoIa {
         } catch (Exception e) {
             System.out.println("[AcessoIa] HF falhou, tentando OpenRouter: " + e.getMessage());
         }
-        if (AppSecrets.OPENROUTER_API_KEY != null && !AppSecrets.OPENROUTER_API_KEY.isBlank()) {
-            return enviarMensagensOpenRouter(mensagens, DEFAULT_MODEL_OPENROUTER);
-        } else {
-            throw new IllegalStateException("Nenhuma API key configurada (Groq, HF ou OpenRouter) em AppSecrets");
-        }
+        return reservaOpenRouter(m -> enviarMensagensOpenRouter(mensagens, m));
     }
 
     private String enviarMensagensSemAuditoria(List<Map<String, String>> mensagens, String modelo) throws Exception {
@@ -290,11 +314,7 @@ public class AcessoIa {
             } catch (Exception e) {
                 System.out.println("[AcessoIa] HF falhou, tentando OpenRouter: " + e.getMessage());
             }
-            if (AppSecrets.OPENROUTER_API_KEY != null && !AppSecrets.OPENROUTER_API_KEY.isBlank()) {
-                return enviarMensagensOpenRouterComMetadados(mensagens, DEFAULT_MODEL_OPENROUTER, temperatura, maxTokens);
-            } else {
-                throw new IllegalStateException("Nenhuma API key configurada (Groq, HF ou OpenRouter) em AppSecrets");
-            }
+            return reservaOpenRouter(m -> enviarMensagensOpenRouterComMetadados(mensagens, m, temperatura, maxTokens));
         }
         if (modeloEfetivo.startsWith("hf:")) {
             return enviarMensagensHfComMetadados(mensagens, modeloEfetivo.replace("hf:", ""), temperatura, maxTokens);
@@ -310,7 +330,7 @@ public class AcessoIa {
         if (AppSecrets.OPENROUTER_API_KEY == null || AppSecrets.OPENROUTER_API_KEY.isBlank()) {
             throw new IllegalStateException("OpenRouter API key nao configurada em AppSecrets");
         }
-        String json = montarJsonMensagens(modelo, mensagens, temperatura, maxTokens);
+        String json = comPrivacidade(montarJsonMensagens(modelo, mensagens, temperatura, maxTokens));
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(OPENROUTER_API_URL))
                 .header("Authorization", "Bearer " + AppSecrets.OPENROUTER_API_KEY)
@@ -392,7 +412,7 @@ public class AcessoIa {
             throw new IllegalStateException("OpenRouter API key nao configurada em AppSecrets");
         }
 
-        String json = montarJsonMensagens(modelo, mensagens);
+        String json = comPrivacidade(montarJsonMensagens(modelo, mensagens));
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(OPENROUTER_API_URL))
                 .header("Authorization", "Bearer " + AppSecrets.OPENROUTER_API_KEY)

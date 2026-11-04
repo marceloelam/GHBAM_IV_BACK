@@ -22,6 +22,9 @@ public class AlmoxGestaoService {
     @Inject
     AlmoxService almoxService;
 
+    @Inject
+    AlmoxAuditoria auditoria;
+
     // ---- Fornecedores ----
 
     public List<AlmoxFornecedor> listarFornecedores(String unidade) {
@@ -37,6 +40,8 @@ public class AlmoxGestaoService {
                 : AlmoxFornecedor.count("unidade = ?1 and nome = ?2 and idfornecedor <> ?3", unidade, n, id);
         if (repetido > 0) throw new IllegalStateException("Fornecedor ja cadastrado nesta unidade.");
         AlmoxFornecedor f = id == null ? new AlmoxFornecedor() : fornecedorDaUnidade(unidade, id);
+        String[] antes = {f.nome, f.cnpj, f.telefone, f.email};
+        Boolean ativoAntes = f.ativo;
         f.unidade = unidade;
         f.nome = n;
         String cnpj = textoOuNulo(p, "cnpj");
@@ -48,6 +53,15 @@ public class AlmoxGestaoService {
         if (id == null) {
             f.usuarioRegistro = usuario;
             f.persist();
+            auditoria.registrar(unidade, usuario, "cadastrou o fornecedor " + f.nome + (f.cnpj == null ? "" : " (CNPJ " + f.cnpj + ")"));
+        } else {
+            if (!java.util.Objects.equals(ativoAntes, f.ativo)) {
+                auditoria.registrar(unidade, usuario, (Boolean.FALSE.equals(f.ativo) ? "excluiu" : "reativou") + " o fornecedor " + f.nome);
+            }
+            AlmoxAuditoria.Diferencas d = new AlmoxAuditoria.Diferencas()
+                    .campo("nome", antes[0], f.nome).campo("CNPJ", antes[1], f.cnpj)
+                    .campo("telefone", antes[2], f.telefone).campo("e-mail", antes[3], f.email);
+            if (!d.vazio()) auditoria.registrar(unidade, usuario, "alterou o fornecedor " + f.nome + ": " + d);
         }
         return f;
     }
@@ -76,6 +90,7 @@ public class AlmoxGestaoService {
             AlmoxItem item = itemDaUnidade(unidade, longo(l, "iditem"));
             incluirItem(c, item, positivo(decimal(l, "quantidade"), "Quantidade de " + item.descricao), decimal(l, "custoUnitario"));
         }
+        auditoria.registrar(unidade, usuario, "criou o pedido de compra n " + c.idcompra + " com " + itens.size() + " item(ns)");
         return detalharCompra(c);
     }
 
@@ -92,26 +107,30 @@ public class AlmoxGestaoService {
             incluirItem(c, i, AlmoxRules.quantidadeSugerida(i.saldo, i.estoqueMinimo, i.estoqueMaximo),
                     i.custoMedio.signum() > 0 ? i.custoMedio : null);
         }
+        auditoria.registrar(unidade, usuario, "gerou o pedido de compra n " + c.idcompra + " pelo ponto de pedido: "
+                + String.join(", ", comFalta.stream().map(i -> i.descricao).toList()));
         return detalharCompra(c);
     }
 
     @Transactional
-    public Map<String, Object> enviarCompra(String unidade, Long id) {
+    public Map<String, Object> enviarCompra(String unidade, Long id, String usuario) {
         AlmoxCompra c = compraTravada(unidade, id);
         if (!AlmoxRules.COMPRA_ABERTO.equals(c.status)) throw new IllegalStateException("So pedido aberto pode ser enviado.");
         c.status = AlmoxRules.COMPRA_ENVIADO;
         c.dataEnvio = LocalDateTime.now();
+        auditoria.registrar(unidade, usuario, "enviou ao fornecedor o pedido de compra n " + c.idcompra);
         return detalharCompra(c);
     }
 
     @Transactional
-    public Map<String, Object> cancelarCompra(String unidade, Long id) {
+    public Map<String, Object> cancelarCompra(String unidade, Long id, String usuario) {
         AlmoxCompra c = compraTravada(unidade, id);
         if (!AlmoxRules.compraRecebivel(c.status)) {
             throw new IllegalStateException("Pedido " + c.status.toLowerCase() + " nao pode ser cancelado.");
         }
         // Parte ja entrou no estoque: o pedido e encerrado (o restante nao vem), nao cancelado.
         c.status = AlmoxRules.COMPRA_PARCIAL.equals(c.status) ? AlmoxRules.COMPRA_ENCERRADO : AlmoxRules.COMPRA_CANCELADO;
+        auditoria.registrar(unidade, usuario, (AlmoxRules.COMPRA_ENCERRADO.equals(c.status) ? "encerrou" : "cancelou") + " o pedido de compra n " + c.idcompra);
         return detalharCompra(c);
     }
 
@@ -127,6 +146,7 @@ public class AlmoxGestaoService {
         }
         Map<Long, BigDecimal> recebido = new HashMap<>();
         Map<Long, BigDecimal> custo = new HashMap<>();
+        Map<Long, Object[]> loteValidade = new HashMap<>();
         Object bruto = p == null ? null : p.get("itens");
         if (bruto instanceof List<?> lista) {
             for (Object o : lista) {
@@ -139,6 +159,8 @@ public class AlmoxGestaoService {
                     recebido.put(idci, q == null ? BigDecimal.ZERO : q);
                     BigDecimal cu = decimal(l, "custoUnitario");
                     if (cu != null) custo.put(idci, cu);
+                    // Lote e validade seguem para a entrada (AlmoxService.entrada recusa material vencido).
+                    loteValidade.put(idci, new Object[] {l.get("lote"), l.get("validade")});
                 }
             }
         }
@@ -167,6 +189,9 @@ public class AlmoxGestaoService {
                 if (ci.custoUnitario != null) entrada.put("custoUnitario", ci.custoUnitario);
                 entrada.put("documento", nf == null ? "PEDIDO DE COMPRA " + c.idcompra : nf);
                 if (fornecedor != null) entrada.put("fornecedor", fornecedor);
+                Object[] lv = loteValidade.get(ci.idcompraitem);
+                if (lv != null && lv[0] != null) entrada.put("lote", lv[0]);
+                if (lv != null && lv[1] != null) entrada.put("validade", lv[1]);
                 almoxService.entrada(unidade, entrada, usuario);
             }
         }
@@ -178,6 +203,8 @@ public class AlmoxGestaoService {
         }
         c.dataRecebimento = LocalDateTime.now();
         c.usuarioRecebimento = usuario;
+        auditoria.registrar(unidade, usuario, "recebeu o pedido de compra n " + c.idcompra + " (" + c.status.toLowerCase() + ")"
+                + (nf == null ? "" : ", nota fiscal " + nf));
         return detalharCompra(c);
     }
 
@@ -339,6 +366,10 @@ public class AlmoxGestaoService {
         e.detalhe = detalhe;
         e.usuario = usuario;
         e.persist();
+        // Alem do historico do bem, vai para o log geral do sistema.
+        auditoria.registrar(b.unidade, usuario, "patrimonio " + tipo.toLowerCase() + " do bem " + b.tombamento + " " + b.descricao
+                + (origem == null && destino == null ? "" : " (" + (origem == null ? "-" : origem) + " -> " + (destino == null ? "-" : destino) + ")")
+                + (detalhe == null ? "" : ": " + detalhe));
     }
 
     private AlmoxFornecedor fornecedorDaUnidade(String unidade, Long id) {

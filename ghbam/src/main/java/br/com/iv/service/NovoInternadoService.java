@@ -11,6 +11,7 @@ import br.com.iv.repository.BamRepository;
 import br.com.iv.repository.NovoInternadoRepository;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 
 @ApplicationScoped
@@ -25,6 +26,12 @@ public class NovoInternadoService implements Serializable {
 
 	@Inject
 	ProntuarioDefinitivoService prontuarioDefinitivoService;
+
+	@Inject
+	LeitoOcupacaoGuard leitoOcupacaoGuard;
+
+	@Inject
+	EntityManager entityManager;
 
 	public List<NovoInternado> listarTodosOsRegistros() {
 		return novointernadoRepository.listAll();
@@ -44,8 +51,10 @@ public class NovoInternadoService implements Serializable {
 
 	@SuppressWarnings("static-access")
 	@Transactional
-	public NovoInternado alterarLeito(int bam, int setor, int leito, String quem) {
+	public NovoInternado alterarLeito(int bam, int setor, int leito, String quem, boolean confirmarLeitoOcupado) {
+		leitoOcupacaoGuard.conferir(leito, bam, confirmarLeitoOcupado, "Transferencia de leito");
 		novointernadoRepository.alterarLeito(bam, setor, leito, quem);
+		leitoOcupacaoGuard.encerrarReservaDoBam(bam, leito, quem);
 		return null;
 	}
 
@@ -66,7 +75,12 @@ public class NovoInternadoService implements Serializable {
 
 	// Salvar
 	@Transactional
-	public NovoInternado salvarNovoInternado(NovoInternadoDto dto) {
+	public NovoInternado salvarNovoInternado(NovoInternadoDto dto, boolean confirmarLeitoOcupado) {
+		// Fora do try abaixo, que engole excecoes: a recusa precisa chegar a tela.
+		int idleito = dto.getLocal() == null ? 0 : dto.getLocal().getIdsetorlocalcenso();
+		if (!dto.isAlta()) {
+			leitoOcupacaoGuard.conferir(idleito, dto.getNbam(), confirmarLeitoOcupado, "Alocacao no censo");
+		}
 		try {
 			NovoInternado novoInternado = new NovoInternado();
 			Bam numeroDoBam = dto.getBam();
@@ -114,6 +128,9 @@ public class NovoInternadoService implements Serializable {
 
 			novoInternado.persist();
 			bamRepository.atualizarMarcadorTransferencia(numeroDoBam.getIdbam(), false);
+			if (!dto.isAlta()) {
+				leitoOcupacaoGuard.encerrarReservaDoBam(dto.getNbam(), idleito, dto.getQuemalocou());
+			}
 			return novoInternado;
 
 		} catch (Exception e) {
@@ -128,7 +145,15 @@ public class NovoInternadoService implements Serializable {
 		}
 
 	@Transactional
-	public boolean cancelarAltaNoCenso(int bam) {
+	@SuppressWarnings("unchecked")
+	public boolean cancelarAltaNoCenso(int bam, boolean confirmarLeitoOcupado) {
+		List<Number> leitos = entityManager.createNativeQuery(
+				"SELECT local_idsetorlocalcenso FROM novointernado WHERE nbam = :bam AND alta = true ORDER BY idninternado DESC LIMIT 1")
+				.setParameter("bam", bam)
+				.getResultList();
+		for (Number leito : leitos) {
+			leitoOcupacaoGuard.conferir(leito.intValue(), bam, confirmarLeitoOcupado, "Cancelamento de alta no censo");
+		}
 		return novointernadoRepository.cancelarAltaNoCenso(bam) > 0;
 	}
 

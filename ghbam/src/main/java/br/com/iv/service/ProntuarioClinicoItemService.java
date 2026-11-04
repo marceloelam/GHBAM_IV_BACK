@@ -33,6 +33,16 @@ public class ProntuarioClinicoItemService implements Serializable {
         return repository.listarPorPacienteTipo(idpaciente, normalizeTipo(tipo), unidade);
     }
 
+    // Alergia vale para o paciente, em qualquer unidade. Devolve so o texto, sem os demais dados do item.
+    public List<String> listarAlergiasAtivas(int idpaciente) {
+        return listarPorTipo(idpaciente, "ALERGIA", "TODAS").stream()
+                .filter(item -> !"INATIVO".equalsIgnoreCase(item.getStatus()))
+                .map(item -> item.getTitulo() == null || item.getTitulo().isBlank() ? item.getDescricao() : item.getTitulo())
+                .filter(texto -> texto != null && !texto.isBlank())
+                .map(String::trim)
+                .collect(Collectors.toList());
+    }
+
     @Transactional
     public ProntuarioClinicoItem salvar(ProntuarioClinicoItemDto dto) {
         ProntuarioClinicoItem item = new ProntuarioClinicoItem();

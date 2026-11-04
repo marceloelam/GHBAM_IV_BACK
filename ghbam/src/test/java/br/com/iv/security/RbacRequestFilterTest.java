@@ -235,6 +235,19 @@ class RbacRequestFilterTest {
     }
 
     @Test
+    void tecnicoDeEnfermagemLeBamEPacienteParaReimprimirSemGanharAlteracao() {
+        RoutePermissionCatalog catalog = new RoutePermissionCatalog();
+        List<String> doPaciente = catalog.requiredPermissionsFor("/pacientes/MARIA").orElseThrow();
+        List<String> doBam = catalog.requiredPermissionsFor("/bam/idpaciente/123").orElseThrow();
+
+        assertTrue(RbacRequestFilter.permissionsForRequest("/pacientes/MARIA", "GET", doPaciente).contains("ktcenfermagem"));
+        assertTrue(RbacRequestFilter.permissionsForRequest("/bam/idpaciente/123", "GET", doBam).contains("ktcenfermagem"));
+        assertTrue(RbacRequestFilter.permissionsForRequest("/bam/idpaciente/123", "GET", doBam).contains("pimprimirbam"));
+        assertFalse(RbacRequestFilter.permissionsForRequest("/pacientes/123", "PUT", doPaciente).contains("ktcenfermagem"));
+        assertFalse(RbacRequestFilter.permissionsForRequest("/pacientes/MARIA/idade/atualizacao", "PATCH", doPaciente).contains("ktcenfermagem"));
+    }
+
+    @Test
     void triagemPodeAtualizarIdadeDaPropriaFilaSemAcessoAmploAPacientes() {
         RoutePermissionCatalog catalog = new RoutePermissionCatalog();
         String rota = "/pacientes/triagem/vila_geny/idade/atualizacao";

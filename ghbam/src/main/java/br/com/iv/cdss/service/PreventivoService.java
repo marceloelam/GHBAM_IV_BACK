@@ -2,10 +2,13 @@ package br.com.iv.cdss.service;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.text.Normalizer;
@@ -82,8 +85,8 @@ public class PreventivoService {
         result.put("incluiOutrasUnidades", redeCompleta);
         result.put("limitePorFonte", 201);
         result.put("aviso", redeCompleta
-                ? "Alertas automaticos sao triagem preventiva por regras auditaveis e incluem historico de outras unidades autorizadas. Nao representam diagnostico e ausencia de alerta nao significa ausencia de risco."
-                : "Alertas automaticos sao triagem preventiva por regras auditaveis. Nao representam diagnostico e ausencia de alerta nao significa ausencia de risco.");
+                ? "Alertas automáticos são triagem preventiva por regras auditáveis e incluem histórico de outras unidades autorizadas. Não representam diagnóstico e ausência de alerta não significa ausência de risco."
+                : "Alertas automáticos são triagem preventiva por regras auditáveis. Não representam diagnóstico e ausência de alerta não significa ausência de risco.");
         return result;
     }
 
@@ -193,6 +196,7 @@ public class PreventivoService {
     }
 
     public List<AlertaPreventivo> avaliarAutomaticamente(List<Fonte> fontes, List<Vital> vitais) {
+        fontes = semTrechosRepetidos(fontes);
         String texto = normalizar(String.join("\n", fontes.stream().map(f -> texto(f.texto())).toList()));
         List<AlertaPreventivo> alertas = new ArrayList<>();
         avaliarRiscoDiabetes(fontes, texto, alertas);
@@ -369,7 +373,32 @@ public class PreventivoService {
         if (total > 0) evidencias.add(new Evidencia(label, total + " menção(ões)", ocorrenciasTexto(fontes, regex)));
     }
 
-    // Documentos em que a mesma regra encontrou o termo, com o trecho ao redor da primeira ocorrencia.
+    // O mesmo texto costuma ser gravado em mais de um campo do BAM (ex.: comentario = copia da anamnese).
+    // Frase repetida dentro do mesmo BAM conta uma vez so; em BAMs diferentes continua sendo recorrencia.
+    // Triagem fica de fora: e uma lista de numeros, repetir valor ali nao e copia de texto.
+    private List<Fonte> semTrechosRepetidos(List<Fonte> fontes) {
+        Map<String, Set<String>> vistosPorBam = new HashMap<>();
+        List<Fonte> resultado = new ArrayList<>();
+        for (Fonte fonte : fontes) {
+            if ("TRIAGEM".equals(fonte.tipo())) {
+                resultado.add(fonte);
+                continue;
+            }
+            Set<String> vistos = vistosPorBam.computeIfAbsent(texto(fonte.bam()), bam -> new HashSet<>());
+            String limpo = texto(fonte.texto()).replaceAll("<[^>]*>", " ").replace("&nbsp;", " ");
+            StringBuilder unico = new StringBuilder();
+            for (String frase : limpo.split("(?<=[.;!?\\n])|(?=#)")) {
+                String chave = normalizar(frase).replaceAll("[^a-z0-9]", "");
+                if (chave.length() >= 12 && !vistos.add(chave)) continue;
+                unico.append(frase);
+            }
+            resultado.add(new Fonte(fonte.tipo(), fonte.id(), fonte.bam(), fonte.data(), fonte.profissional(), unico.toString(), fonte.unidadeOrigem()));
+        }
+        return resultado;
+    }
+
+    // Documentos em que a mesma regra encontrou o termo, com o trecho ao redor de CADA ocorrencia
+    // (janelas que se sobrepoem viram um trecho so), para o total de mencoes bater com o que o profissional ve.
     private List<Ocorrencia> ocorrenciasTexto(List<Fonte> fontes, String regex) {
         Pattern pattern = Pattern.compile(regex);
         List<Ocorrencia> resultado = new ArrayList<>();
@@ -377,12 +406,24 @@ public class PreventivoService {
             String limpo = texto(fonte.texto()).replaceAll("<[^>]*>", " ").replace("&nbsp;", " ").replaceAll("\\s+", " ").trim();
             String normalizado = normalizar(limpo);
             var matcher = pattern.matcher(normalizado);
-            if (!matcher.find()) continue;
             String base = normalizado.length() == limpo.length() ? limpo : normalizado;
-            int inicio = Math.max(0, matcher.start() - 120);
-            int fim = Math.min(base.length(), matcher.end() + 180);
-            String trecho = (inicio > 0 ? "..." : "") + base.substring(inicio, fim) + (fim < base.length() ? "..." : "");
-            resultado.add(new Ocorrencia(fonte.tipo(), fonte.id(), fonte.bam(), fonte.data(), fonte.unidadeOrigem(), fonte.profissional(), trecho));
+            List<int[]> janelas = new ArrayList<>();
+            while (matcher.find() && janelas.size() < 10) {
+                int inicio = Math.max(0, matcher.start() - 120);
+                int fim = Math.min(base.length(), matcher.end() + 180);
+                int[] ultima = janelas.isEmpty() ? null : janelas.get(janelas.size() - 1);
+                if (ultima != null && inicio <= ultima[1]) ultima[1] = Math.max(ultima[1], fim);
+                else janelas.add(new int[] { inicio, fim });
+            }
+            if (janelas.isEmpty()) continue;
+            StringBuilder trecho = new StringBuilder();
+            for (int[] janela : janelas) {
+                if (janela[0] > 0) trecho.append(trecho.length() > 0 ? " " : "").append("...");
+                else if (trecho.length() > 0) trecho.append(" ");
+                trecho.append(base, janela[0], janela[1]);
+            }
+            if (janelas.get(janelas.size() - 1)[1] < base.length()) trecho.append("...");
+            resultado.add(new Ocorrencia(fonte.tipo(), fonte.id(), fonte.bam(), fonte.data(), fonte.unidadeOrigem(), fonte.profissional(), trecho.toString()));
         }
         return resultado;
     }

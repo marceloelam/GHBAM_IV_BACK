@@ -37,6 +37,9 @@ public class CmeController {
     @Inject
     CmeService service;
 
+    @Inject
+    CmeCaixaService caixas;
+
     private AuthenticatedUser user() {
         Object u = context.getProperty("ghbam.user");
         if (!(u instanceof AuthenticatedUser a) || !a.hasAnyPermission(PERMISSOES)) {
@@ -69,6 +72,32 @@ public class CmeController {
     private static String texto(Map<String, Object> payload, String chave) {
         Object v = payload == null ? null : payload.get(chave);
         return v == null ? null : String.valueOf(v);
+    }
+
+    // ---- Caixas e kits (cadastro com composicao) ----
+
+    @GET
+    @Path("caixas")
+    public Response listarCaixas(@QueryParam("unidade") String unidade, @QueryParam("todos") boolean todos) {
+        AuthenticatedUser u = user();
+        String un = unidade(u, unidade);
+        return executar(Response.Status.OK, () -> caixas.listar(un, todos));
+    }
+
+    @POST
+    @Path("caixas")
+    public Response criarCaixa(@QueryParam("unidade") String unidade, Map<String, Object> payload) {
+        AuthenticatedUser u = user();
+        String un = unidade(u, unidade);
+        return executar(Response.Status.CREATED, () -> caixas.salvar(un, null, payload, u.matricula()));
+    }
+
+    @POST
+    @Path("caixas/{id}")
+    public Response alterarCaixa(@PathParam("id") Long id, @QueryParam("unidade") String unidade, Map<String, Object> payload) {
+        AuthenticatedUser u = user();
+        String un = unidade(u, unidade);
+        return executar(Response.Status.OK, () -> caixas.salvar(un, id, payload, u.matricula()));
     }
 
     @GET

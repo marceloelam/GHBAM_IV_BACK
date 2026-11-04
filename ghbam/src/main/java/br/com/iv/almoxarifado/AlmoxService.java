@@ -2,6 +2,7 @@ package br.com.iv.almoxarifado;
 
 import br.com.iv.security.AuthenticatedUser;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import jakarta.persistence.LockModeType;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.NotFoundException;
@@ -21,12 +22,41 @@ import java.util.stream.Collectors;
 @ApplicationScoped
 public class AlmoxService {
 
+    @Inject
+    AlmoxAuditoria auditoria;
+
     // ---- Itens ----
 
     public List<AlmoxItem> listarItens(String unidade, boolean apenasAtivos) {
-        return apenasAtivos
+        List<AlmoxItem> itens = apenasAtivos
                 ? AlmoxItem.<AlmoxItem>find("unidade = ?1 and ativo = true order by descricao", unidade).list()
                 : AlmoxItem.<AlmoxItem>find("unidade = ?1 order by ativo desc, descricao", unidade).list();
+        preencherProximaValidade(unidade, itens);
+        return itens;
+    }
+
+    /**
+     * Sem controle de saldo por lote: assume que sai primeiro o que entrou primeiro (FIFO).
+     * O saldo atual corresponde as entradas mais recentes; a menor validade entre elas e a proxima a vencer.
+     */
+    private void preencherProximaValidade(String unidade, List<AlmoxItem> itens) {
+        Map<Long, AlmoxItem> comSaldo = itens.stream()
+                .filter(i -> i.saldo != null && i.saldo.signum() > 0)
+                .collect(Collectors.toMap(i -> i.iditem, Function.identity()));
+        if (comSaldo.isEmpty()) return;
+        List<AlmoxMovimentacao> entradas = AlmoxMovimentacao.<AlmoxMovimentacao>find(
+                "unidade = ?1 and tipo = ?2 and iditem in ?3 order by iditem, dataMovimentacao desc, idmovimentacao desc",
+                unidade, AlmoxRules.MOV_ENTRADA, new ArrayList<>(comSaldo.keySet())).list();
+        Map<Long, BigDecimal> acumulado = new HashMap<>();
+        for (AlmoxMovimentacao m : entradas) {
+            AlmoxItem item = comSaldo.get(m.iditem);
+            BigDecimal jaContado = acumulado.getOrDefault(m.iditem, BigDecimal.ZERO);
+            if (item == null || m.quantidade == null || jaContado.compareTo(item.saldo) >= 0) continue;
+            if (m.validade != null && (item.proximaValidade == null || m.validade.isBefore(item.proximaValidade))) {
+                item.proximaValidade = m.validade;
+            }
+            acumulado.put(m.iditem, jaContado.add(m.quantidade));
+        }
     }
 
     public List<AlmoxItem> abaixoDoMinimo(String unidade) {
@@ -48,6 +78,11 @@ public class AlmoxService {
         if (repetido > 0) {
             throw new IllegalStateException("Ja existe um item com essa descricao nesta unidade.");
         }
+        // Retrato antes da alteracao, para o log mostrar "antes -> depois".
+        String[] antes = {item.descricao, item.codigo, item.unidadeMedida, item.grupo,
+                item.estoqueMinimo == null ? null : item.estoqueMinimo.stripTrailingZeros().toPlainString(),
+                item.estoqueMaximo == null ? null : item.estoqueMaximo.stripTrailingZeros().toPlainString()};
+        Boolean ativoAntes = item.ativo;
         item.unidade = unidade;
         item.descricao = desc;
         item.codigo = vazio(texto(payload, "codigo")) ? null : texto(payload, "codigo").trim().toUpperCase();
@@ -65,9 +100,22 @@ public class AlmoxService {
         if (iditem == null) {
             item.usuarioRegistro = usuario;
             item.persist();
+            auditoria.registrar(unidade, usuario, "cadastrou o item " + item.descricao + " (" + item.unidadeMedida + ", grupo " + item.grupo
+                    + ", minimo " + item.estoqueMinimo.stripTrailingZeros().toPlainString() + ")");
         } else {
             item.dataAtualizacao = LocalDateTime.now();
             item.usuarioAtualizacao = usuario;
+            if (!java.util.Objects.equals(ativoAntes, item.ativo)) {
+                auditoria.registrar(unidade, usuario, (Boolean.FALSE.equals(item.ativo) ? "excluiu" : "reativou") + " o item " + item.descricao);
+            }
+            AlmoxAuditoria.Diferencas d = new AlmoxAuditoria.Diferencas()
+                    .campo("descricao", antes[0], item.descricao)
+                    .campo("codigo", antes[1], item.codigo)
+                    .campo("unidade de medida", antes[2], item.unidadeMedida)
+                    .campo("grupo", antes[3], item.grupo)
+                    .campo("estoque minimo", antes[4], item.estoqueMinimo)
+                    .campo("estoque maximo", antes[5], item.estoqueMaximo);
+            if (!d.vazio()) auditoria.registrar(unidade, usuario, "alterou o item " + item.descricao + ": " + d);
         }
         return item;
     }
@@ -97,6 +145,12 @@ public class AlmoxService {
         m.lote = textoOuNulo(payload, "lote");
         m.validade = validade;
         m.persist();
+        auditoria.registrar(unidade, usuario, "deu entrada de " + qtd.stripTrailingZeros().toPlainString() + " " + item.unidadeMedida + " de " + item.descricao
+                + (m.documento == null ? "" : ", documento " + m.documento)
+                + (m.fornecedor == null ? "" : ", fornecedor " + m.fornecedor)
+                + (m.lote == null ? "" : ", lote " + m.lote)
+                + (validade == null ? "" : ", validade " + validade)
+                + "; saldo agora " + item.saldo.stripTrailingZeros().toPlainString());
         return item;
     }
 
@@ -119,13 +173,22 @@ public class AlmoxService {
         AlmoxMovimentacao m = mov(item, AlmoxRules.MOV_AJUSTE, diferenca, item.custoMedio, usuario);
         m.justificativa = justificativa.trim();
         m.persist();
+        auditoria.registrar(unidade, usuario, "ajustou o saldo de " + item.descricao + " para " + contado.stripTrailingZeros().toPlainString()
+                + " (diferenca " + diferenca.stripTrailingZeros().toPlainString() + "): " + m.justificativa);
         return item;
     }
 
-    public List<Map<String, Object>> movimentacoes(String unidade, Long iditem) {
-        List<AlmoxMovimentacao> lista = iditem == null
-                ? AlmoxMovimentacao.<AlmoxMovimentacao>find("unidade = ?1 order by dataMovimentacao desc", unidade).page(0, 300).list()
-                : AlmoxMovimentacao.<AlmoxMovimentacao>find("unidade = ?1 and iditem = ?2 order by dataMovimentacao desc", unidade, iditem).page(0, 300).list();
+    public List<Map<String, Object>> movimentacoes(String unidade, Long iditem, LocalDate de, LocalDate ate) {
+        // Sem periodo: as 300 mais recentes. Com periodo: tudo do intervalo (teto de 5000 linhas).
+        StringBuilder q = new StringBuilder("unidade = :unidade");
+        Map<String, Object> p = new HashMap<>();
+        p.put("unidade", unidade);
+        if (iditem != null) { q.append(" and iditem = :iditem"); p.put("iditem", iditem); }
+        if (de != null) { q.append(" and dataMovimentacao >= :de"); p.put("de", de.atStartOfDay()); }
+        if (ate != null) { q.append(" and dataMovimentacao < :ate"); p.put("ate", ate.plusDays(1).atStartOfDay()); }
+        q.append(" order by dataMovimentacao desc");
+        List<AlmoxMovimentacao> lista = AlmoxMovimentacao.<AlmoxMovimentacao>find(q.toString(), p)
+                .page(0, de == null && ate == null ? 300 : 5000).list();
         Map<Long, AlmoxItem> itens = itensPorId(lista.stream().map(m -> m.iditem).toList());
         List<Map<String, Object>> resposta = new ArrayList<>();
         for (AlmoxMovimentacao m : lista) {
@@ -177,6 +240,8 @@ public class AlmoxService {
             ri.quantidadeSolicitada = positivo(decimal(l, "quantidade"), "Quantidade de " + item.descricao);
             ri.persist();
         }
+        auditoria.registrar(unidade, u.matricula(), "abriu o pedido de material n " + req.idrequisicao + " do setor " + setor
+                + " com " + itens.size() + " item(ns)");
         return detalhar(req);
     }
 
@@ -214,6 +279,7 @@ public class AlmoxService {
         s.nome = n;
         s.usuarioRegistro = usuario;
         s.persist();
+        auditoria.registrar(unidade, usuario, "incluiu o setor " + n + " na lista de setores que pedem material");
         return s;
     }
 
@@ -221,6 +287,7 @@ public class AlmoxService {
     @Transactional
     public List<AlmoxSetor> incluirSetoresComuns(String unidade, String usuario) {
         List<String> existentes = setoresDaUnidade(unidade);
+        List<String> novos = new ArrayList<>();
         for (String nome : AlmoxRules.SETORES_COMUNS) {
             if (existentes.contains(nome)) continue;
             AlmoxSetor s = new AlmoxSetor();
@@ -228,17 +295,20 @@ public class AlmoxService {
             s.nome = nome;
             s.usuarioRegistro = usuario;
             s.persist();
+            novos.add(nome);
         }
+        if (!novos.isEmpty()) auditoria.registrar(unidade, usuario, "incluiu os setores comuns: " + String.join(", ", novos));
         return listarSetores(unidade);
     }
 
     /** Tira o setor da lista; os pedidos antigos dele continuam na gestao. */
     @Transactional
-    public Map<String, Object> removerSetor(String unidade, Long idsetor) {
+    public Map<String, Object> removerSetor(String unidade, Long idsetor, String usuario) {
         AlmoxSetor s = idsetor == null ? null
                 : AlmoxSetor.<AlmoxSetor>find("idsetor = ?1 and unidade = ?2", idsetor, unidade).firstResult();
         if (s == null) throw new NotFoundException("Setor nao encontrado nesta unidade.");
         s.delete();
+        auditoria.registrar(unidade, usuario, "removeu o setor " + s.nome + " da lista de setores que pedem material");
         return Map.of("removido", s.nome);
     }
 
@@ -292,6 +362,7 @@ public class AlmoxService {
         List<AlmoxRequisicaoItem> itens = AlmoxRequisicaoItem.<AlmoxRequisicaoItem>find("idrequisicao", idrequisicao).list();
         Map<Long, AlmoxItem> travados = travarItens(unidade, itens.stream().map(i -> i.iditem).toList());
         List<BigDecimal[]> resumo = new ArrayList<>();
+        List<String> entregas = new ArrayList<>();
         for (AlmoxRequisicaoItem ri : itens) {
             BigDecimal qtd = entregue.getOrDefault(ri.idrequisicaoitem, BigDecimal.ZERO);
             if (qtd.compareTo(ri.quantidadeSolicitada) > 0) {
@@ -305,6 +376,7 @@ public class AlmoxService {
             }
             ri.quantidadeAtendida = qtd;
             resumo.add(new BigDecimal[] {ri.quantidadeSolicitada, qtd});
+            if (qtd.signum() > 0) entregas.add(qtd.stripTrailingZeros().toPlainString() + " " + item.unidadeMedida + " de " + item.descricao);
             if (qtd.signum() > 0) {
                 item.saldo = item.saldo.subtract(qtd);
                 item.dataAtualizacao = LocalDateTime.now();
@@ -322,6 +394,9 @@ public class AlmoxService {
         }
         req.matriculaAtendente = usuario;
         req.dataAtendimento = LocalDateTime.now();
+        auditoria.registrar(unidade, usuario, AlmoxRules.REQ_RECUSADA.equals(req.status)
+                ? "recusou o pedido n " + req.idrequisicao + " do setor " + req.setor + ": " + req.motivo
+                : "atendeu o pedido n " + req.idrequisicao + " do setor " + req.setor + " (" + req.status.toLowerCase() + "): " + String.join(", ", entregas));
         return detalhar(req);
     }
 
@@ -337,10 +412,44 @@ public class AlmoxService {
         }
         req.status = AlmoxRules.REQ_CANCELADA;
         req.dataAtendimento = LocalDateTime.now();
+        auditoria.registrar(unidade, matricula, "cancelou o proprio pedido n " + req.idrequisicao + " do setor " + req.setor);
         return detalhar(req);
     }
 
     // ---- Relatorio ----
+
+    /** Consumo por setor no periodo: pedidos atendidos, itens entregues e gasto (quantidade x custo da saida). */
+    public List<Map<String, Object>> consumoPorSetor(String unidade, int dias) {
+        LocalDateTime desde = LocalDate.now().minusDays(Math.max(1, dias)).atStartOfDay();
+        List<AlmoxMovimentacao> saidas = AlmoxMovimentacao.<AlmoxMovimentacao>find(
+                "unidade = ?1 and tipo = ?2 and dataMovimentacao >= ?3", unidade, AlmoxRules.MOV_SAIDA, desde).list();
+        Map<String, BigDecimal> valor = new HashMap<>();
+        Map<String, Integer> itens = new HashMap<>();
+        Map<String, java.util.Set<Long>> pedidos = new HashMap<>();
+        for (AlmoxMovimentacao m : saidas) {
+            String setor = m.setor == null || m.setor.isBlank() ? "SEM SETOR" : m.setor.trim().toUpperCase();
+            BigDecimal q = m.quantidade == null ? BigDecimal.ZERO : m.quantidade.abs();
+            BigDecimal c = m.custoUnitario == null ? BigDecimal.ZERO : m.custoUnitario;
+            valor.merge(setor, q.multiply(c), BigDecimal::add);
+            itens.merge(setor, 1, Integer::sum);
+            if (m.idrequisicao != null) pedidos.computeIfAbsent(setor, k -> new java.util.HashSet<>()).add(m.idrequisicao);
+        }
+        BigDecimal total = valor.values().stream().reduce(BigDecimal.ZERO, BigDecimal::add);
+        List<Map<String, Object>> resposta = new ArrayList<>();
+        valor.entrySet().stream()
+                .sorted(Map.Entry.<String, BigDecimal>comparingByValue().reversed())
+                .forEach(e -> {
+                    Map<String, Object> l = new LinkedHashMap<>();
+                    l.put("setor", e.getKey());
+                    l.put("pedidos", pedidos.getOrDefault(e.getKey(), java.util.Set.of()).size());
+                    l.put("itens", itens.getOrDefault(e.getKey(), 0));
+                    l.put("valor", e.getValue().setScale(2, RoundingMode.HALF_UP));
+                    l.put("percentual", total.signum() == 0 ? BigDecimal.ZERO
+                            : e.getValue().multiply(BigDecimal.valueOf(100)).divide(total, 1, RoundingMode.HALF_UP));
+                    resposta.add(l);
+                });
+        return resposta;
+    }
 
     /** Curva ABC pelo valor das saidas dos ultimos N dias (quantidade x custo da saida). */
     public List<Map<String, Object>> curvaAbc(String unidade, int dias) {

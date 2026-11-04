@@ -51,7 +51,13 @@ public class PacientesRepository implements PanacheRepository<Pacientes> {
 
 	public List<Pacientes> filtarPorPaciente(String query) {
 		String n_nome = query.replaceAll("\\s", "");
-		return find("replace(nome, ' ', '') like ?1", n_nome + "%").page(Page.ofSize(100)).list();
+		// Cadastro ja unificado em outro (V232) nao volta na busca. SQL direto para nao
+		// mapear unificado_em na entidade: se a migration faltar, so esta busca falha.
+		@SuppressWarnings("unchecked")
+		List<Pacientes> l = getEntityManager().createNativeQuery(
+				"SELECT * FROM pacientes WHERE replace(nome, ' ', '') LIKE :nome AND unificado_em IS NULL LIMIT 100", Pacientes.class)
+				.setParameter("nome", n_nome + "%").getResultList();
+		return l;
 	}
 
 	@SuppressWarnings("unchecked")
@@ -200,7 +206,12 @@ public class PacientesRepository implements PanacheRepository<Pacientes> {
 	}
 	
 	public Pacientes filtarPorPacientecpf(String query) {
-		return find("cpf = ?1", query ).firstResult();
+		// Cadastro ja unificado em outro nao volta: senao a recepcao reabre BAM nele.
+		@SuppressWarnings("unchecked")
+		List<Pacientes> l = getEntityManager().createNativeQuery(
+				"SELECT * FROM pacientes WHERE cpf = :cpf AND unificado_em IS NULL LIMIT 1", Pacientes.class)
+				.setParameter("cpf", query).getResultList();
+		return l.isEmpty() ? null : l.get(0);
 	}
 
 	public Pacientes buscarPorCpfNormalizado(String cpf) {

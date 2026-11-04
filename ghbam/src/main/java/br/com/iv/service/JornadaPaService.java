@@ -330,14 +330,13 @@ public class JornadaPaService implements Serializable {
     }
 
     @SuppressWarnings("unchecked")
-    private Map<String, Object> montarConformidadeAtendimentoFila(Bam bam, List<Map<String, Object>> eventos) {
+    private Map<String, Object> montarConformidadeAtendimentoFila(Bam bam, long totalEventos) {
         int idbam = bam.getIdbam();
         List<PrescricaoItemEstruturado> prescricaoItens = prescricaoItemEstruturadoService.listarPorBam(idbam, false);
         List<PedidoMedico2> pedidosMedicos = pedidoMedico2Service.filtarBam(idbam);
         Map<String, Object> conformidade = assinaturaConformidadeService.conformidadePorBam(idbam);
         List<Map<String, Object>> faturamentoItens = listarFaturamentoBam(idbam);
         Map<String, Object> resumo = montarResumoOperacional(bam, prescricaoItens, pedidosMedicos, conformidade, faturamentoItens);
-        List<Map<String, Object>> timeline = eventos == null ? List.of() : eventos;
 
         List<String> pendenciasOperacionais = (List<String>) resumo.getOrDefault("pendencias", List.of());
         List<Map<String, Object>> pendenciasAssinatura =
@@ -377,8 +376,8 @@ public class JornadaPaService implements Serializable {
         cards.add(card("faturamento", "Faturamento", numeroResumo(resumo, "faturamentoReal"),
                 numeroResumo(resumo, "faturamentoPendentes") == 0 ? "OK" : "PENDENTE",
                 "Procedimento SUS/BPA real vinculado ao BAM."));
-        cards.add(card("prontuario", "Prontuario", timeline.size(),
-                timeline.isEmpty() ? "ATENCAO" : "OK",
+        cards.add(card("prontuario", "Prontuario", totalEventos,
+                totalEventos == 0 ? "ATENCAO" : "OK",
                 "Eventos clinicos e operacionais encontrados no BAM."));
 
         int pendencias = pendenciasOperacionaisAtivas.size() + pendenciasAssinaturaAtivas.size();
@@ -436,7 +435,7 @@ public class JornadaPaService implements Serializable {
 
         List<Map<String, Object>> itens = new ArrayList<>();
         List<Bam> bams = listarBamsLimitados(dataInicio, dataFim, unidade, limite);
-        Map<Integer, List<Map<String, Object>>> eventosPorBam = listarEventosEmLote(
+        Map<Integer, Long> eventosPorBam = contarEventosEmLote(
                 bams.stream().map(Bam::getIdbam).toList());
         int conformes = 0;
         int pendentes = 0;
@@ -448,7 +447,7 @@ public class JornadaPaService implements Serializable {
 
                 Map<String, Object> conformidade = montarConformidadeAtendimentoFila(
                         bam,
-                        eventosPorBam.getOrDefault(bam.getIdbam(), List.of()));
+                        eventosPorBam.getOrDefault(bam.getIdbam(), 0L));
                 if (Boolean.FALSE.equals(conformidade.get("encontrado"))) continue;
 
                 String statusBam = String.valueOf(conformidade.getOrDefault("status", "PENDENTE")).toUpperCase();
@@ -564,7 +563,7 @@ public class JornadaPaService implements Serializable {
         List<Bam> bams = termoBusca.isEmpty()
                 ? listarBamsLimitados(dataInicio, dataFim, unidade, limite)
                 : listarBamsPorBusca(termoBusca, unidade, limite);
-        return montarFilaRapidaDeBams(bams, dataInicio, dataFim, unidade, filtroRisco, filtroStatus, limite, termoBusca);
+        return montarFilaRapidaDeBams(bams, dataInicio, dataFim, unidade, filtroRisco, filtroStatus, limite, termoBusca, false);
     }
 
     private Map<String, Object> montarFilaRapidaDeBams(
@@ -575,9 +574,13 @@ public class JornadaPaService implements Serializable {
             String filtroRisco,
             String filtroStatus,
             int limite,
-            String termoBusca) {
+            String termoBusca,
+            boolean descontarBaixas) {
         boolean filtrarRisco = !"TODOS".equalsIgnoreCase(filtroRisco);
         List<Integer> bamIds = bams.stream().map(Bam::getIdbam).toList();
+        Map<Integer, Map<String, ConformidadePendenciaBaixa>> baixasPorBam = descontarBaixas
+                ? conformidadePendenciaBaixaService.ultimasPorChaveEmLote(bamIds)
+                : Map.of();
         Map<Integer, List<Map<String, Object>>> eventosPorBam = listarEventosEmLote(bamIds);
         Map<Integer, Long> faturamentoPorBam = contarFaturamentoPorBam(bamIds);
 
@@ -590,7 +593,10 @@ public class JornadaPaService implements Serializable {
             if (filtrarRisco && !riscoCorresponde(bam, filtroRisco)) continue;
 
             List<Map<String, Object>> eventos = eventosPorBam.getOrDefault(bam.getIdbam(), List.of());
-            List<String> resumoPendencias = resumoPendenciasRapido(bam, eventos, faturamentoPorBam.getOrDefault(bam.getIdbam(), 0L));
+            Map<String, ConformidadePendenciaBaixa> baixasDoBam = baixasPorBam.getOrDefault(bam.getIdbam(), Map.of());
+            List<String> resumoPendencias = resumoPendenciasRapido(bam, eventos, faturamentoPorBam.getOrDefault(bam.getIdbam(), 0L)).stream()
+                    .filter(titulo -> !conformidadePendenciaBaixaService.estaBaixada(baixasDoBam, chavePendencia("Operacional", titulo)))
+                    .toList();
             String statusBam = resumoPendencias.isEmpty() ? "CONFORME" : "PENDENTE";
             int score = scoreRapido(resumoPendencias.size(), eventos.isEmpty());
 
@@ -682,7 +688,8 @@ public class JornadaPaService implements Serializable {
             dataFim = temp;
         }
         int limitePendenciasNormalizado = normalizarLimite(limitePendencias);
-        int limiteBaixasNormalizado = normalizarLimite(limiteBaixas);
+        // Teto de 200 como no relatorio de baixas: com 50 faltava baixa em "Sem baixa" e "Baixas hoje".
+        int limiteBaixasNormalizado = limiteBaixas <= 0 ? 50 : Math.min(limiteBaixas, 200);
         String unidadeNormalizada = unidade == null || unidade.isBlank() ? "TODAS" : unidade.split(":")[0].trim();
         String cacheKey = String.join("|",
                 "executivo",
@@ -710,7 +717,8 @@ public class JornadaPaService implements Serializable {
                 "TODOS",
                 "PENDENTE",
                 limitePendenciasNormalizado,
-                "");
+                "",
+                true);
         desempenho.put("bamsAnalisados", numero(((Map<?, ?>) pendencias.getOrDefault("resumo", Map.of())).get("analisados")));
         desempenho.put("pendenciasMs", msDesde(inicioEtapa));
 
@@ -2397,6 +2405,39 @@ public class JornadaPaService implements Serializable {
 
         agrupado.values().forEach(lista -> lista.sort(Comparator.comparing(this::chaveOrdenacao).reversed()));
         return agrupado;
+    }
+
+    // Mesmas fontes de listarEventosEmLote, sem trazer conteudo clinico nem arquivos:
+    // a fila de pendencias so precisa saber quantos eventos o BAM tem.
+    private Map<Integer, Long> contarEventosEmLote(List<Integer> bamIds) {
+        if (bamIds == null || bamIds.isEmpty()) return Map.of();
+        Map<Integer, Long> total = new LinkedHashMap<>();
+        List<String> bamIdsStr = bamIds.stream().map(String::valueOf).toList();
+
+        somarEventos("SELECT b.idbam, count(*) FROM bam b JOIN avaliacao a ON a.idavaliacao = b.avaliacao_idavaliacao WHERE b.idbam IN (:bamIds) GROUP BY b.idbam", bamIds, total);
+        somarEventos("SELECT bam, count(*) FROM atendimento WHERE bam IN (:bamIds) GROUP BY bam", bamIds, total);
+        somarEventos("SELECT bam, count(*) FROM prescricao WHERE bam IN (:bamIds) GROUP BY bam", bamIds, total);
+        somarEventos("SELECT bam, count(*) FROM pedidomedico2 WHERE bam IN (:bamIds) GROUP BY bam", bamIds, total);
+        somarEventos("SELECT bam, count(*) FROM pedidoresultadolaboratorio WHERE bam IN (:bamIds) GROUP BY bam", bamIds, total);
+        somarEventos("SELECT nbam, count(*) FROM evolucaopaciente WHERE nbam IN (:bamIds) GROUP BY nbam", bamIds, total);
+        somarEventos("SELECT nbam, count(*) FROM evolucaopacienteenf WHERE nbam IN (:bamIds) GROUP BY nbam", bamIds, total);
+        somarEventos("SELECT nbam, count(*) FROM anamneseinternacao WHERE nbam IN (:bamIds) GROUP BY nbam", bamIds, total);
+        somarEventos("SELECT bam, count(*) FROM internacao WHERE bam IN (:bamIds) GROUP BY bam", bamIdsStr, total);
+        somarEventos("SELECT nbam, count(*) FROM novointernado WHERE nbam IN (:bamIds) GROUP BY nbam", bamIds, total);
+        somarEventos("SELECT bam, count(*) FROM resumodealta WHERE bam IN (:bamIds) GROUP BY bam", bamIdsStr, total);
+        return total;
+    }
+
+    @SuppressWarnings("unchecked")
+    private void somarEventos(String sql, Object bamIdsParam, Map<Integer, Long> total) {
+        try {
+            List<Object[]> rows = entityManager.createNativeQuery(sql).setParameter("bamIds", bamIdsParam).getResultList();
+            for (Object[] row : rows) {
+                total.merge((int) numero(row[0]), numero(row[1]), Long::sum);
+            }
+        } catch (Exception e) {
+            LOG.warnf(e, "Falha ao contar eventos na fila de pendencias da PA: %s", sql);
+        }
     }
 
     @SuppressWarnings("unchecked")
