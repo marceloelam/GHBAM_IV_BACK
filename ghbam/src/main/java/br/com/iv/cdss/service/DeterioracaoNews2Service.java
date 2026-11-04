@@ -127,28 +127,34 @@ public class DeterioracaoNews2Service {
      * Usa os sinais vitais da enfermagem; sem nenhum, cai para os da triagem (avaliacao do BAM),
      * com Glasgow < 15 como alteracao de consciencia. Sem dado valido devolve null.
      */
-    @SuppressWarnings("unchecked")
     public Map<String, Object> doBam(int idbam) {
         if (idbam <= 0) return null;
-        Map<String, Object> r = porBam(List.of(idbam)).get(idbam);
-        if (r != null) {
-            r.put("fonte", "SINAIS_VITAIS");
-            return r;
-        }
+        return doBams(List.of(idbam)).get(idbam);
+    }
+
+    /** doBam em lote (quadro de fluxo de pacientes): uma consulta de sinais vitais e uma da triagem. */
+    @SuppressWarnings("unchecked")
+    public Map<Integer, Map<String, Object>> doBams(List<Integer> bams) {
+        Map<Integer, Map<String, Object>> r = porBam(bams);
+        r.values().forEach(m -> m.put("fonte", "SINAIS_VITAIS"));
+        List<Integer> semSinais = bams == null ? List.of() : bams.stream().filter(b -> !r.containsKey(b)).toList();
+        if (semSinais.isEmpty()) return r;
         List<Object[]> linhas = em.createNativeQuery(
-                "select a.idavaliacao, a.data, a.hora, a.fr, a.spo, a.pasist, a.fc, a.tax, a.glasgow"
-                        + " from bam b join avaliacao a on a.idavaliacao = b.avaliacao_idavaliacao where b.idbam = :bam")
-                .setParameter("bam", idbam)
+                "select b.idbam, a.idavaliacao, a.data, a.hora, a.fr, a.spo, a.pasist, a.fc, a.tax, a.glasgow"
+                        + " from bam b join avaliacao a on a.idavaliacao = b.avaliacao_idavaliacao where b.idbam in (:bams)")
+                .setParameter("bams", semSinais)
                 .getResultList();
-        if (linhas.isEmpty()) return null;
-        Object[] l = linhas.get(0);
-        Integer glasgow = l[8] instanceof Number n ? n.intValue() : null;
-        String consciencia = glasgow == null || glasgow < 3 || glasgow > 15 ? null : glasgow == 15 ? "A" : "C";
-        Map<String, Object> t = calcular(new Afericao(((Number) l[0]).intValue(), texto(l[1]), texto(l[2]),
-                numero(l[3]), numero(l[4]), numero(l[5]), numero(l[6]), numero(l[7]), null, consciencia), LocalDateTime.now());
-        if ("INSUFICIENTE".equals(t.get("risco"))) return null;
-        t.put("fonte", "TRIAGEM");
-        return t;
+        LocalDateTime agora = LocalDateTime.now();
+        for (Object[] l : linhas) {
+            Integer glasgow = l[9] instanceof Number n ? n.intValue() : null;
+            String consciencia = glasgow == null || glasgow < 3 || glasgow > 15 ? null : glasgow == 15 ? "A" : "C";
+            Map<String, Object> t = calcular(new Afericao(((Number) l[1]).intValue(), texto(l[2]), texto(l[3]),
+                    numero(l[4]), numero(l[5]), numero(l[6]), numero(l[7]), numero(l[8]), null, consciencia), agora);
+            if ("INSUFICIENTE".equals(t.get("risco"))) continue;
+            t.put("fonte", "TRIAGEM");
+            r.put(((Number) l[0]).intValue(), t);
+        }
+        return r;
     }
 
     Map<String, Object> calcular(Afericao a, LocalDateTime agora) {

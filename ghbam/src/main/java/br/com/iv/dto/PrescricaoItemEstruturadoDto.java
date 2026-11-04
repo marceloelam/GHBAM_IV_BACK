@@ -21,6 +21,7 @@ public class PrescricaoItemEstruturadoDto implements Serializable {
     private String frequencia;
     private String duracao;
     private String observacao;
+    private String setorExecucao;
     private String prescritoPor;
     private String prescritoPorMatricula;
     private String atualizadoPor;

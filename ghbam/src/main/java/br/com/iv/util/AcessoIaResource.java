@@ -61,7 +61,7 @@ public class AcessoIaResource {
         try {
             @SuppressWarnings("unchecked")
             List<Map<String, String>> mensagens = (List<Map<String, String>>) body.get("mensagens");
-            String modelo = body.containsKey("modelo") ? (String) body.get("modelo") : "openrouter/free";
+            String modelo = body.containsKey("modelo") ? (String) body.get("modelo") : null;
 
             if (mensagens == null || mensagens.isEmpty()) {
                 return Response.status(Response.Status.BAD_REQUEST)
@@ -70,7 +70,7 @@ public class AcessoIaResource {
             }
 
             br.com.iv.iaauditoria.IaAuditoriaContexto.registrar("IA_CHAT_LIVRE", null, null, null);
-            String resposta = acessoIa.enviarMensagens(mensagens, modelo);
+            String resposta = modelo == null || modelo.isBlank() ? acessoIa.enviarMensagens(mensagens) : acessoIa.enviarMensagens(mensagens, modelo);
             return Response.ok(Map.of("resposta", resposta)).build();
 
         } catch (IllegalStateException e) {
@@ -88,9 +88,8 @@ public class AcessoIaResource {
     @Path("/modelos")
     public Response modelos() {
         return Response.ok(List.of(
-            Map.of("id", "groq:llama-3.3-70b-versatile", "nome", "Groq - Llama 3.3 70B (Mais Rapido)"),
+            Map.of("id", "groq:openai/gpt-oss-120b", "nome", "Groq - GPT OSS 120B (Mais Rapido)"),
             Map.of("id", "groq:mistral-nemo-12b-07-2024", "nome", "Groq - Mistral Nemo 12B"),
-            Map.of("id", "openrouter/free", "nome", "OpenRouter Free (auto-selecao)"),
             Map.of("id", "deepseek/deepseek-chat-v3-0324:free", "nome", "DeepSeek Chat"),
             Map.of("id", "qwen/qwen3-30b-a3b:free", "nome", "Qwen 3 30B"),
             Map.of("id", "google/gemma-3n-e4b:free", "nome", "Gemma 3"),

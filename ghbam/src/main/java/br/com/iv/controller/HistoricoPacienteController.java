@@ -596,21 +596,30 @@ public class HistoricoPacienteController {
         }
     }
 
+    private static final List<String> CAMPOS_SITUACAO = List.of("feito", "inativo", "efetuado", "coletar", "confirmado", "internado", "emergencia", "alta");
+
+    // Campos Sim/Nao vao numa linha so ("• Efetuado: Sim  • Coletado: Sim ..."); um por linha ocupava meia tela.
     private String montarConteudo(Map<String, Object> row, String[] fields, int start) {
         StringBuilder builder = new StringBuilder();
+        List<String> situacao = new ArrayList<>();
         for (int i = start; i < fields.length; i++) {
             String field = fields[i];
             if (field == null) continue;
             Object value = row.get(field);
             if (value == null || String.valueOf(value).isBlank()) continue;
+            if (CAMPOS_SITUACAO.contains(field)) {
+                situacao.add("&bull; " + label(field) + ": " + value);
+                continue;
+            }
             builder.append("<p><strong>").append(label(field)).append(":</strong> ").append(value).append("</p>");
         }
+        if (!situacao.isEmpty()) builder.append("<p class=\"hpc-situacao-linha\">").append(String.join("&nbsp;&nbsp;", situacao)).append("</p>");
         return builder.length() == 0 ? "<p>Sem detalhe registrado.</p>" : builder.toString();
     }
 
     private String montarStatus(Map<String, Object> row) {
         List<String> status = new ArrayList<>();
-        for (String key : List.of("feito", "inativo", "efetuado", "coletar", "confirmado", "internado", "emergencia", "alta")) {
+        for (String key : CAMPOS_SITUACAO) {
             if (row.containsKey(key)) status.add(label(key) + ": " + row.get(key));
         }
         return String.join(" | ", status);

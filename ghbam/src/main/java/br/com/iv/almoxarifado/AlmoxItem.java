@@ -8,7 +8,9 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
@@ -61,6 +63,10 @@ public class AlmoxItem extends PanacheEntityBase {
 
     @Column(name = "usuarioatualizacao", length = 80)
     public String usuarioAtualizacao;
+
+    /** Validade mais proxima do saldo atual (calculada por FIFO nas entradas; nao vai para o banco). */
+    @Transient
+    public LocalDate proximaValidade;
 
     @PrePersist
     public void prePersist() {

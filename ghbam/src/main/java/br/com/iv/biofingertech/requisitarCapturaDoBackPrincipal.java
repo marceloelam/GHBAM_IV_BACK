@@ -130,7 +130,8 @@ public class requisitarCapturaDoBackPrincipal {
                     LOG.infof("Biometria SourceAFIS: score=%.1f limiar=%.1f identificado=%s modelos=%d",
                             resultado.similarity(), resultado.threshold(), resultado.matched(), comModelo.size());
                     if (resultado.matched()) {
-                        return Response.ok(emitirLoginBiometrico(resultado.servidor(), clientIP)).build();
+                        Response recusa = recusaLoginBiometrico(resultado.servidor());
+                        return recusa != null ? recusa : Response.ok(emitirLoginBiometrico(resultado.servidor(), clientIP)).build();
                     }
                 }
             }
@@ -230,6 +231,11 @@ public class requisitarCapturaDoBackPrincipal {
                         .entity("Biometria não confere com o cadastro para a matrícula informada").build();
             }
 
+            Response recusa = recusaLoginBiometrico(servidor);
+            if (recusa != null) {
+                return recusa;
+            }
+
             // Migracao automatica: a digital acabou de ser confirmada pelo Nitgen, entao
             // guarda o modelo SourceAFIS para os proximos acessos (inclusive externos).
             if (modeloCapturado != null && confirmadoPeloAgenteNitgen) {
@@ -251,6 +257,15 @@ public class requisitarCapturaDoBackPrincipal {
         } catch (Exception e) {
             return handleCommunicationError(e);
         }
+    }
+
+    // Chamado nas duas saidas de /verify (SourceAFIS e Nitgen) antes de emitir o token.
+    private Response recusaLoginBiometrico(Servidor servidor) {
+        if (securityPermissionService.acessoPermitido(servidor)) {
+            return null;
+        }
+        return Response.status(Response.Status.FORBIDDEN)
+                .entity("Acesso bloqueado. Procure a administração da unidade para regularizar o cadastro.").build();
     }
 
     private Map<String, Object> emitirLoginBiometrico(Servidor servidor, String clientIP) {
@@ -334,6 +349,60 @@ public class requisitarCapturaDoBackPrincipal {
     public Response listConnectedClients() {
         LOG.info("ÃƒÆ’Ã‚Â°Ãƒâ€¦Ã‚Â¸ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¹ Listando clientes conectados");
         return Response.ok(connectedClients).build();
+    }
+
+    /**
+     * Terminal de ponto: mesma conferencia Nitgen do /verify (passo 2), usada quando o
+     * SourceAFIS nao reconheceu. So na rede interna, pelo mesmo motivo do login. Devolve
+     * o servidor confirmado ou null (nunca emite sessao).
+     */
+    public Servidor identificarPeloAgenteNitgen(String firCapturado, RoutingContext context) {
+        if (firCapturado == null || firCapturado.isBlank()) return null;
+        String clientIP = getClientIP(context);
+        if (!redeInterna(clientIP)) return null;
+        try {
+            List<BiometriaDTO> templates = new ArrayList<>();
+            for (Servidor s : servidorRepository.findAllComFir()) {
+                String firServidor = firServidor(s);
+                if (firServidor == null || firServidor.isBlank()) continue;
+                BiometriaDTO dto = new BiometriaDTO();
+                dto.matricula = s.getMatricula();
+                dto.fir = firServidor;
+                templates.add(dto);
+            }
+            if (templates.isEmpty()) return null;
+
+            String matricula = BiometricMatcher.matchOneToMany(firCapturado, templates);
+            boolean confirmado = false;
+            if (matricula == null) {
+                Map<String, Object> payload = new HashMap<>();
+                payload.put("firToVerify", firCapturado);
+                payload.put("templates", templates);
+                Response r = forwardRequest(clientIP, "/api/public/v1/captura/Comparar1N", payload);
+                try {
+                    if (r.getStatus() != Response.Status.OK.getStatusCode()) return null;
+                    matricula = r.readEntity(String.class);
+                } finally {
+                    r.close();
+                }
+                confirmado = matricula != null && !matricula.isBlank();
+            }
+            Servidor servidor = matricula == null ? null : servidorRepository.localizarMatricula(matricula.trim());
+            if (servidor == null) return null;
+            if (!confirmado) {
+                String firServidor = firServidor(servidor);
+                try {
+                    confirmado = NBioAdapter.matchFIRs(firCapturado, firServidor)
+                            || BiometricMatcher.matchTwoFirStrings(firCapturado, firServidor);
+                } catch (Throwable ex) {
+                    confirmado = false;
+                }
+            }
+            return confirmado ? servidor : null;
+        } catch (RuntimeException e) {
+            LOG.warnf("Ponto: conferencia Nitgen falhou (%s)", e.getClass().getSimpleName());
+            return null;
+        }
     }
 
     private String firServidor(Servidor servidor) {

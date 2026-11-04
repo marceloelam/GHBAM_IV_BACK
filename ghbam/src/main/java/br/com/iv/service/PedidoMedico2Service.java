@@ -32,6 +32,9 @@ public class PedidoMedico2Service implements Serializable {
 	@Inject
 	AssinaturaClinicaService assinaturaClinicaService;
 
+	@Inject
+	AuditoriaAcaoServidor auditoria;
+
 	public List<PedidoMedico2> filtarBam(int idbam) {
 		List<PedidoMedico2> pedidoMedico2Op = pedidoMedico2Repository.filtarBam(idbam);
 		if (pedidoMedico2Op.isEmpty()) {
@@ -344,8 +347,43 @@ public class PedidoMedico2Service implements Serializable {
 			throw new IllegalStateException("Pedido medico assinado so pode ser excluido pelo medico solicitante enquanto nao realizado.");
 		}
 
+		suspenderItemEstruturadoDeOrigem(pedidoMedico2, dto);
 		pedidoMedico2.delete();
 
+	}
+
+	/**
+	 * Pedido gerado pela prescricao estruturada (obs3 = PRESC_ESTR:{iditem}): retirar o pedido suspende o item
+	 * de origem, senao ele continuava ativo na prescricao. Item ja coberto por prescricao assinada segue a
+	 * regra do botao Suspender: exige adendo, entao a retirada e recusada.
+	 */
+	private void suspenderItemEstruturadoDeOrigem(PedidoMedico2 pedido, PedidoMedico2Dto dto) {
+		String marca = pedido.getObs3() == null ? "" : pedido.getObs3().trim();
+		if (!marca.startsWith("PRESC_ESTR:")) return;
+		int iditem;
+		try {
+			iditem = Integer.parseInt(marca.substring("PRESC_ESTR:".length()).trim());
+		} catch (NumberFormatException e) {
+			return;
+		}
+		br.com.iv.entity.PrescricaoItemEstruturado item = br.com.iv.entity.PrescricaoItemEstruturado.findById(iditem);
+		if (item == null || "SUSPENSO".equalsIgnoreCase(item.getStatus())) return;
+
+		var assinatura = assinaturaClinicaService.assinaturaAtivaPorBam(AssinaturaClinicaService.PRESCRICAO_ESTRUTURADA_BAM, item.getIdbam());
+		if (assinatura != null && assinatura.getAssinadoEm() != null && item.getCriadoEm() != null
+				&& !item.getCriadoEm().isAfter(assinatura.getAssinadoEm())) {
+			throw new IllegalStateException("Este pedido veio de uma prescricao estruturada ja assinada. Suspenda o item pela prescricao estruturada (adendo).");
+		}
+
+		String quem = dto == null || dto.getMedico() == null ? "" : dto.getMedico().trim();
+		item.setStatus("SUSPENSO");
+		item.setSuspensoPor(quem);
+		item.setAtualizadoPor(quem);
+		item.setMotivoSuspensao("Pedido retirado em Ver pedidos medicos.");
+		item.setSuspensoEm(java.time.LocalDateTime.now());
+		auditoria.registrar("ALTERAR", "PRESCRICAO_ESTRUTURADA", "ITEM_PRESCRICAO_ESTRUTURADA", item.getIdbam(), iditem,
+				"suspenso ao retirar o pedido " + pedido.getIdpedidomedico() + " em Ver pedidos medicos; medicamento=" + item.getMedicamento(),
+				item.getUnidade());
 	}
 
 	private boolean mesmoSolicitante(PedidoMedico2 pedidoMedico2, PedidoMedico2Dto dto) {

@@ -186,7 +186,7 @@ public class AlmoxController {
     public Response removerSetor(@PathParam("id") Long id, @QueryParam("unidade") String unidade) {
         AuthenticatedUser u = gestor();
         String un = unidade(u, unidade);
-        return executar(Response.Status.OK, () -> service.removerSetor(un, id));
+        return executar(Response.Status.OK, () -> service.removerSetor(un, id, u.matricula()));
     }
 
     @GET
@@ -215,10 +215,13 @@ public class AlmoxController {
 
     @GET
     @Path("movimentacoes")
-    public Response movimentacoes(@QueryParam("unidade") String unidade, @QueryParam("iditem") Long iditem) {
+    public Response movimentacoes(@QueryParam("unidade") String unidade, @QueryParam("iditem") Long iditem,
+            @QueryParam("de") String de, @QueryParam("ate") String ate) {
         AuthenticatedUser u = gestor();
         String un = unidade(u, unidade);
-        return executar(Response.Status.OK, () -> service.movimentacoes(un, iditem));
+        return executar(Response.Status.OK, () -> service.movimentacoes(un, iditem,
+                de == null || de.isBlank() ? null : java.time.LocalDate.parse(de),
+                ate == null || ate.isBlank() ? null : java.time.LocalDate.parse(ate)));
     }
 
     @GET
@@ -243,6 +246,14 @@ public class AlmoxController {
         AuthenticatedUser u = gestor();
         String un = unidade(u, unidade);
         return executar(Response.Status.OK, () -> service.curvaAbc(un, dias == null ? 90 : dias));
+    }
+
+    @GET
+    @Path("consumo-setores")
+    public Response consumoSetores(@QueryParam("unidade") String unidade, @QueryParam("dias") Integer dias) {
+        AuthenticatedUser u = gestor();
+        String un = unidade(u, unidade);
+        return executar(Response.Status.OK, () -> service.consumoPorSetor(un, dias == null ? 90 : dias));
     }
 
     // ---- Fornecedores, compras e patrimonio (gestao) ----
@@ -300,7 +311,7 @@ public class AlmoxController {
     public Response enviarCompra(@PathParam("id") Long id, @QueryParam("unidade") String unidade) {
         AuthenticatedUser u = gestor();
         String un = unidade(u, unidade);
-        return executar(Response.Status.OK, () -> gestao.enviarCompra(un, id));
+        return executar(Response.Status.OK, () -> gestao.enviarCompra(un, id, u.matricula()));
     }
 
     @POST
@@ -308,7 +319,7 @@ public class AlmoxController {
     public Response cancelarCompra(@PathParam("id") Long id, @QueryParam("unidade") String unidade) {
         AuthenticatedUser u = gestor();
         String un = unidade(u, unidade);
-        return executar(Response.Status.OK, () -> gestao.cancelarCompra(un, id));
+        return executar(Response.Status.OK, () -> gestao.cancelarCompra(un, id, u.matricula()));
     }
 
     @POST

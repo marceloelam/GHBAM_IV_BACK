@@ -117,6 +117,13 @@ public class SourceAfisFingerprintService {
 
         boolean ambiguo = secondBest >= minimum && best - secondBest < AMBIGUITY_MARGIN;
         boolean matched = bestServidor != null && best >= minimum && !ambiguo;
+        if (!matched) {
+            // So pontuacoes (sem identificar ninguem): base para calibrar o limiar com o leitor real.
+            org.jboss.logging.Logger.getLogger(SourceAfisFingerprintService.class).infof(
+                    "Digital nao reconhecida: melhor=%.1f segunda=%.1f limiar=%.1f ambiguo=%s candidatos=%d",
+                    best == Double.NEGATIVE_INFINITY ? 0.0d : best, secondBest == Double.NEGATIVE_INFINITY ? 0.0d : secondBest,
+                    minimum, ambiguo, servidores.size());
+        }
         return new MatchResult(
                 matched,
                 best == Double.NEGATIVE_INFINITY ? 0.0d : best,

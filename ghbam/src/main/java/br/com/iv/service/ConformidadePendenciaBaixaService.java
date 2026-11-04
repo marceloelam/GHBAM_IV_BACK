@@ -48,6 +48,19 @@ public class ConformidadePendenciaBaixaService implements Serializable {
                         LinkedHashMap::new));
     }
 
+    // Mesma regra de ultimasPorChave (a baixa mais recente de cada chave vale), para varios BAMs.
+    public Map<Integer, Map<String, ConformidadePendenciaBaixa>> ultimasPorChaveEmLote(List<Integer> idsBam) {
+        if (idsBam == null || idsBam.isEmpty()) return Map.of();
+        List<ConformidadePendenciaBaixa> baixas = ConformidadePendenciaBaixa
+                .list("idbam in ?1 order by criadoEm desc", idsBam);
+        Map<Integer, Map<String, ConformidadePendenciaBaixa>> porBam = new LinkedHashMap<>();
+        for (ConformidadePendenciaBaixa baixa : baixas) {
+            porBam.computeIfAbsent(baixa.getIdbam(), id -> new LinkedHashMap<>())
+                    .putIfAbsent(baixa.getChavePendencia(), baixa);
+        }
+        return porBam;
+    }
+
     public boolean estaBaixada(Map<String, ConformidadePendenciaBaixa> baixas, String chave) {
         ConformidadePendenciaBaixa baixa = baixas.get(chave);
         if (baixa == null) return false;

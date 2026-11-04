@@ -49,6 +49,7 @@ public final class AppSecrets {
     public static final String REPORTS_DIR = valueOrDefault("REPORTS_DIR", "src/main/resources/reports");
     public static final String HF_API_TOKEN = value("HF_API_TOKEN");
     public static final String OPENROUTER_API_KEY = value("OPENROUTER_API_KEY");
+    public static final String OPENROUTER_MODELS = value("OPENROUTER_MODELS");
     public static final String GROQ_API_KEY = value("GROQ_API_KEY");
     public static final String GOOGLE_GENAI_API_KEY = value("GOOGLE_GENAI_API_KEY");
     public static final String OPENAI_API_KEY = value("OPENAI_API_KEY");

@@ -41,11 +41,15 @@ public class MonitoramentoService {
             unidade, hoje));
         dto.setCasosCriticos(criticos);
 
+        // Janela movel de 24 h (e nao "hoje"): na virada do dia o card ficava vazio ate o 1o BAM.
+        // NULLIF evita erro de CAST com hora em branco; diferenca negativa ou > 24 h e dado errado.
         BigDecimal tempoMedioAtend = scalar(
-            "SELECT AVG(EXTRACT(EPOCH FROM ((CAST(a.data AS DATE) + CAST(a.hora AS TIME)) "
-            + "- (CAST(b.data AS DATE) + CAST(b.hora AS TIME)))) / 60) "
+            "SELECT AVG(m) FROM (SELECT EXTRACT(EPOCH FROM ((CAST(a.data AS DATE) + CAST(NULLIF(a.hora, '') AS TIME)) "
+            + "- (CAST(b.data AS DATE) + CAST(NULLIF(b.hora, '') AS TIME)))) / 60 AS m, "
+            + "CAST(b.data AS DATE) + CAST(NULLIF(b.hora, '') AS TIME) AS ts "
             + "FROM atendimento a JOIN bam b ON b.idbam = a.bam WHERE b.unidade = :u "
-            + "AND CAST(b.data AS DATE) = :hoje AND a.hora IS NOT NULL AND b.hora IS NOT NULL",
+            + "AND CAST(b.data AS DATE) >= CURRENT_DATE - 1) t "
+            + "WHERE m >= 0 AND m < 1440 AND ts >= now() - INTERVAL '24 hours'",
             unidade, hoje);
         dto.setTempoMedioAtendimentoMin(arredondar(tempoMedioAtend));
 

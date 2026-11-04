@@ -339,6 +339,11 @@ public class RbacRequestFilter implements ContainerRequestFilter {
                 && pathParts.length == 2
                 && "pacientes".equals(pathParts[0])
                 && !pathParts[1].isBlank();
+        // Lista de BAMs do paciente na reimpressão (GET bam/idpaciente/{id}): leitura para quem imprime BAM.
+        boolean consultaBamDoPacienteParaImprimir = "GET".equalsIgnoreCase(method)
+                && pathParts.length == 3
+                && "bam".equals(pathParts[0])
+                && "idpaciente".equals(pathParts[1]);
         boolean consultaPacientePorNome = "GET".equalsIgnoreCase(method)
                 && pathParts.length == 2
                 && "pacientes".equals(pathParts[0])
@@ -409,7 +414,7 @@ public class RbacRequestFilter implements ContainerRequestFilter {
                     case "spa" -> List.of("kmedicacao");
                     case "faturamento" -> List.of("kremedios");
                     case "farmacia" -> List.of("kfarmaciacentral", "kfarmhmsfx");
-                    case "recursos-humanos" -> List.of("krh", "pmonitoramento", "pcontroleplantoes", "pprodutividaderh", "ptreinamentocertificacao");
+                    case "recursos-humanos" -> List.of("krh", "pmonitoramento", "pcontroleplantoes", "prhponto", "pprodutividaderh", "ptreinamentocertificacao");
                     default -> List.of();
                 }
                 : List.of();
@@ -447,8 +452,9 @@ public class RbacRequestFilter implements ContainerRequestFilter {
                     "pcomoestaopaciente",
                     "pprontuariocompleto"));
         }
-        if (consultaPacienteParaImprimirBam) {
-            adicionais = java.util.stream.Stream.concat(adicionais, java.util.stream.Stream.of("pimprimirbam"));
+        // Técnico de enfermagem reimprime BAM (pedido de 2026-11-01): só leitura, nunca alteração.
+        if (consultaPacienteParaImprimirBam || consultaBamDoPacienteParaImprimir) {
+            adicionais = java.util.stream.Stream.concat(adicionais, java.util.stream.Stream.of("pimprimirbam", "ktcenfermagem"));
         }
         if (consultaPacientePorNome || atualizacaoAutomaticaIdadePaciente) {
             adicionais = java.util.stream.Stream.concat(adicionais, java.util.stream.Stream.of(

@@ -123,6 +123,10 @@ public class Servidor2 extends PanacheEntityBase implements Serializable {
 	@Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
 	private Boolean palmoxpedir;
 	@Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+	private Boolean prhponto;
+	@Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+	private Boolean pfluxopacientes;
+	@Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
 	private Boolean phemoterapia;
 	@Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
 	private Boolean psnd;
@@ -407,6 +411,8 @@ public class Servidor2 extends PanacheEntityBase implements Serializable {
 		pcme = false;
 		palmoxarifado = false;
 		palmoxpedir = false;
+		prhponto = false;
+		pfluxopacientes = false;
 		phemoterapia = false;
 		psnd = false;
 		prnds = false;

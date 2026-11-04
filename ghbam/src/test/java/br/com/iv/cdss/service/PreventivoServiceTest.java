@@ -93,6 +93,19 @@ class PreventivoServiceTest {
         assertFalse(alertas.get(0).diagnostico());
     }
 
+    @Test void fraseCopiadaNoMesmoBamContaUmaVezSo() {
+        PreventivoService service = new PreventivoService();
+        String anamnese = "#COMORBIDADES: HAS/DM - HIPERGLICÊMICO NO MOMENTO. NEGA ALERGIAS.";
+        var mesmoBam = service.avaliarAutomaticamente(List.of(
+                new PreventivoService.Fonte("ANAMNESE", "1", "100", "2026-09-01", "MEDICO", anamnese + "\n" + anamnese, "UNIDADE_A")));
+        assertTrue(mesmoBam.stream().noneMatch(a -> "CDSS_PREV_DIABETES".equals(a.codigo())));
+
+        var bamsDiferentes = service.avaliarAutomaticamente(List.of(
+                new PreventivoService.Fonte("ANAMNESE", "1", "100", "2026-09-01", "MEDICO", anamnese, "UNIDADE_A"),
+                new PreventivoService.Fonte("ANAMNESE", "2", "101", "2026-09-10", "MEDICO", anamnese, "UNIDADE_A")));
+        assertTrue(bamsDiferentes.stream().anyMatch(a -> "CDSS_PREV_DIABETES".equals(a.codigo())));
+    }
+
     @Test void calculaAlertaAutomaticoOncologicoQuandoHaSinaisAssociados() {
         PreventivoService service = new PreventivoService();
         var alertas = service.avaliarAutomaticamente(List.of(

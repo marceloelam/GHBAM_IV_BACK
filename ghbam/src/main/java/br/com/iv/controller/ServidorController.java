@@ -23,6 +23,7 @@ import jakarta.ws.rs.DELETE;
 import org.jboss.logging.Logger;
 
 import br.com.iv.dto.ServidorDto;
+import br.com.iv.ad.UsuarioAdRegras;
 import br.com.iv.entity.Servidor;
 import br.com.iv.repository.ServidorUnidadeRepository;
 import br.com.iv.service.ServidorService;
@@ -338,8 +339,12 @@ public class ServidorController {
 	
 	
 	@POST
-	public Response salvarSetores(ServidorDto dto) {
+	public Response salvarSetores(ServidorDto dto, @Context ContainerRequestContext requestContext) {
 		try {
+			Response recusa = recusaUsuarioAd(dto, null, requestContext);
+			if (recusa != null) {
+				return recusa;
+			}
 			Servidor servidor = servidorService.salvarServidor(dto);
 			return Response.ok(servidor).status(201).build();
 		} catch (IllegalStateException e) {
@@ -351,10 +356,15 @@ public class ServidorController {
 	
 	@PUT
 	@Path("/atualizar/{id}")
-	public Response atualizarSetor(@PathParam("id") int id, ServidorDto dto) {
+	public Response atualizarSetor(@PathParam("id") int id, ServidorDto dto, @Context ContainerRequestContext requestContext) {
 		try {
 			if (dto == null) {
 				return Response.status(400).entity("Corpo da requisição não recebido ou malformado").build();
+			}
+			Servidor cadastrado = Servidor.findById(id);
+			Response recusa = recusaUsuarioAd(dto, cadastrado == null ? null : cadastrado.getUsuarioad(), requestContext);
+			if (recusa != null) {
+				return recusa;
 			}
 			servidorService.atualizarServidor(id, dto);
 			if (dto.getPwd() != null && !dto.getPwd().isBlank() && dto.getMatricula() != null) {
@@ -366,6 +376,19 @@ public class ServidorController {
 			LOG.errorf("Erro ao atualizar servidor id=%d: %s", id, msg);
 			return Response.status(500).entity("Erro ao atualizar servidor: " + msg).build();
 		}
+	}
+
+	// Fica aqui, e nao no ServidorService, porque a conta de recuperacao criada
+	// pelo GerarToken grava "admin" sem usuario autenticado.
+	private Response recusaUsuarioAd(ServidorDto dto, String atual, ContainerRequestContext requestContext) {
+		if (dto == null) {
+			return null;
+		}
+		AuthenticatedUser logado = (AuthenticatedUser) requestContext.getProperty("ghbam.user");
+		boolean superusuario = logado != null
+				&& (logado.hasPermission("ksuperusuario") || logado.hasPermission("superusuario"));
+		String motivo = UsuarioAdRegras.motivoRecusa(dto.getUsuarioad(), atual, superusuario);
+		return motivo == null ? null : Response.status(403).entity(Map.of("mensagem", motivo)).build();
 	}
 
 	@DELETE

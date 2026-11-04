@@ -57,6 +57,10 @@ public class PrescricaoItemEstruturado extends PanacheEntityBase implements Seri
     @Column(columnDefinition = "TEXT")
     private String observacao;
 
+    /** MEDICACAO (SPA), MEDICACAO2 (Maternidade) ou MEDICACAO3 (Pediatria); vazio = SPA. */
+    @Column(name = "setor_execucao", length = 20)
+    private String setorExecucao;
+
     @Column(name = "prescrito_por", length = 120)
     private String prescritoPor;
 

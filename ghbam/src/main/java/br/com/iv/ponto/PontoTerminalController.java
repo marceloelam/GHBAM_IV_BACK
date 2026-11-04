@@ -27,6 +27,9 @@ public class PontoTerminalController {
     @Context
     HttpHeaders headers;
 
+    @Inject
+    br.com.iv.biofingertech.requisitarCapturaDoBackPrincipal digitalLogin;
+
     @POST
     @Path("desafio")
     public Response desafio(Map<String, Object> body) {
@@ -75,12 +78,14 @@ public class PontoTerminalController {
     /** Digital: o agente local do leitor entrega a imagem; a identificacao 1:N e feita no servidor. */
     @POST
     @Path("biometria")
-    public Response biometria(Map<String, Object> body) {
+    public Response biometria(Map<String, Object> body, @Context io.vertx.ext.web.RoutingContext routingContext) {
         try {
             String imagem = body == null || body.get("imagem") == null ? null : String.valueOf(body.get("imagem"));
             Double dpi = body != null && body.get("dpi") instanceof Number n ? n.doubleValue() : null;
             String unidade = body == null || body.get("unidade") == null ? null : String.valueOf(body.get("unidade"));
-            return Response.ok(service.registrarBiometria(imagem, dpi, unidade, ip())).build();
+            String fir = body == null || body.get("fir") == null ? null : String.valueOf(body.get("fir"));
+            return Response.ok(service.registrarBiometria(imagem, dpi, unidade, ip(),
+                    () -> digitalLogin.identificarPeloAgenteNitgen(fir, routingContext))).build();
         } catch (IllegalArgumentException e) {
             return Response.status(Response.Status.BAD_REQUEST).entity(Map.of("erro", e.getMessage())).build();
         } catch (IllegalStateException e) {

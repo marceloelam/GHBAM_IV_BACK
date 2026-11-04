@@ -313,6 +313,10 @@ public class PacientesService implements Serializable {
 	}
 
 	@Transactional
+	public List<Pacientes> localizarPorProntuario(String prontuario) {
+		return pacientesRepository.findByProntuario(prontuario);
+	}
+
 	public List<Pacientes> localizarPacientesComBamRecente(String nome, String unidade) {
 		return pacientesRepository.filtrarPacientesComBamRecente(
 				nome, UnidadeUtil.normalizar(unidade));
@@ -656,7 +660,9 @@ public class PacientesService implements Serializable {
 	}
 	@Transactional
 	public void opcao5(int bamultimo, int idpac, String unidade) {
-		pacientesRepository.opcao5( bamultimo,  idpac,  unidade);
+		// Desativada: casava duplicado por pedaco de nome, movia so 6 tabelas e apagava o
+		// cadastro antigo. Substituida por PacienteUnificacaoService (paciente-unificacao/*).
+		throw new IllegalStateException("Opcao desativada: use Correcao de BAM > Unificar cadastros duplicados do paciente.");
 	}
 
 	@Transactional

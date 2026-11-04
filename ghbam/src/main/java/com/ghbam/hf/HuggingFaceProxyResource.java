@@ -17,14 +17,21 @@ import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+
 import br.com.iv.iaauditoria.IaAuditoriaContexto;
 import br.com.iv.iaauditoria.IaAuditoriaService;
+import br.com.iv.util.AcessoIa;
 import br.gov.secure.AppSecrets;
 import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
@@ -48,6 +55,15 @@ public class HuggingFaceProxyResource {
     @ConfigProperty(name = "hf.request.retries", defaultValue = "2")
     int maxRetries;
 
+    // Provedor de reserva quando o Hugging Face fica sem credito ou indisponivel. Vazio desliga.
+    @ConfigProperty(name = "hf.reserva.groq.model", defaultValue = "")
+    String reservaModelo;
+
+    private static final String GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
+    private static final String OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
+    private static final int TIMEOUT_LISTA_MS = 15000;
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
     private final HttpClient client = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(10))
             .build();
@@ -61,7 +77,7 @@ public class HuggingFaceProxyResource {
     @Path("/models/{model: .+}")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public Response proxyModel(@PathParam("model") String model, String body) {
+    public Response proxyModel(@PathParam("model") String model, String body, @QueryParam("semReserva") boolean semReserva, @QueryParam("soModeloValidado") boolean soModeloValidado) {
         long inicio = System.nanoTime();
         try {
             // resolver nome amigável para id real do modelo
@@ -144,6 +160,11 @@ public class HuggingFaceProxyResource {
 
                     // repassar resposta (4xx/5xx do HF serão encaminhados)
                     auditar(body, resolved, statusCode, respBody, null, inicio);
+                    // 402: sem credito; 429: limite; 5xx: fora do ar. semReserva=true devolve o erro original, sem trocar de modelo.
+                    if (!semReserva && (statusCode == 402 || statusCode == 429 || statusCode >= 500)) {
+                        Response reserva = consultarReserva(body, inicio, soModeloValidado);
+                        if (reserva != null) return reserva;
+                    }
                     return Response.status(statusCode)
                             .entity(respBody)
                             .type(contentType)
@@ -165,6 +186,10 @@ public class HuggingFaceProxyResource {
         } catch (Exception e) {
                 e.printStackTrace();
                 auditar(body, model, 0, null, e, inicio);
+                if (!semReserva) {
+                    Response reserva = consultarReserva(body, inicio, soModeloValidado);
+                    if (reserva != null) return reserva;
+                }
                 // Stack trace fica so no log do servidor; o navegador recebe mensagem generica.
                 return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
                     .entity("Falha ao consultar o modelo de IA. Tente novamente ou acione a TI se persistir.")
@@ -173,16 +198,102 @@ public class HuggingFaceProxyResource {
         }
     }
 
+    /**
+     * Ordem da reserva, no mesmo formato OpenAI que as telas ja leem: Groq, depois a lista do OpenRouter.
+     * soModeloValidado (triagem) para no Groq: os modelos da lista nao passaram pelos casos de teste de triagem.
+     * Devolve null se nenhum responder: vale o erro original.
+     */
+    private Response consultarReserva(String body, long inicio, boolean soModeloValidado) {
+        if (reservaModelo != null && !reservaModelo.isBlank()) {
+            Response groq = tentarReserva("groq", GROQ_URL, AppSecrets.GROQ_API_KEY, reservaModelo, body, requestTimeoutMs, inicio);
+            if (groq != null) return groq;
+        }
+        if (soModeloValidado) return null;
+        for (String modelo : AcessoIa.listaModelos(AppSecrets.OPENROUTER_MODELS)) {
+            Response reserva = tentarReserva("openrouter", OPENROUTER_URL, AppSecrets.OPENROUTER_API_KEY, modelo, body, TIMEOUT_LISTA_MS, inicio);
+            if (reserva != null) return reserva;
+        }
+        return null;
+    }
+
+    private Response tentarReserva(String provedor, String url, String chave, String modelo, String body, int timeoutMs, long inicio) {
+        if (chave == null || chave.isBlank()) return null;
+        try {
+            HttpRequest request = HttpRequest.newBuilder(URI.create(url))
+                    .header("Content-Type", "application/json")
+                    .header("Authorization", "Bearer " + chave)
+                    .timeout(Duration.ofMillis(timeoutMs))
+                    .POST(HttpRequest.BodyPublishers.ofString(payloadReserva(body, modelo, "openrouter".equals(provedor))))
+                    .build();
+            HttpResponse<String> resp = client.send(request, HttpResponse.BodyHandlers.ofString());
+            int status = resp.statusCode();
+            String respBody = resp.body() == null ? "" : resp.body();
+            System.out.println("[HuggingFaceProxy] reserva " + provedor + " model=" + modelo + " status=" + status + " bytes=" + respBody.length());
+            auditar(provedor, body, modelo, status, respBody, null, inicio);
+            if (status != 200 || !temConteudo(respBody)) return null;
+            return Response.ok(respBody).type(MediaType.APPLICATION_JSON).header("X-GHBAM-IA-Provedor", provedor).build();
+        } catch (Exception e) {
+            System.out.println("[HuggingFaceProxy] reserva " + provedor + " falhou: " + e.getClass().getSimpleName());
+            auditar(provedor, body, modelo, 0, null, e, inicio);
+            return null;
+        }
+    }
+
+    /** Resposta 200 sem texto (modelo gastou o limite raciocinando) conta como falha: tenta o proximo. */
+    boolean temConteudo(String respBody) throws Exception {
+        return !objectMapper.readTree(respBody).path("choices").path(0).path("message").path("content").asText("").isBlank();
+    }
+
+    String payloadReserva(String body) throws Exception {
+        return payloadReserva(body, reservaModelo, false);
+    }
+
+    /** Monta o pedido da reserva e tira os marcadores de prompt que as telas escrevem para o modelo do Hugging Face. */
+    String payloadReserva(String body, String modelo, boolean exigirPrivacidade) throws Exception {
+        JsonNode entrada = body == null || body.isBlank() ? objectMapper.createObjectNode() : objectMapper.readTree(body);
+        ObjectNode saida = objectMapper.createObjectNode();
+        saida.put("model", modelo);
+        ArrayNode mensagens = saida.putArray("messages");
+        if (entrada.path("messages").isArray()) {
+            for (JsonNode m : entrada.path("messages")) {
+                mensagens.addObject().put("role", m.path("role").asText("user")).put("content", limparMarcadores(m.path("content").asText("")));
+            }
+        } else {
+            mensagens.addObject().put("role", "user").put("content", limparMarcadores(entrada.path("inputs").asText("")));
+        }
+        int maximo = entrada.path("max_tokens").asInt(entrada.path("parameters").path("max_new_tokens").asInt(512));
+        // O gpt-oss gasta o limite raciocinando: com os 200 tokens da triagem a resposta vinha vazia.
+        if (modelo.contains("gpt-oss")) {
+            saida.put("reasoning_effort", "low");
+            maximo = Math.max(maximo, 1024);
+        }
+        // O OpenRouter so encaminha para provedores que nao guardam nem treinam com os dados.
+        if (exigirPrivacidade) saida.putObject("provider").put("data_collection", "deny");
+        saida.put("max_tokens", maximo);
+        if (entrada.has("temperature")) saida.set("temperature", entrada.get("temperature"));
+        return objectMapper.writeValueAsString(saida);
+    }
+
+    static String limparMarcadores(String texto) {
+        return texto.replaceAll("<\\|im_(start|end)\\|>(system|user|assistant)?\\s*", "\n")
+                .replaceAll("\\[/?INST\\]", "")
+                .trim();
+    }
+
     private void auditar(String body, String modelo, int statusHttp, String respBody, Exception erro, long inicio) {
+        auditar("huggingface", body, modelo, statusHttp, respBody, erro, inicio);
+    }
+
+    private void auditar(String provedor, String body, String modelo, int statusHttp, String respBody, Exception erro, long inicio) {
         if (auditoria == null || !auditoria.isResolvable()) return;
         IaAuditoriaContexto.registrar("HF_PROXY_EVOLUCAO", null, null, null);
         Map<String, String> msg = new HashMap<>();
         msg.put("role", "raw");
         msg.put("content", body);
         Exception falha = erro != null ? erro
-                : (statusHttp != 200 ? new RuntimeException("HTTP " + statusHttp + " do HF Router") : null);
+                : (statusHttp != 200 ? new RuntimeException("HTTP " + statusHttp + " do provedor " + provedor) : null);
         auditoria.get().registrar(new IaAuditoriaService.Chamada(
-                java.util.List.of(msg), "huggingface", modelo,
+                java.util.List.of(msg), provedor, modelo,
                 falha == null ? respBody : null, falha, inicio, null, null, "HuggingFaceProxyResource"));
     }
 

@@ -26,11 +26,12 @@ public class NovoInternadoRepository implements PanacheRepository<NovoInternado>
 	}
 
 	public NovoInternado filtrarPorUnico(int query) {
-		return find("nbam = ?1", query).firstResult();
+		// BAM pode ter alocacao encerrada e outra ativa: a ativa e a que vale para as telas.
+		return find("nbam = ?1 order by alta asc, idninternado desc", query).firstResult();
 	}
 
 	public void alterarLeito(int idbam, int idsetor, int idleito, String quem) {
-		String sql = "UPDATE novointernado set setor_idsetorcenso = :idsetor, local_idsetorlocalcenso = :idleito, quemleitoalterou= :quem where nbam = :idbam";
+		String sql = "UPDATE novointernado set setor_idsetorcenso = :idsetor, local_idsetorlocalcenso = :idleito, quemleitoalterou= :quem where nbam = :idbam and alta = false";
 		entityManager.createNativeQuery(sql).setParameter("idbam", idbam).setParameter("idsetor", idsetor)
 				.setParameter("idleito", idleito).setParameter("quem", quem).executeUpdate();
 	}
@@ -118,7 +119,9 @@ public class NovoInternadoRepository implements PanacheRepository<NovoInternado>
 
 	public int cancelarAltaNoCenso(int idbam) {
 		String sql = "UPDATE novointernado SET datadaacao = NULL, alta = false, motivosaida = '-' "
-				+ "WHERE nbam = :idbam AND alta = true";
+				// So a passagem mais recente volta ao censo: reativar todas ocuparia leitos antigos.
+				+ "WHERE idninternado = (SELECT max(n.idninternado) FROM novointernado n WHERE n.nbam = :idbam AND n.alta = true) "
+				+ "AND NOT EXISTS (SELECT 1 FROM novointernado a WHERE a.nbam = :idbam AND a.alta = false)";
 		return entityManager.createNativeQuery(sql)
 				.setParameter("idbam", idbam)
 				.executeUpdate();

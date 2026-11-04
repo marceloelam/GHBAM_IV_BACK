@@ -74,14 +74,14 @@ public class NovoInternadoController {
 
 	@GET
 	@Path("/idbam/{bam}/setor/{setor}/leito/{leito}/quem/{quem}")
-	public void alterarLeito(@PathParam("bam") int bam, @PathParam("setor") int setor, @PathParam("leito") int leito, @PathParam("quem") String quem) {
-		novointernadoService.alterarLeito(bam, setor, leito, quem);
+	public void alterarLeito(@PathParam("bam") int bam, @PathParam("setor") int setor, @PathParam("leito") int leito, @PathParam("quem") String quem, @QueryParam("confirmarLeitoOcupado") boolean confirmarLeitoOcupado) {
+		novointernadoService.alterarLeito(bam, setor, leito, quem, confirmarLeitoOcupado);
 	}
 
 	@PATCH
 	@Path("/{bam}/leito/setor/{setor}/leito/{leito}/quem/{quem}")
-	public Response atualizarLeito(@PathParam("bam") int bam, @PathParam("setor") int setor, @PathParam("leito") int leito, @PathParam("quem") String quem) {
-		novointernadoService.alterarLeito(bam, setor, leito, quem);
+	public Response atualizarLeito(@PathParam("bam") int bam, @PathParam("setor") int setor, @PathParam("leito") int leito, @PathParam("quem") String quem, @QueryParam("confirmarLeitoOcupado") boolean confirmarLeitoOcupado) {
+		novointernadoService.alterarLeito(bam, setor, leito, quem, confirmarLeitoOcupado);
 		return Response.status(204).build();
 	}
 	
@@ -99,10 +99,10 @@ public class NovoInternadoController {
 	}
 
 	@POST
-	public Response salvarNovoInternado(NovoInternadoDto dto, @QueryParam("confirmarBamAntigo") boolean confirmarBamAntigo) {
+	public Response salvarNovoInternado(NovoInternadoDto dto, @QueryParam("confirmarBamAntigo") boolean confirmarBamAntigo, @QueryParam("confirmarLeitoOcupado") boolean confirmarLeitoOcupado) {
 		bamRecenteGuard.exigirConfirmacao(dto == null ? null : dto.getNbam(), confirmarBamAntigo, "Alocacao no censo");
 		NovoInternado novointernado = null;
-		novointernado = novointernadoService.salvarNovoInternado(dto);
+		novointernado = novointernadoService.salvarNovoInternado(dto, confirmarLeitoOcupado);
 		return Response.ok(novointernado).status(201).build();
 	}
 	
@@ -121,8 +121,8 @@ public class NovoInternadoController {
 
 	@PATCH
 	@Path("/{bam}/cancelamento-alta")
-	public Response cancelarAltaNoCenso(@PathParam("bam") int bam) {
-		if (!novointernadoService.cancelarAltaNoCenso(bam)) {
+	public Response cancelarAltaNoCenso(@PathParam("bam") int bam, @QueryParam("confirmarLeitoOcupado") boolean confirmarLeitoOcupado) {
+		if (!novointernadoService.cancelarAltaNoCenso(bam, confirmarLeitoOcupado)) {
 			return Response.status(Response.Status.CONFLICT)
 					.entity("Alta não encontrada ou paciente já está ativo no Censo.")
 					.build();
