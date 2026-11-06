@@ -38,5 +38,7 @@ public class PedidoResultadoLaboratorioDto implements Serializable {
 	private String justificativaAusenciaValor;
 	// Exames lidos do PDF (V189); null = manter os itens atuais.
 	private java.util.List<PedidoResultadoLaboratorioItemDto> itens;
+	// Lidos do PDF so para a vigilancia (V242): nao entram nos itens nem na fila RNDS.
+	private java.util.List<java.util.Map<String, String>> resultadosInfecciosos;
 
 }

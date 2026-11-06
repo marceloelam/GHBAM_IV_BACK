@@ -16,6 +16,25 @@ class DefinicaoCasoEpidemiologicoTest {
     private static final String GRIPAL = "influenza, tosse, gripe, diarreia, febre";
 
     @Test
+    void sindromeFebrilContaPelosSintomasSemCitarDengue() {
+        assertTrue(conta("febre mialgia cefaleia", "Síndrome Febril", "febre, mialgia"));
+        assertFalse(conta("febre mialgia", "Síndrome Febril", "febre, mialgia"));
+        assertFalse(conta("mialgia cefaleia vomitos", "Síndrome Febril", "febre, mialgia"));
+    }
+
+    /** A regra antiga dava zero casos porque o nome com "dengue" exigia a palavra escrita. */
+    @Test
+    void regraAntigaFebrilComDengueContaPelosSintomas() {
+        assertTrue(conta("febre mialgia cefaleia", "Síndrome Febril / Suspeita de Dengue", DENGUE));
+    }
+
+    @Test
+    void descarteSoRetiraDoGrupoQueCitaADoenca() {
+        assertTrue(DefinicaoCasoEpidemiologico.diagnosticoCitaRegra("Tuberculose pulmonar", "Suspeita de Tuberculose", "tuberculose, tosse"));
+        assertFalse(DefinicaoCasoEpidemiologico.diagnosticoCitaRegra("Pneumonia, tosse", "Suspeita de Tuberculose", "tuberculose, tosse"));
+    }
+
+    @Test
     void febreSozinhaNaoEDengue() {
         assertFalse(conta("febre ha dois dias", "Suspeita de Dengue", DENGUE));
     }

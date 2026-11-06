@@ -52,6 +52,12 @@ public final class DefinicaoCasoEpidemiologico {
                     List.of("cefaleia", "dor de cabeca", "dor retro orbitaria", "dor retroorbitaria"),
                     List.of("petequias", "prova do laco positiva"), List.of("leucopenia")), 2,
             "hipótese de dengue + febre + ao menos 2 entre náusea/vômito, exantema, mialgia/artralgia, cefaleia/dor retro-orbitária, petéquias/prova do laço, leucopenia"),
+        // Sindrome conta pelos sintomas. Regra antiga "Sindrome Febril / Suspeita de Dengue" casa com as duas definicoes e basta uma.
+        new Definicao(List.of("sindrome febril"), List.of(), List.of(FEBRE),
+            List.of(VOMITO, EXANTEMA, List.of("mialgia", "dor no corpo", "dores no corpo", "artralgia", "dor articular"),
+                    List.of("cefaleia", "dor de cabeca", "dor retro orbitaria", "dor retroorbitaria"),
+                    List.of("petequias", "prova do laco positiva"), List.of("leucopenia")), 2,
+            "febre + ao menos 2 entre náusea/vômito, exantema, mialgia/artralgia, cefaleia/dor retro-orbitária, petéquias/prova do laço, leucopenia"),
         new Definicao(List.of("chikungunya", "chicungunha"), List.of("chikungunya", "chicungunha"), List.of(FEBRE, ARTRALGIA), List.of(), 0,
             "hipótese de chikungunya + febre + artralgia intensa ou artrite"),
         new Definicao(List.of("zika"), List.of("zika"), List.of(EXANTEMA),
@@ -203,6 +209,12 @@ public final class DefinicaoCasoEpidemiologico {
         for (Definicao d : definicoesDa(nomeRegra, termosRegra)) out.addAll(d.hipotese().isEmpty() ? d.chaves() : d.hipotese());
         normalizar(termosRegra).stream().filter(t -> !SINTOMAS_INESPECIFICOS.contains(t)).forEach(out::add);
         return new ArrayList<>(out);
+    }
+
+    /** O diagnostico escrito cita a doenca desta regra? So entao o descarte dela retira o BAM do grupo de acumulos. */
+    public static boolean diagnosticoCitaRegra(String diagnostico, String nomeRegra, String termosRegra) {
+        String texto = textoBusca(diagnostico);
+        return termosEstruturados(nomeRegra, termosRegra).stream().anyMatch(termo -> texto.contains(" " + termo + " "));
     }
 
     /** Agravos raros ou graves: um unico caso ja justifica investigacao. Lista a validar com a vigilancia. */

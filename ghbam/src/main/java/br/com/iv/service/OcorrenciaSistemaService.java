@@ -74,6 +74,41 @@ public class OcorrenciaSistemaService implements Serializable {
         return toMap(ocorrencia);
     }
 
+    /** Dados atuais da ocorrencia; IllegalArgumentException se nao existir. */
+    @Transactional
+    public Map<String, Object> dados(int id) {
+        garantirTabela();
+        return toMap(buscar(id));
+    }
+
+    /** atualizar() regrava todos os campos: aqui o que nao vier em campos mantem o valor atual. */
+    @Transactional
+    public Map<String, Object> atualizarCampos(int id, Map<String, Object> campos) {
+        garantirTabela();
+        Map<String, Object> completo = new LinkedHashMap<>(toMap(buscar(id)));
+        completo.putAll(campos);
+        return atualizar(id, completo);
+    }
+
+    /** Ocorrencia automatica ainda nao resolvida, pela mesma chave usada ao salvar. */
+    @Transactional
+    public Optional<Map<String, Object>> automaticaAberta(Map<String, Object> dto) {
+        garantirTabela();
+        return buscarAutomaticaAberta(dto).map(this::toMap);
+    }
+
+    /** Alguem encerrou esta ocorrencia epidemiologica automatica a partir de desde? */
+    @Transactional
+    public boolean epidemiologicaEncerradaDesde(Map<String, Object> dto, LocalDateTime desde) {
+        garantirTabela();
+        return OcorrenciaSistema.count(
+                "upper(unidade) = upper(?1) and lower(tipo) = 'epidemiologia' and lower(titulo) = lower(?2) "
+                        + "and status = 'resolvida' and lower(origem) = 'automatica' and atualizadoEm >= ?3",
+                unidadeNormalizada(texto(dto.get("unidade"))),
+                textoOuPadrao(dto.get("titulo"), "Ocorrencia sem titulo"),
+                desde) > 0;
+    }
+
     @Transactional
     public Map<String, Object> atualizar(int id, Map<String, Object> dto) {
         garantirTabela();
