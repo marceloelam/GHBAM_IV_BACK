@@ -54,9 +54,15 @@ class VigilanciaMencaoNegadaTest {
 
     @Test
     void osMesmosCamposValemEmTodasAsContagens() {
-        for (String campo : List.of("r.queixaprincipal", "r.obsentrada", "a.anamnese", "a.comentario", "a.hpp", "a.risco",
-                "t.diagnostico_provisorio", "t.evolucao_prescricao", "t.obs_enfermagem", "ai.frente", "ai.verso")) {
+        for (String campo : List.of("r.queixaprincipal", "r.obsentrada", "a.anamnese", "a.comentario", "a.risco",
+                "t.diagnostico_provisorio", "t.evolucao_prescricao", "t.obs_enfermagem", "ai.frente", "ai.verso",
+                "FROM atendimento", "FROM evolucaopaciente ", "FROM evolucaopacienteenf", "FROM novointernado")) {
             assertTrue(VigilanciaEpidemiologicaController.TEXTO_BAM_SQL.contains(campo), campo);
         }
+    }
+
+    @Test
+    void historicoPregressoNaoEDoencaAtual() {
+        assertFalse(VigilanciaEpidemiologicaController.TEXTO_BAM_SQL.contains("a.hpp"));
     }
 }

@@ -31,6 +31,11 @@ class UsuarioAdRegrasTest {
     void somenteSuperusuarioConcedeIsencao() {
         assertNotNull(UsuarioAdRegras.motivoRecusa("semad", "joao.silva", false));
         assertNotNull(UsuarioAdRegras.motivoRecusa(" SEMAD ", null, false));
+        assertNotNull(UsuarioAdRegras.motivoRecusa("sem ad", null, false));
+        assertNotNull(UsuarioAdRegras.motivoRecusa(" Sem  AD ", "joao.silva", false));
+        assertNotNull(UsuarioAdRegras.motivoRecusa("sem ad", null, false));
+        assertNotNull(UsuarioAdRegras.motivoRecusa(" semad", null, false));
+        assertNull(UsuarioAdRegras.motivoRecusa("sem ad", "joao.silva", true));
         assertNotNull(UsuarioAdRegras.motivoRecusa("admin", "-", false));
         assertNull(UsuarioAdRegras.motivoRecusa("semad", "joao.silva", true));
     }

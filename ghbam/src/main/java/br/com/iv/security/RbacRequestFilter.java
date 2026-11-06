@@ -27,6 +27,8 @@ public class RbacRequestFilter implements ContainerRequestFilter {
 
     private static final Set<String> AUTHENTICATED_ONLY_PATHS = Set.of(
             "api/usuarios-conectados/heartbeat",
+            // Favoritos do menu do proprio usuario (matricula vem do token); nao concede acesso a telas.
+            "api/menu-favoritos",
             // Executado logo apÃƒÆ’Ã‚Â³s a emissÃƒÆ’Ã‚Â£o do token para confirmar a situaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o
             // da prÃƒÆ’Ã‚Â³pria conta no AD. NÃƒÆ’Ã‚Â£o lista nem altera usuÃƒÆ’Ã‚Â¡rios.
             "ad/verificar-status",
@@ -78,6 +80,8 @@ public class RbacRequestFilter implements ContainerRequestFilter {
             "configuracaounidade");
 
     private static final Set<String> AUTHENTICATED_ONLY_GET_PATHS = Set.of(
+            // Videos de ajuda das telas: material de treinamento, sem dado de paciente.
+            "videos-ajuda",
             "sala/unidade",
             "setores/unidade",
             "setores/unidadetriar",

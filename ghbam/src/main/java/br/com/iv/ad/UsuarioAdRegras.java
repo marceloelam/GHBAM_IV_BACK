@@ -12,11 +12,16 @@ import java.util.Locale;
  */
 public final class UsuarioAdRegras {
 
+    // Mensagem neutra de proposito: os valores especiais nao sao divulgados ao operador.
+    private static final String MENSAGEM_RECUSA = "Usuário do AD inválido. Informe no formato nome.sobrenome.";
+
     private UsuarioAdRegras() {
     }
 
     private static String normalizar(String valor) {
-        return valor == null ? "" : valor.trim().toLowerCase(Locale.ROOT);
+        // Inclui os mesmos espacos que o \s e o trim do JavaScript (ex.: NBSP): se o
+        // backend lesse menos que o frontend, uma variacao passaria como isencao no login.
+        return valor == null ? "" : valor.replaceAll("[\\s\\p{Z}\\uFEFF]+", " ").trim().toLowerCase(Locale.ROOT);
     }
 
     public static boolean bloqueado(String valor) {
@@ -25,7 +30,7 @@ public final class UsuarioAdRegras {
 
     public static boolean isento(String valor) {
         String normalizado = normalizar(valor);
-        return "semad".equals(normalizado) || "admin".equals(normalizado);
+        return "semad".equals(normalizado) || "sem ad".equals(normalizado) || "admin".equals(normalizado);
     }
 
     /**
@@ -36,11 +41,8 @@ public final class UsuarioAdRegras {
      * @return mensagem de recusa, ou null quando a alteracao e permitida
      */
     public static String motivoRecusa(String novo, String atual, boolean superusuario) {
-        if (bloqueado(novo) && !bloqueado(atual)) {
-            return "O valor \"-\" nao e mais aceito no usuario do AD. Informe nome.sobrenome ou peca a um superusuario para marcar Sem AD.";
-        }
-        if (isento(novo) && !isento(atual) && !superusuario) {
-            return "Somente superusuario pode dispensar a verificacao no AD.";
+        if ((bloqueado(novo) && !bloqueado(atual)) || (isento(novo) && !isento(atual) && !superusuario)) {
+            return MENSAGEM_RECUSA;
         }
         return null;
     }
