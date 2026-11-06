@@ -32,6 +32,9 @@ public class PedidoResultadoLaboratorioService implements Serializable {
 	@Inject
 	ArmazenamentoArquivoService armazenamento;
 
+	@Inject
+	ResultadoInfecciosoLaudoService resultadoInfecciosoLaudoService;
+
 	private static final Logger LOG = Logger.getLogger(PedidoResultadoLaboratorioService.class);
 	// Abaixo disso nao e laudo em PDF (as telas tratam texto curto como "sem PDF").
 	private static final int TAMANHO_MINIMO_ARMAZENAR = 600;
@@ -115,6 +118,12 @@ public class PedidoResultadoLaboratorioService implements Serializable {
 		copiarDadosRnds(dto, pedidoResultadoLaboratorio);
 		pedidoResultadoLaboratorio.persist();
 		boolean temItens = substituirItens(pedidoResultadoLaboratorio.getIdPedidoResultado(), dto.getItens());
+		try {
+			resultadoInfecciosoLaudoService.gravar(pedidoResultadoLaboratorio.getIdPedidoResultado(), dto.getBam(), dto.getResultadosInfecciosos());
+		} catch (RuntimeException falha) {
+			// O laudo vale mais que a leitura para a vigilancia: registra sem dado do exame e segue.
+			LOG.errorf("Laboratorio: falha ao gravar resultado infeccioso do pedido %d: %s", pedidoResultadoLaboratorio.getIdPedidoResultado(), falha.getClass().getSimpleName());
+		}
 		// Só vai para a fila RNDS quem foi preparado para ela (painel RNDS ou exames lidos do PDF).
 		if (temItens || temDadosRnds(pedidoResultadoLaboratorio)) {
 			fhirDispatchService.enfileirarResultadoLaboratorial(pedidoResultadoLaboratorio);

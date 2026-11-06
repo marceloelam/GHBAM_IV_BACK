@@ -7,6 +7,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
@@ -28,7 +29,10 @@ import jakarta.ws.rs.container.ContainerRequestContext;
 import jakarta.ws.rs.core.Context;
 import br.com.iv.entity.NotificacaoSinan;
 import br.com.iv.security.SecurityPermissionService;
+import br.com.iv.service.AvaliacaoSinalEpidemiologico;
+import br.com.iv.service.ClassificacaoCasoEpidemiologico;
 import br.com.iv.service.DefinicaoCasoEpidemiologico;
+import br.com.iv.service.EvidenciaCasoEpidemiologico;
 import br.com.iv.service.GeocodificacaoPacienteService;
 import br.com.iv.service.NotificacaoSinanService;
 import br.com.iv.service.OcorrenciaSistemaService;
@@ -46,12 +50,15 @@ public class VigilanciaEpidemiologicaController {
     @Inject NotificacaoSinanService notificacaoSinanService;
     @Inject SecurityPermissionService securityPermissionService;
     @Context ContainerRequestContext requestContext;
+    @org.eclipse.microprofile.config.inject.ConfigProperty(name = "ghbam.vigilancia.laudo-pdf.sugestoes", defaultValue = "false")
+    boolean sugestoesLaudoPdf;
 
     @GET
     @Transactional
-    public Response analisar(@QueryParam("unidade") String unidade) {
+    public Response analisar(@QueryParam("unidade") String unidadeInformada) {
         try {
         garantirEstrutura();
+        String unidade = unidadeEfetiva(unidadeInformada);
         // A varredura de texto custava ~13 s por abertura; o resultado vale por 10 min e a fila SINAN segue sempre atual.
         String chaveCache = LocalDate.now() + "|" + texto(unidade);
         Object[] cache = ANALISE_CACHE.get(chaveCache);
@@ -62,24 +69,42 @@ public class VigilanciaEpidemiologicaController {
             return Response.ok(resposta).build();
         }
         List<Map<String, Object>> regras = regras(unidade).stream().filter(r -> Boolean.TRUE.equals(r.get("ativo"))).toList();
-        Map<Map<String, Object>, long[]> contagens = contarPorJanela(unidade, regras);
+        Map<Map<String, Object>, ContagemRegra> contagens = contarPorJanela(unidade, regras);
         List<Map<String, Object>> sinais = new ArrayList<>();
         for (Map<String, Object> regra : regras) {
-            int minimo = numero(regra.get("minimoCasos"), 3);
-            double fator = decimal(regra.get("fatorAlerta"), 2d);
-            long atual = contagens.get(regra)[0];
-            long base = contagens.get(regra)[1];
-            double media = base / 4d;
-            boolean alerta = atual >= minimo && (media == 0 ? atual >= minimo : atual >= media * fator);
+            ContagemRegra contagem = contagens.get(regra);
+            LimitesRegra limites = limitesDe(regra);
+            long atual = contagem.atual();
+            double media = contagem.base() / 4d;
             Map<String, Object> item = new LinkedHashMap<>(regra);
+            Map<String, Object> chaveOcorrencia = ocorrenciaEpidemiologica(unidade, regra, item, atual, media);
+            Optional<Map<String, Object>> aberta = ocorrenciaSistemaService.automaticaAberta(chaveOcorrencia);
+            boolean revisado = aberta.isEmpty() && ocorrenciaSistemaService.epidemiologicaEncerradaDesde(chaveOcorrencia,
+                    LocalDate.now().minusDays(numero(regra.get("janelaDias"), 7) - 1L).atStartOfDay());
+            AvaliacaoSinalEpidemiologico.Resultado avaliacao = AvaliacaoSinalEpidemiologico.avaliar(new AvaliacaoSinalEpidemiologico.Entrada(
+                    atual, media, contagem.mediaEpoca(), contagem.ajusteRecente(), contagem.ajusteEpoca(), limites.minimo(), limites.fator(),
+                    DefinicaoCasoEpidemiologico.casoUnicoImporta(texto(regra.get("nome")), texto(regra.get("termos"))), aberta.isPresent(), revisado));
+            boolean alerta = avaliacao.alerta();
             item.put("casosAtuais", atual); item.put("mediaHistorica", media); item.put("fatorObservado", media == 0 ? null : atual / media);
-            item.put("casosMencaoNegada", contagens.get(regra)[2]);
-            item.put("casosSemCriterio", contagens.get(regra)[3]);
-            item.put("nivel", alerta ? (atual >= minimo * 2 ? "ALTO" : "ATENCAO") : "NORMAL");
+            item.put("casosMencaoNegada", contagem.negadas());
+            item.put("casosSemCriterio", contagem.semCriterio());
+            item.put("casosConfirmados", contagem.confirmados());
+            item.put("casosProvaveis", contagem.provaveis());
+            item.put("casosDescartados", contagem.descartados());
+            item.put("esperadoRecente", avaliacao.esperadoRecente());
+            item.put("esperadoEpoca", avaliacao.esperadoEpoca());
+            item.put("compativelComEpoca", avaliacao.compativelComEpoca());
+            item.put("estado", avaliacao.estado().name());
+            item.put("motivo", motivoDoSinal(avaliacao, aberta.isPresent()));
+            item.put("nivel", alerta ? (atual >= limites.pesoAlto() && !avaliacao.compativelComEpoca() ? "ALTO" : "ATENCAO") : "NORMAL");
             item.put("sinalParaInvestigacao", alerta);
-            if (alerta) {
-                Map<String, Object> ocorrencia = ocorrenciaSistemaService.salvar(ocorrenciaEpidemiologica(unidade, regra, item, atual, media));
-                item.put("ocorrenciaId", ocorrencia.get("id"));
+            if (avaliacao.registrarOcorrencia()) {
+                Map<String, Object> dto = ocorrenciaEpidemiologica(unidade, regra, item, atual, media);
+                // Quem ja assumiu a ocorrencia nao pode voltar a "aberta" nem perder a responsabilidade a cada analise.
+                aberta.ifPresent(atualAberta -> { dto.put("status", atualAberta.get("status")); dto.put("responsavel", atualAberta.get("responsavel")); });
+                item.put("ocorrenciaId", ocorrenciaSistemaService.salvar(dto).get("id"));
+            } else {
+                aberta.ifPresent(atualAberta -> item.put("ocorrenciaId", atualAberta.get("id")));
             }
             sinais.add(item);
         }
@@ -182,6 +207,8 @@ public class VigilanciaEpidemiologicaController {
         final java.util.Set<String> anteriores = new java.util.HashSet<>();
         final java.util.Set<String> aproximados = new java.util.HashSet<>();
         final Map<String, Integer> nomes = new java.util.HashMap<>();
+        final java.util.Set<String> confirmados = new java.util.HashSet<>();
+        final java.util.Set<String> provaveis = new java.util.HashSet<>();
 
         RegiaoDoenca(double latitude, double longitude) {
             this.latitude = latitude;
@@ -197,6 +224,9 @@ public class VigilanciaEpidemiologicaController {
     private Response mapaTodasDoencas(LocalDate dataInicio, LocalDate dataFim, String unidade, String origem, List<Map<String, Object>> regras) {
         long diasPeriodo = java.time.temporal.ChronoUnit.DAYS.between(dataInicio, dataFim) + 1;
         List<Object[]> rows = varrer(regras, dataInicio.minusDays(diasPeriodo * 4), dataFim, unidade, origem);
+        // A decisao da vigilancia vale aqui tambem: descartado sai do mapa, dos totais e da media anterior.
+        List<Map<String, String>> classificacoes = classificacoesPorIndice(regras);
+        ClassificacaoCasoEpidemiologico.aplicar(rows, classificacoes);
         GeocodificacaoPacienteService.PadraoUnidade padraoUnidade = GeocodificacaoPacienteService.padraoDaUnidade(unidade);
         List<Map<String, RegiaoDoenca>> regioesPorRegra = new ArrayList<>();
         regras.forEach(regra -> regioesPorRegra.add(new LinkedHashMap<>()));
@@ -224,6 +254,10 @@ public class VigilanciaEpidemiologicaController {
                 regiao.atuais.add(paciente);
                 if (aproximado) regiao.aproximados.add(paciente);
                 regiao.nomes.merge(texto(row[7]) + "|" + texto(row[8]), 1, Integer::sum);
+                // O id do G-PEC pode coincidir com um BAM, e a classificacao so existe para BAM.
+                String classificacao = "GHBAM".equals(row[0]) ? classificacoes.get(Integer.parseInt(indice)).get(texto(row[2])) : null;
+                if (ClassificacaoCasoEpidemiologico.CONFIRMADO.equals(classificacao)) regiao.confirmados.add(paciente);
+                if (ClassificacaoCasoEpidemiologico.PROVAVEL.equals(classificacao)) regiao.provaveis.add(paciente);
             }
         }
         long[][] contagemGhbam = contarDasLinhas(rows, regras.size(), dataInicio, dataFim, "GHBAM");
@@ -244,7 +278,8 @@ public class VigilanciaEpidemiologicaController {
                     : "GPEC".equalsIgnoreCase(texto(origem)) ? casosGpec : casosGhbam + casosGpec;
             long negadas = contagemGhbam[i][1] + contagemGpec[i][1];
             long fora = contagemGhbam[i][2] + contagemGpec[i][2];
-            boolean naLegenda = casos >= limites.minimo();
+            // Caso confirmado sempre aparece, mesmo abaixo do minimo da doenca ou da regiao.
+            boolean naLegenda = casos >= limites.minimo() || regioesPorRegra.get(i).values().stream().anyMatch(regiao -> !regiao.confirmados.isEmpty());
             if (negadas > 0 && (naLegenda || limites.cadastrada())) {
                 Map<String, Object> mencao = new LinkedHashMap<>();
                 mencao.put("nome", nome);
@@ -258,12 +293,15 @@ public class VigilanciaEpidemiologicaController {
                 semCriterio.add(item);
             }
             if (!naLegenda) continue;
+            // Ocorrencia aberta = doenca em curso na unidade: a regiao com casos nao volta a "dentro do esperado" no pico.
+            boolean emCurso = limites.cadastrada() && ocorrenciaSistemaService.automaticaAberta(
+                    ocorrenciaEpidemiologica(unidade, regra, new LinkedHashMap<>(), 0, 0)).isPresent();
             long pequenasDaDoenca = 0;
             boolean temPonto = false;
             for (RegiaoDoenca regiao : regioesPorRegra.get(i).values()) {
                 long peso = regiao.atuais.size();
                 if (peso <= 0) continue;
-                if (peso < limites.minimoRegiao()) {
+                if (peso < limites.minimoRegiao() && regiao.confirmados.isEmpty()) {
                     pequenasDaDoenca += peso;
                     continue;
                 }
@@ -271,8 +309,12 @@ public class VigilanciaEpidemiologicaController {
                 String[] nomes = regiao.nomes.entrySet().stream().max(Map.Entry.comparingByValue())
                         .map(entrada -> entrada.getKey().split("\\|", -1)).orElse(new String[] { "", "" });
                 double media = regiao.anteriores.size() / 4d;
-                boolean alerta = peso >= limites.minimo() && peso >= media * limites.fator();
+                boolean alerta = peso >= limites.minimo() && (peso >= media * limites.fator() || emCurso);
+                regiao.provaveis.removeAll(regiao.confirmados);
                 Map<String, Object> ponto = new LinkedHashMap<>();
+                ponto.put("emCurso", emCurso);
+                ponto.put("casosConfirmados", (long) regiao.confirmados.size());
+                ponto.put("casosProvaveis", (long) regiao.provaveis.size());
                 ponto.put("latitude", regiao.latitude);
                 ponto.put("longitude", regiao.longitude);
                 ponto.put("peso", peso);
@@ -800,6 +842,7 @@ public class VigilanciaEpidemiologicaController {
                         WHERE CAST(b.data AS date) BETWEEN :inicioBase AND :fim
                           AND b.unidade = :unidade
                           AND COALESCE(TRIM(t.diagnostico_provisorio), '') <> ''
+                          AND NOT (b.idbam = ANY(CAST(:descartados AS int[])))
                           AND COALESCE(NULLIF(UPPER(:origem), ''), 'TODOS') IN ('TODOS', 'GHBAM')
                         UNION ALL
                         SELECT 'GPEC',
@@ -834,6 +877,7 @@ public class VigilanciaEpidemiologicaController {
                     .setParameter("origem", texto(origem))
                     .setParameter("acentos", ACENTOS)
                     .setParameter("semAcentos", SEM_ACENTOS)
+                    .setParameter("descartados", bamsDescartadosDosAcumulos(unidade, dataInicio.minusDays(dias * 4), dataFim))
                     .getResultList();
 
             List<String> termosMonitorados = new ArrayList<>();
@@ -908,6 +952,8 @@ public class VigilanciaEpidemiologicaController {
             List<Map<String, Object>> regrasConsulta = regrasDaConsulta(unidade, texto(doenca));
             if (regrasConsulta.isEmpty()) return Response.ok(Map.of("casos", List.of())).build();
             List<Object[]> rows = varrer(regrasConsulta, dataInicio, dataFim, unidade, origem);
+            List<Map<String, String>> classificacoes = classificacoesPorIndice(regrasConsulta);
+            ClassificacaoCasoEpidemiologico.aplicar(rows, classificacoes);
             GeocodificacaoPacienteService.PadraoUnidade padraoUnidade = GeocodificacaoPacienteService.padraoDaUnidade(unidade);
             Map<String, Map<String, Object>> porPaciente = new LinkedHashMap<>();
             for (Object[] row : rows) {
@@ -939,7 +985,12 @@ public class VigilanciaEpidemiologicaController {
                 atendimentos.add(texto(row[2]));
                 @SuppressWarnings("unchecked") java.util.Set<String> doencas = (java.util.Set<String>) caso.get("doencas");
                 for (String indice : texto(row[13]).split(",")) {
-                    if (!indice.isBlank()) doencas.add(texto(regrasConsulta.get(Integer.parseInt(indice)).get("nome")));
+                    if (indice.isBlank()) continue;
+                    doencas.add(texto(regrasConsulta.get(Integer.parseInt(indice)).get("nome")));
+                    if ("GHBAM".equals(row[0])) {
+                        caso.put("classificacao", ClassificacaoCasoEpidemiologico.maisForte(texto(caso.get("classificacao")),
+                                classificacoes.get(Integer.parseInt(indice)).get(texto(row[2]))));
+                    }
                 }
             }
             List<Map<String, Object>> casos = new ArrayList<>();
@@ -1317,7 +1368,151 @@ public class VigilanciaEpidemiologicaController {
             for(int i=0;i<k.length;i++)m.put(k[i],x[i]);
             out.add(m);
         }
+        anexarClassificacoes(id, out);
+        anexarEvidencias(r, out);
         return Response.ok(out).build();
+    }
+
+    private static final com.fasterxml.jackson.databind.ObjectMapper JSON_FICHA = new com.fasterxml.jackson.databind.ObjectMapper();
+
+    /** Laudo e ficha SINAN de cada BAM viram evidencia e, se seguro, sugestao. Nada e gravado; a ficha nao sai do servidor. */
+    private void anexarEvidencias(Map<String, Object> regra, List<Map<String, Object>> casos) {
+        if (casos.isEmpty()) return;
+        String nome = texto(regra.get("nome"));
+        String termos = texto(regra.get("termos"));
+        String bams = casos.stream().map(caso -> texto(caso.get("bam"))).distinct().collect(java.util.stream.Collectors.joining(",", "{", "}"));
+        Map<String, List<EvidenciaCasoEpidemiologico.Evidencia>> porBam = new LinkedHashMap<>();
+        // O arquivo do laudo fica de fora: pode ser base64 grande, e a tela so precisa saber que existe.
+        @SuppressWarnings("unchecked") List<Object[]> laudos = em.createNativeQuery("""
+                SELECT p.bam, p.descricao, p.grupopedidos, CAST(NULL AS varchar), i.nome_exame, i.valor
+                FROM pedidoresultadolaboratorio p
+                LEFT JOIN pedidoresultadolaboratorio_item i ON i.idpedidoresultado = p.idpedidoresultado
+                WHERE p.bam = ANY(CAST(:bams AS int[]))
+                """).setParameter("bams", bams).getResultList();
+        for (Object[] laudo : laudos) {
+            boolean temItem = laudo[4] != null;
+            String exame = temItem ? texto(laudo[4]) : texto(laudo[1]) + " " + texto(laudo[2]);
+            // Sem item estruturado, o valor pode ser de outro exame do mesmo pedido: nunca vira "reagente", so "ver laudo".
+            String valor = temItem ? texto(laudo[5]) : "";
+            EvidenciaCasoEpidemiologico.Evidencia evidencia = EvidenciaCasoEpidemiologico.doExame(temItem ? exame : resumoExame(exame), valor, nome, termos);
+            if (evidencia != null) porBam.computeIfAbsent(texto(laudo[0]), bam -> new ArrayList<>()).add(evidencia);
+        }
+        // Desligado ate a leitura do PDF ser conferida com laudos reais: captura, mas nao influencia a vigilancia.
+        if (sugestoesLaudoPdf) {
+            @SuppressWarnings("unchecked") List<Object[]> lidos = em.createNativeQuery(
+                    "SELECT bam, nome_exame, resultado FROM laboratorio_resultado_infeccioso WHERE bam = ANY(CAST(:bams AS int[]))")
+                    .setParameter("bams", bams).getResultList();
+            for (Object[] lido : lidos) {
+                String valor = "REAGENTE".equals(texto(lido[2])) ? "Reagente" : "Não reagente";
+                EvidenciaCasoEpidemiologico.Evidencia evidencia = EvidenciaCasoEpidemiologico.doExame(texto(lido[1]), valor, nome, termos);
+                if (evidencia != null) porBam.computeIfAbsent(texto(lido[0]), bam -> new ArrayList<>()).add(evidencia);
+            }
+        }
+        @SuppressWarnings("unchecked") List<Object[]> fichas = em.createNativeQuery("""
+                SELECT idbam, tipo, dados FROM notificacao_sinan
+                WHERE idbam = ANY(CAST(:bams AS int[])) AND status <> 'RASCUNHO'
+                """).setParameter("bams", bams).getResultList();
+        for (Object[] ficha : fichas) {
+            try {
+                @SuppressWarnings("unchecked") Map<String, Object> dados = JSON_FICHA.readValue(texto(ficha[2]), Map.class);
+                EvidenciaCasoEpidemiologico.Evidencia evidencia = EvidenciaCasoEpidemiologico.daFichaSinan(texto(ficha[1]), dados, nome, termos);
+                if (evidencia != null) porBam.computeIfAbsent(texto(ficha[0]), bam -> new ArrayList<>()).add(evidencia);
+            } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+                // A mensagem da excecao pode citar trecho da ficha: registra so o BAM.
+                LOG.warnf("Ficha SINAN com dados ilegiveis ignorada na vigilancia: bam=%s", texto(ficha[0]));
+            }
+        }
+        for (Map<String, Object> caso : casos) {
+            List<EvidenciaCasoEpidemiologico.Evidencia> doCaso = porBam.getOrDefault(texto(caso.get("bam")), List.of());
+            if (doCaso.isEmpty()) continue;
+            caso.put("evidencias", doCaso.stream().map(EvidenciaCasoEpidemiologico::paraTela).toList());
+            EvidenciaCasoEpidemiologico.Sugestao sugestao = EvidenciaCasoEpidemiologico.sugerir(doCaso);
+            if (sugestao != null) caso.put("sugestao", EvidenciaCasoEpidemiologico.paraTela(sugestao));
+        }
+    }
+
+    /** grupopedidos pode ser longo: a evidencia mostra so o inicio do que foi pedido. */
+    private static String resumoExame(String pedido) {
+        String limpo = pedido.replaceAll("\\s+", " ").trim();
+        return limpo.length() > 120 ? limpo.substring(0, 120) + "..." : limpo;
+    }
+
+    /** Ultima decisao de cada BAM nesta regra; sem registro o caso segue suspeito. */
+    private void anexarClassificacoes(int regraId, List<Map<String, Object>> casos) {
+        @SuppressWarnings("unchecked") List<Object[]> rows = !tabelaClassificacaoExiste() ? List.of() : em.createNativeQuery("""
+                SELECT DISTINCT ON (idbam) idbam, classificacao, criterio, justificativa, profissional, criado_em
+                FROM vigilancia_caso_classificacao WHERE regra_id=:regra ORDER BY idbam, id DESC
+                """).setParameter("regra", regraId).getResultList();
+        Map<String, Object[]> porBam = new LinkedHashMap<>();
+        rows.forEach(row -> porBam.put(texto(row[0]), row));
+        for (Map<String, Object> caso : casos) {
+            Object[] row = porBam.get(texto(caso.get("bam")));
+            caso.put("classificacao", row == null ? ClassificacaoCasoEpidemiologico.SUSPEITO : row[1]);
+            if (row == null) continue;
+            caso.put("classificacaoCriterio", row[2]);
+            caso.put("classificacaoJustificativa", row[3]);
+            caso.put("classificacaoProfissional", row[4]);
+            caso.put("classificacaoEm", texto(row[5]));
+        }
+    }
+
+    /** Grava uma nova linha a cada decisao: a anterior fica como historico. Nao altera o prontuario. */
+    @POST @Path("casos/{regraId}/{bam}/classificacao") @Transactional
+    public Response classificarCaso(@PathParam("regraId") int regraId, @PathParam("bam") int bam, Map<String, Object> dto) {
+        garantirEstrutura();
+        String classificacao = texto(dto == null ? null : dto.get("classificacao")).toUpperCase(Locale.ROOT);
+        String criterio = texto(dto == null ? null : dto.get("criterio")).toUpperCase(Locale.ROOT);
+        String justificativa = texto(dto == null ? null : dto.get("justificativa"));
+        String invalida = ClassificacaoCasoEpidemiologico.validar(classificacao, criterio, justificativa);
+        if (invalida != null) return Response.status(Response.Status.BAD_REQUEST).entity(Map.of("erro", invalida)).build();
+        if (!tabelaClassificacaoExiste()) {
+            return Response.status(Response.Status.SERVICE_UNAVAILABLE).entity(Map.of("erro", "A classificação de casos ainda não está disponível. Confirme a aplicação da migration V240.")).build();
+        }
+        var usuario = securityPermissionService.resolve(requestContext);
+        if (usuario == null || texto(usuario.matricula()).isBlank()) {
+            return Response.status(Response.Status.UNAUTHORIZED).entity(Map.of("erro", "Profissional não identificado na sessão.")).build();
+        }
+        Map<String, Object> regra = regras("").stream().filter(item -> numero(item.get("id"), 0) == regraId).findFirst().orElse(null);
+        if (regra == null) return Response.status(Response.Status.NOT_FOUND).entity(Map.of("erro", "Regra não encontrada.")).build();
+        @SuppressWarnings("unchecked") List<Object[]> atendimento = em.createNativeQuery("SELECT unidade, paciente_idpaciente FROM bam WHERE idbam=:bam")
+                .setParameter("bam", bam).getResultList();
+        if (atendimento.isEmpty()) return Response.status(Response.Status.NOT_FOUND).entity(Map.of("erro", "BAM não encontrado.")).build();
+        String unidade = unidadeEfetiva(texto(regra.get("unidade")));
+        String unidadeBam = texto(atendimento.get(0)[0]);
+        if (!unidade.equalsIgnoreCase(unidadeBam)) {
+            return Response.status(Response.Status.FORBIDDEN).entity(Map.of("erro", "Este BAM não pertence à unidade da sessão.")).build();
+        }
+        em.createNativeQuery("""
+                INSERT INTO vigilancia_caso_classificacao
+                    (regra_id, doenca, unidade, idbam, idpaciente, classificacao, criterio, justificativa, matricula, profissional)
+                VALUES (:regra, :doenca, :unidade, :bam, :paciente, :classificacao, :criterio, :justificativa, :matricula, :profissional)
+                """)
+                .setParameter("regra", regraId).setParameter("doenca", texto(regra.get("nome"))).setParameter("unidade", unidadeBam)
+                .setParameter("bam", bam).setParameter("paciente", atendimento.get(0)[1]).setParameter("classificacao", classificacao)
+                .setParameter("criterio", criterio).setParameter("justificativa", justificativa)
+                .setParameter("matricula", usuario.matricula()).setParameter("profissional", texto(usuario.nome()))
+                .executeUpdate();
+        limparCaches();
+        LOG.infof("Caso epidemiologico classificado: regra=%d, bam=%d, classificacao=%s, matricula=%s", regraId, bam, classificacao, usuario.matricula());
+        Map<String, Object> resposta = new LinkedHashMap<>();
+        resposta.put("classificacao", classificacao);
+        resposta.put("classificacaoCriterio", criterio);
+        resposta.put("classificacaoJustificativa", justificativa);
+        resposta.put("classificacaoProfissional", texto(usuario.nome()));
+        return Response.status(Response.Status.CREATED).entity(resposta).build();
+    }
+
+    private String motivoDoSinal(AvaliacaoSinalEpidemiologico.Resultado r, boolean ocorrenciaAberta) {
+        return switch (r.estado()) {
+            case CASO_RARO -> "Agravo raro ou grave: um caso já justifica investigar.";
+            case SUBINDO -> r.compativelComEpoca()
+                    ? "Acima das últimas semanas, mas dentro do esperado para a época do ano."
+                    : String.format("Acima do esperado para as últimas semanas (esperado: %.1f).", r.esperadoRecente());
+            case ACIMA_DA_EPOCA -> String.format("Estável nas últimas semanas, mas acima da mesma época de anos anteriores (esperado: %.1f).", r.esperadoEpoca());
+            case EM_CURSO -> "Em curso: os casos seguem no patamar do alerta e a ocorrência fica aberta até alguém encerrar.";
+            case REVISADO -> "Acima do esperado, mas a ocorrência já foi encerrada ou descartada nesta janela.";
+            case NORMAL -> ocorrenciaAberta ? "Dentro do esperado, com ocorrência ainda aberta para encerrar." : "Dentro do esperado.";
+        };
     }
 
     @POST @Path("configuracao") @Transactional
@@ -1347,13 +1542,28 @@ public class VigilanciaEpidemiologicaController {
         if (!"assumir".equals(acao) && (justificativa.isBlank() || medida.isBlank())) {
             return Response.status(Response.Status.BAD_REQUEST).entity(Map.of("erro", "Justificativa e medida adotada sao obrigatorias.")).build();
         }
+        Map<String, Object> atual;
+        try {
+            atual = ocorrenciaSistemaService.dados(id);
+        } catch (IllegalArgumentException e) {
+            return Response.status(Response.Status.NOT_FOUND).entity(Map.of("erro", "Ocorrência não encontrada.")).build();
+        }
+        String sessao = unidadeEfetiva("");
+        // "TODAS" = ocorrencia que perdeu a unidade no bug antigo de atualizacao parcial; precisa poder ser encerrada.
+        if (!sessao.isBlank() && !"TODAS".equalsIgnoreCase(texto(atual.get("unidade"))) && !sessao.equalsIgnoreCase(texto(atual.get("unidade")))) {
+            return Response.status(Response.Status.FORBIDDEN).entity(Map.of("erro", "Esta ocorrência não pertence à unidade da sessão.")).build();
+        }
+        var usuario = securityPermissionService.resolve(requestContext);
         Map<String, Object> patch = new LinkedHashMap<>();
-        patch.put("usuario", texto(dto == null ? null : dto.get("usuario")));
+        patch.put("usuario", usuario == null ? texto(dto == null ? null : dto.get("usuario")) : texto(usuario.nome()));
         patch.put("observacao", "Investigacao " + acao + ". Justificativa: " + justificativa + ". Medida: " + medida);
         if ("assumir".equals(acao)) { patch.put("status", "analise"); patch.put("responsavel", texto(dto == null ? null : dto.get("responsavel"))); }
-        if ("confirmar".equals(acao) || "descartar".equals(acao)) patch.put("status", "analise");
-        if ("encerrar".equals(acao)) patch.put("status", "resolvida");
-        return Response.ok(ocorrenciaSistemaService.atualizar(id, patch)).build();
+        if ("confirmar".equals(acao)) patch.put("status", "analise");
+        // Descartar tambem encerra: senao o sinal ficaria "em curso" para sempre.
+        if ("encerrar".equals(acao) || "descartar".equals(acao)) patch.put("status", "resolvida");
+        Map<String, Object> atualizada = ocorrenciaSistemaService.atualizarCampos(id, patch);
+        limparCaches();
+        return Response.ok(atualizada).build();
     }
 
     @POST @Path("sinan/{id}/fluxo")
@@ -1405,22 +1615,127 @@ public class VigilanciaEpidemiologicaController {
         return contarDasLinhas(varrer(regras, inicio, fim, unidade, fonte), regras.size(), inicio, fim, fonte);
     }
 
-    /** [casos atuais, casos das 4 janelas anteriores, atuais so com mencao negada, atuais fora da definicao] por regra; duas consultas por janela distinta, nao duas por regra. */
-    private Map<Map<String, Object>, long[]> contarPorJanela(String unidade, List<Map<String, Object>> regras) {
-        Map<Map<String, Object>, long[]> resultado = new java.util.IdentityHashMap<>();
+    private record ContagemRegra(long atual, long base, long negadas, long semCriterio, Double mediaEpoca, double ajusteRecente,
+                                 double ajusteEpoca, long confirmados, long provaveis, long descartados) {}
+    private static final ContagemRegra CONTAGEM_VAZIA = new ContagemRegra(0, 0, 0, 0, null, 1d, 1d, 0, 0, 0);
+    private static final int ANOS_EPOCA = 2;
+    // Janela de meio ano ou mais ja cobre a sazonalidade e encareceria a varredura.
+    private static final int JANELA_MAXIMA_EPOCA = 180;
+
+    /** Contagens por regra, ja com a decisao humana por caso; uma varredura por janela distinta, nao por regra. */
+    private Map<Map<String, Object>, ContagemRegra> contarPorJanela(String unidade, List<Map<String, Object>> regras) {
+        Map<Map<String, Object>, ContagemRegra> resultado = new java.util.IdentityHashMap<>();
         Map<Integer, List<Map<String, Object>>> porJanela = new LinkedHashMap<>();
         for (Map<String, Object> regra : regras) {
-            resultado.put(regra, new long[4]);
+            resultado.put(regra, CONTAGEM_VAZIA);
             if (texto(regra.get("termos")).isBlank()) continue;
             porJanela.computeIfAbsent(numero(regra.get("janelaDias"), 7), j -> new ArrayList<>()).add(regra);
         }
+        Map<Integer, Map<String, String>> classificacoes = classificacoesDasRegras(regras);
         LocalDate hoje = LocalDate.now();
         porJanela.forEach((janela, grupo) -> {
-            long[][] atual = contarPorRegra(unidade, grupo, hoje.minusDays(janela - 1), hoje, false);
-            long[][] base = contarPorRegra(unidade, grupo, hoje.minusDays(janela * 5L), hoje.minusDays(janela), false);
-            for (int i = 0; i < grupo.size(); i++) resultado.put(grupo.get(i), new long[] { atual[i][0], base[i][0], atual[i][1], atual[i][2] });
+            List<Map<String, String>> porRegra = grupo.stream()
+                    .map(regra -> classificacoes.getOrDefault(numero(regra.get("id"), 0), Map.<String, String>of())).toList();
+            LocalDate inicioAtual = hoje.minusDays(janela - 1);
+            List<Object[]> linhasAtuais = varrer(grupo, inicioAtual, hoje, unidade, "GHBAM");
+            long[][] resumo = ClassificacaoCasoEpidemiologico.aplicar(linhasAtuais, porRegra);
+            long[][] atual = contarDasLinhas(linhasAtuais, grupo.size(), inicioAtual, hoje, "GHBAM");
+            LocalDate inicioBase = hoje.minusDays(janela * 5L);
+            LocalDate fimBase = hoje.minusDays(janela);
+            long[][] base = contarComClassificacao(grupo, porRegra, inicioBase, fimBase, unidade);
+            double atendimentosAtuais = atendimentos(unidade, inicioAtual, hoje);
+            double ajusteRecente = AvaliacaoSinalEpidemiologico.ajustePorAtendimentos(atendimentosAtuais, atendimentos(unidade, inicioBase, fimBase) / 4d);
+            // Ano sem nenhum atendimento na unidade e falta de historico, nao "zero casos".
+            long[] casosEpoca = new long[grupo.size()];
+            long atendimentosEpoca = 0;
+            int anosComDado = 0;
+            for (int ano = 1; janela < JANELA_MAXIMA_EPOCA && ano <= ANOS_EPOCA; ano++) {
+                LocalDate inicio = inicioAtual.minusYears(ano);
+                LocalDate fim = hoje.minusYears(ano);
+                long noAno = atendimentos(unidade, inicio, fim);
+                if (noAno == 0) continue;
+                long[][] contagem = contarComClassificacao(grupo, porRegra, inicio, fim, unidade);
+                for (int i = 0; i < grupo.size(); i++) casosEpoca[i] += contagem[i][0];
+                atendimentosEpoca += noAno;
+                anosComDado++;
+            }
+            double ajusteEpoca = anosComDado == 0 ? 1d
+                    : AvaliacaoSinalEpidemiologico.ajustePorAtendimentos(atendimentosAtuais, (double) atendimentosEpoca / anosComDado);
+            for (int i = 0; i < grupo.size(); i++) {
+                resultado.put(grupo.get(i), new ContagemRegra(atual[i][0], base[i][0], atual[i][1], atual[i][2],
+                        anosComDado == 0 ? null : (double) casosEpoca[i] / anosComDado, ajusteRecente, ajusteEpoca,
+                        resumo[i][0], resumo[i][1], resumo[i][2]));
+            }
         });
         return resultado;
+    }
+
+    private long[][] contarComClassificacao(List<Map<String, Object>> grupo, List<Map<String, String>> porRegra, LocalDate inicio, LocalDate fim, String unidade) {
+        List<Object[]> linhas = varrer(grupo, inicio, fim, unidade, "GHBAM");
+        ClassificacaoCasoEpidemiologico.aplicar(linhas, porRegra);
+        return contarDasLinhas(linhas, grupo.size(), inicio, fim, "GHBAM");
+    }
+
+    private long atendimentos(String unidade, LocalDate inicio, LocalDate fim) {
+        return ((Number) em.createNativeQuery("SELECT count(*) FROM bam b WHERE CAST(b.data AS date) BETWEEN :inicio AND :fim AND (:unidade='' OR b.unidade=:unidade)")
+                .setParameter("inicio", inicio).setParameter("fim", fim).setParameter("unidade", texto(unidade))
+                .getSingleResult()).longValue();
+    }
+
+    /** BAMs descartados cujo diagnostico cita a doenca da regra, como literal de array do PostgreSQL. */
+    private String bamsDescartadosDosAcumulos(String unidade, LocalDate inicio, LocalDate fim) {
+        if (!tabelaClassificacaoExiste()) return "{}";
+        @SuppressWarnings("unchecked") List<Object[]> rows = em.createNativeQuery("""
+                SELECT * FROM (
+                    SELECT DISTINCT ON (c.regra_id, c.idbam) c.regra_id, c.idbam, c.classificacao, t.diagnostico_provisorio
+                    FROM vigilancia_caso_classificacao c
+                    JOIN bam b ON b.idbam = c.idbam
+                    LEFT JOIN tratamento t ON t.idtratamento = b.tratamento_idtratamento
+                    WHERE b.unidade = :unidade AND CAST(b.data AS date) BETWEEN :inicio AND :fim
+                    ORDER BY c.regra_id, c.idbam, c.id DESC
+                ) ultima WHERE classificacao = 'DESCARTADO'
+                """).setParameter("unidade", unidade).setParameter("inicio", inicio).setParameter("fim", fim).getResultList();
+        if (rows.isEmpty()) return "{}";
+        Map<Integer, Map<String, Object>> regrasPorId = new LinkedHashMap<>();
+        regras(unidade).forEach(regra -> regrasPorId.put(numero(regra.get("id"), 0), regra));
+        java.util.Set<String> bams = new java.util.LinkedHashSet<>();
+        for (Object[] row : rows) {
+            Map<String, Object> regra = regrasPorId.get(((Number) row[0]).intValue());
+            if (regra != null && DefinicaoCasoEpidemiologico.diagnosticoCitaRegra(texto(row[3]), texto(regra.get("nome")), texto(regra.get("termos")))) {
+                bams.add(String.valueOf(((Number) row[1]).intValue()));
+            }
+        }
+        return "{" + String.join(",", bams) + "}";
+    }
+
+    private static volatile boolean tabelaClassificacaoPronta = false;
+
+    /** Sem a V240 o sinal e o mapa seguem pela leitura do texto: consulta com erro abortaria a transacao inteira. */
+    private boolean tabelaClassificacaoExiste() {
+        if (tabelaClassificacaoPronta) return true;
+        tabelaClassificacaoPronta = Boolean.TRUE.equals(em.createNativeQuery("SELECT to_regclass('vigilancia_caso_classificacao') IS NOT NULL").getSingleResult());
+        return tabelaClassificacaoPronta;
+    }
+
+    /** Classificacoes na ordem das regras; regra do catalogo padrao ("padrao-N") nao tem id numerico nem classificacao. */
+    private List<Map<String, String>> classificacoesPorIndice(List<Map<String, Object>> regras) {
+        Map<Integer, Map<String, String>> porRegra = classificacoesDasRegras(regras);
+        return regras.stream().map(regra -> porRegra.getOrDefault(numero(regra.get("id"), 0), Map.<String, String>of())).toList();
+    }
+
+    /** regra -> BAM -> classificacao mais recente. */
+    private Map<Integer, Map<String, String>> classificacoesDasRegras(List<Map<String, Object>> regras) {
+        Map<Integer, Map<String, String>> out = new LinkedHashMap<>();
+        List<Integer> ids = regras.stream().map(regra -> numero(regra.get("id"), 0)).filter(id -> id > 0).toList();
+        if (ids.isEmpty() || !tabelaClassificacaoExiste()) return out;
+        @SuppressWarnings("unchecked") List<Object[]> rows = em.createNativeQuery("""
+                SELECT DISTINCT ON (regra_id, idbam) regra_id, idbam, classificacao
+                FROM vigilancia_caso_classificacao WHERE regra_id IN (:ids) ORDER BY regra_id, idbam, id DESC
+                """).setParameter("ids", ids).getResultList();
+        for (Object[] row : rows) {
+            out.computeIfAbsent(((Number) row[0]).intValue(), id -> new LinkedHashMap<>()).put(texto(row[1]), texto(row[2]));
+        }
+        return out;
     }
 
     private long contar(String unidade, String termos, LocalDate inicio, LocalDate fim) {
