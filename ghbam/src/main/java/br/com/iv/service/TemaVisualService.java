@@ -34,6 +34,25 @@ public class TemaVisualService implements Serializable {
         return temaVisualRepository.buscarPorUnidade(unidadeNormalizada).map(this::paraDto);
     }
 
+    // Tela de login: ainda nao ha sessao. Unidade conhecida usa so o proprio tema
+    // (sem tema = padrao, nunca a cor de outra unidade). So o computador que nunca
+    // entrou, sem unidade conhecida (GLOBAL), recebe o ultimo tema salvo na instalacao.
+    // Rota publica: devolve so as cores, sem identificar quem salvou.
+    public Optional<TemaVisualDto> buscarParaLogin(String unidade) {
+        String unidadeNormalizada = temaVisualRepository.normalizarUnidade(unidade);
+        Optional<TemaVisual> encontrado = temaVisualRepository.buscarPorUnidade(unidadeNormalizada);
+        if (encontrado.isEmpty() && "GLOBAL".equals(unidadeNormalizada)) {
+            encontrado = temaVisualRepository.buscarMaisRecente();
+        }
+        return encontrado
+                .map(tema -> {
+                    TemaVisualDto dto = paraDto(tema);
+                    dto.setIdTemaVisual(null);
+                    dto.setUsuario(null);
+                    return dto;
+                });
+    }
+
     @Transactional
     public TemaVisualDto salvar(TemaVisualDto dto) {
         validar(dto);

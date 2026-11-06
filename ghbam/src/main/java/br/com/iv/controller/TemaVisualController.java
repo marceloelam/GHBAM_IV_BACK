@@ -27,6 +27,14 @@ public class TemaVisualController {
                 .orElseGet(() -> Response.noContent().build());
     }
 
+    @GET
+    @Path("login")
+    public Response buscarParaLogin(@QueryParam("unidade") String unidade) {
+        return temaVisualService.buscarParaLogin(unidade)
+                .map(tema -> Response.ok(tema).build())
+                .orElseGet(() -> Response.noContent().build());
+    }
+
     @POST
     public Response salvar(TemaVisualDto dto) {
         try {

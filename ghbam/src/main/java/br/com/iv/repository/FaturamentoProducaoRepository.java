@@ -552,24 +552,22 @@ public class FaturamentoProducaoRepository implements PanacheRepository<Afaturar
     }
 
     public long contarSemCompetenciaPorCompetencia(String competenciaAaaamm, String unidade) {
-        String ano = competenciaAaaamm.substring(0, 4);
-        String mes = competenciaAaaamm.substring(4, 6);
         String filtroUnidade = preenchido(unidade) && !"TODAS".equalsIgnoreCase(unidade)
                 ? " and upper(unidade) = :unidade"
                 : "";
+        // A expressao e identica a do indice idx_afaturar_sem_competencia_mes (docs/sql): sem ele, varre a tabela.
         var query = getEntityManager().createNativeQuery("""
                 select count(*)
                   from afaturar
                  where coalesce(exportado, false) = false
                    and idcompetencia is null
                 """ + filtroUnidade + """
-                   and (
-                         (data ~ '^\\d{4}-\\d{2}-\\d{2}' and substring(data,1,4) = :ano and substring(data,6,2) = :mes)
-                      or (data ~ '^\\d{2}/\\d{2}/\\d{4}' and substring(data,4,2) = :mes and substring(data,7,4) = :ano)
-                       )
+                   and (CASE
+                          WHEN data ~ '^\\d{4}-\\d{2}-\\d{2}' THEN substring(data, 1, 4) || substring(data, 6, 2)
+                          WHEN data ~ '^\\d{2}/\\d{2}/\\d{4}' THEN substring(data, 7, 4) || substring(data, 4, 2)
+                        END) = :competencia
                 """)
-                .setParameter("ano", ano)
-                .setParameter("mes", mes);
+                .setParameter("competencia", competenciaAaaamm);
         if (!filtroUnidade.isBlank()) {
             query.setParameter("unidade", unidade.trim().toUpperCase());
         }

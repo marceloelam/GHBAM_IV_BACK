@@ -28,6 +28,7 @@ import jakarta.ws.rs.container.ContainerRequestContext;
 import jakarta.ws.rs.core.Context;
 import br.com.iv.entity.NotificacaoSinan;
 import br.com.iv.security.SecurityPermissionService;
+import br.com.iv.service.DefinicaoCasoEpidemiologico;
 import br.com.iv.service.GeocodificacaoPacienteService;
 import br.com.iv.service.NotificacaoSinanService;
 import br.com.iv.service.OcorrenciaSistemaService;
@@ -73,6 +74,7 @@ public class VigilanciaEpidemiologicaController {
             Map<String, Object> item = new LinkedHashMap<>(regra);
             item.put("casosAtuais", atual); item.put("mediaHistorica", media); item.put("fatorObservado", media == 0 ? null : atual / media);
             item.put("casosMencaoNegada", contagens.get(regra)[2]);
+            item.put("casosSemCriterio", contagens.get(regra)[3]);
             item.put("nivel", alerta ? (atual >= minimo * 2 ? "ALTO" : "ATENCAO") : "NORMAL");
             item.put("sinalParaInvestigacao", alerta);
             if (alerta) {
@@ -111,18 +113,209 @@ public class VigilanciaEpidemiologicaController {
                          @QueryParam("doenca") String doenca) {
         // Consulta pesada (texto livre de varios campos): mesma consulta em 5 min
         // reaproveita o resultado. Alterar regra limpa o cache (limparCaches).
+        // A chave nao leva a doenca: a varredura classifica todas, e trocar o filtro nao consulta o banco de novo.
         String chaveCache = String.join("|", unidadeEfetiva(unidade), texto(inicio), texto(fim),
-                texto(origem).toUpperCase(Locale.ROOT), texto(doenca));
+                texto(origem).toUpperCase(Locale.ROOT));
+        Response completo = mapaCompleto(chaveCache, inicio, fim, unidade, origem);
+        if (texto(doenca).isBlank() || completo.getStatus() != 200) return completo;
+        String nomeDoenca = regrasMapa(unidadeEfetiva(unidade)).stream()
+                .filter(regra -> Boolean.TRUE.equals(regra.get("ativo")) && texto(regra.get("termos")).equals(texto(doenca)))
+                .map(regra -> texto(regra.get("nome")))
+                .findFirst().orElse(null);
+        // Termo fora das regras ativas nao esta na varredura: segue pela consulta propria.
+        if (nomeDoenca == null) return mapaInterno(inicio, fim, unidade, origem, doenca, true);
+        @SuppressWarnings("unchecked")
+        Map<String, Object> dados = (Map<String, Object>) completo.getEntity();
+        return Response.ok(filtrarPorDoenca(dados, nomeDoenca)).build();
+    }
+
+    private Response mapaCompleto(String chaveCache, String inicio, String fim, String unidade, String origem) {
         Object[] cache = MAPA_CACHE.get(chaveCache);
         if (cache != null && System.currentTimeMillis() - (Long) cache[0] < MAPA_CACHE_MS) {
             return Response.ok(cache[1]).build();
         }
-        Response resposta = mapaInterno(inicio, fim, unidade, origem, doenca, true);
-        if (resposta.getStatus() == 200) {
-            if (MAPA_CACHE.size() > 500) MAPA_CACHE.clear();
-            MAPA_CACHE.put(chaveCache, new Object[] { System.currentTimeMillis(), resposta.getEntity() });
+        // Consulta igual ja em andamento (tela + alerta do cabecalho): espera e reaproveita, sem dobrar a carga no banco.
+        synchronized (MAPA_TRAVAS.computeIfAbsent(chaveCache, chave -> new Object())) {
+            try {
+                cache = MAPA_CACHE.get(chaveCache);
+                if (cache != null && System.currentTimeMillis() - (Long) cache[0] < MAPA_CACHE_MS) {
+                    return Response.ok(cache[1]).build();
+                }
+                Response resposta = mapaInterno(inicio, fim, unidade, origem, "", true);
+                if (resposta.getStatus() == 200) {
+                    if (MAPA_CACHE.size() > 500) MAPA_CACHE.clear();
+                    MAPA_CACHE.put(chaveCache, new Object[] { System.currentTimeMillis(), resposta.getEntity() });
+                }
+                return resposta;
+            } finally {
+                MAPA_TRAVAS.remove(chaveCache);
+            }
         }
+    }
+
+    /** Recorte de uma doenca a partir do mapa completo. O seletor continua listando todas as doencas. */
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> filtrarPorDoenca(Map<String, Object> completo, String nome) {
+        Map<String, Object> resposta = new LinkedHashMap<>(completo);
+        List<Map<String, Object>> pontos = ((List<Map<String, Object>>) completo.getOrDefault("pontos", List.of())).stream()
+                .filter(ponto -> nome.equals(ponto.get("doenca"))).toList();
+        List<Map<String, Object>> pequenas = ((List<Map<String, Object>>) completo.getOrDefault("regioesAbaixoMinimo", List.of())).stream()
+                .filter(item -> nome.equals(item.get("nome"))).toList();
+        long casos = ((List<Map<String, Object>>) completo.getOrDefault("doencas", List.of())).stream()
+                .filter(item -> nome.equals(item.get("nome")))
+                .mapToLong(item -> ((Number) item.get("casos")).longValue()).findFirst().orElse(0);
+        resposta.put("pontos", pontos);
+        resposta.put("regioesAbaixoMinimo", pequenas);
+        resposta.put("totalCasos", casos);
+        resposta.put("casosNoMapa", pontos.stream().mapToLong(ponto -> ((Number) ponto.get("peso")).longValue()).sum());
+        resposta.put("casosRegioesPequenas", pequenas.stream().mapToLong(item -> ((Number) item.get("casos")).longValue()).sum());
         return resposta;
+    }
+
+    private static final Map<String, Object> MAPA_TRAVAS = new java.util.concurrent.ConcurrentHashMap<>();
+
+    /** Uma regiao de uma doenca, montada a partir da varredura unica de mapaTodasDoencas. */
+    private static final class RegiaoDoenca {
+        final double latitude;
+        final double longitude;
+        final java.util.Set<String> atuais = new java.util.HashSet<>();
+        final java.util.Set<String> anteriores = new java.util.HashSet<>();
+        final java.util.Set<String> aproximados = new java.util.HashSet<>();
+        final Map<String, Integer> nomes = new java.util.HashMap<>();
+
+        RegiaoDoenca(double latitude, double longitude) {
+            this.latitude = latitude;
+            this.longitude = longitude;
+        }
+    }
+
+    /**
+     * Mapa sem filtro de doenca: uma so consulta classifica cada atendimento em todas as regras e os
+     * pontos sao montados aqui. Antes era uma consulta geral e mais uma de 5 janelas por doenca da legenda,
+     * o que passava do tempo de transacao. Mantem os mesmos limites e campos de mapaInterno.
+     */
+    private Response mapaTodasDoencas(LocalDate dataInicio, LocalDate dataFim, String unidade, String origem, List<Map<String, Object>> regras) {
+        long diasPeriodo = java.time.temporal.ChronoUnit.DAYS.between(dataInicio, dataFim) + 1;
+        List<Object[]> rows = varrer(regras, dataInicio.minusDays(diasPeriodo * 4), dataFim, unidade, origem);
+        GeocodificacaoPacienteService.PadraoUnidade padraoUnidade = GeocodificacaoPacienteService.padraoDaUnidade(unidade);
+        List<Map<String, RegiaoDoenca>> regioesPorRegra = new ArrayList<>();
+        regras.forEach(regra -> regioesPorRegra.add(new LinkedHashMap<>()));
+        java.util.Set<String> pacientesAtuais = new java.util.HashSet<>();
+        java.util.Set<String> pacientesSemLocal = new java.util.HashSet<>();
+        for (Object[] row : rows) {
+            String paciente = texto(row[1]);
+            boolean atual = !LocalDate.parse(texto(row[4]).substring(0, 10)).isBefore(dataInicio);
+            if (atual && !texto(row[13]).isBlank()) pacientesAtuais.add(paciente);
+            if (texto(row[13]).isBlank()) continue;
+            double[] celula = celulaDoCaso((Number) row[5], (Number) row[6], texto(row[7]), texto(row[8]), texto(row[9]), padraoUnidade);
+            if (celula == null) {
+                if (atual) pacientesSemLocal.add(paciente);
+                continue;
+            }
+            boolean aproximado = !temCoordenadaPropria((Number) row[5], (Number) row[6]);
+            for (String indice : texto(row[13]).split(",")) {
+                if (indice.isBlank()) continue;
+                RegiaoDoenca regiao = regioesPorRegra.get(Integer.parseInt(indice))
+                        .computeIfAbsent(celula[0] + ":" + celula[1], chave -> new RegiaoDoenca(celula[0], celula[1]));
+                if (!atual) {
+                    regiao.anteriores.add(paciente);
+                    continue;
+                }
+                regiao.atuais.add(paciente);
+                if (aproximado) regiao.aproximados.add(paciente);
+                regiao.nomes.merge(texto(row[7]) + "|" + texto(row[8]), 1, Integer::sum);
+            }
+        }
+        long[][] contagemGhbam = contarDasLinhas(rows, regras.size(), dataInicio, dataFim, "GHBAM");
+        long[][] contagemGpec = contarDasLinhas(rows, regras.size(), dataInicio, dataFim, "GPEC");
+        List<Map<String, Object>> doencas = new ArrayList<>();
+        List<Map<String, Object>> mencoesNegadas = new ArrayList<>();
+        List<Map<String, Object>> semCriterio = new ArrayList<>();
+        List<Map<String, Object>> regioesAbaixoMinimo = new ArrayList<>();
+        List<Map<String, Object>> pontos = new ArrayList<>();
+        long casosRegioesPequenasTotal = 0;
+        for (int i = 0; i < regras.size(); i++) {
+            Map<String, Object> regra = regras.get(i);
+            String nome = texto(regra.get("nome"));
+            LimitesRegra limites = limitesDe(regra);
+            long casosGhbam = contagemGhbam[i][0];
+            long casosGpec = contagemGpec[i][0];
+            long casos = "GHBAM".equalsIgnoreCase(texto(origem)) ? casosGhbam
+                    : "GPEC".equalsIgnoreCase(texto(origem)) ? casosGpec : casosGhbam + casosGpec;
+            long negadas = contagemGhbam[i][1] + contagemGpec[i][1];
+            long fora = contagemGhbam[i][2] + contagemGpec[i][2];
+            boolean naLegenda = casos >= limites.minimo();
+            if (negadas > 0 && (naLegenda || limites.cadastrada())) {
+                Map<String, Object> mencao = new LinkedHashMap<>();
+                mencao.put("nome", nome);
+                mencao.put("casos", negadas);
+                mencoesNegadas.add(mencao);
+            }
+            if (fora > 0 && limites.cadastrada()) {
+                Map<String, Object> item = new LinkedHashMap<>();
+                item.put("nome", nome);
+                item.put("casos", fora);
+                semCriterio.add(item);
+            }
+            if (!naLegenda) continue;
+            long pequenasDaDoenca = 0;
+            boolean temPonto = false;
+            for (RegiaoDoenca regiao : regioesPorRegra.get(i).values()) {
+                long peso = regiao.atuais.size();
+                if (peso <= 0) continue;
+                if (peso < limites.minimoRegiao()) {
+                    pequenasDaDoenca += peso;
+                    continue;
+                }
+                temPonto = true;
+                String[] nomes = regiao.nomes.entrySet().stream().max(Map.Entry.comparingByValue())
+                        .map(entrada -> entrada.getKey().split("\\|", -1)).orElse(new String[] { "", "" });
+                double media = regiao.anteriores.size() / 4d;
+                boolean alerta = peso >= limites.minimo() && peso >= media * limites.fator();
+                Map<String, Object> ponto = new LinkedHashMap<>();
+                ponto.put("latitude", regiao.latitude);
+                ponto.put("longitude", regiao.longitude);
+                ponto.put("peso", peso);
+                ponto.put("bairro", nomes[0]);
+                ponto.put("municipio", nomes.length > 1 ? nomes[1] : "");
+                ponto.put("casosAproximados", (long) regiao.aproximados.size());
+                ponto.put("origem", texto(origem).isBlank() ? "TODOS" : texto(origem));
+                ponto.put("mediaAnterior", Math.round(media * 10) / 10d);
+                ponto.put("sinalParaInvestigacao", alerta);
+                ponto.put("nivel", alerta ? (peso >= limites.pesoAlto() || (media > 0 && peso >= media * 3) ? "ALTO" : "ATENCAO") : "NORMAL");
+                ponto.put("doenca", nome);
+                pontos.add(ponto);
+            }
+            adicionarRegioesAbaixoMinimo(regioesAbaixoMinimo, nome, pequenasDaDoenca);
+            casosRegioesPequenasTotal += pequenasDaDoenca;
+            // A legenda so lista doenca com regiao desenhavel: escolher outra deixaria o mapa vazio.
+            if (temPonto) {
+                Map<String, Object> opcao = new LinkedHashMap<>();
+                opcao.put("id", regra.get("id"));
+                opcao.put("nome", nome);
+                opcao.put("termos", regra.get("termos"));
+                opcao.put("casos", casos);
+                opcao.put("casosGhbam", casosGhbam);
+                opcao.put("casosGpec", casosGpec);
+                opcao.put("casosMencaoNegada", negadas);
+                doencas.add(opcao);
+            }
+        }
+        pontos.sort((a, b) -> Long.compare(((Number) b.get("peso")).longValue(), ((Number) a.get("peso")).longValue()));
+        Map<String, Object> resposta = new LinkedHashMap<>();
+        resposta.put("totalCasos", (long) pacientesAtuais.size());
+        resposta.put("pontos", pontos);
+        resposta.put("casosNoMapa", pontos.stream().mapToLong(p -> ((Number) p.get("peso")).longValue()).sum());
+        resposta.put("casosSemLocalizacao", (long) pacientesSemLocal.size());
+        resposta.put("casosRegioesPequenas", casosRegioesPequenasTotal);
+        resposta.put("origem", texto(origem).isBlank() ? "GHBAM" : texto(origem));
+        resposta.put("mencoesNegadas", mencoesNegadas);
+        resposta.put("semCriterio", semCriterio);
+        resposta.put("regioesAbaixoMinimo", regioesAbaixoMinimo);
+        resposta.put("doencas", doencas);
+        resposta.put("inicio", dataInicio.toString());
+        resposta.put("fim", dataFim.toString());
+        return Response.ok(resposta).build();
     }
 
     // Abaixo disso a doenca nem entra na legenda e nao gera sinal (definido pelo Marcelo).
@@ -135,24 +328,73 @@ public class VigilanciaEpidemiologicaController {
             ' ' || REGEXP_REPLACE(TRANSLATE(LOWER(
               COALESCE(r.queixaprincipal,'') || ' ' || COALESCE(r.obsentrada,'') || ' ' ||
               COALESCE(a.anamnese,'') || ' ' || COALESCE(a.comentario,'') || ' ' ||
-              COALESCE(a.hpp,'') || ' ' || COALESCE(a.risco,'') || ' ' ||
+              COALESCE(a.risco,'') || ' ' ||
               COALESCE(t.diagnostico_provisorio,'') || ' ' || COALESCE(t.evolucao_prescricao,'') || ' ' ||
-              COALESCE(t.obs_enfermagem,'') || ' ' || COALESCE(ai.frente,'') || ' ' || COALESCE(ai.verso,'')
+              COALESCE(t.obs_enfermagem,'') || ' ' || COALESCE(ai.frente,'') || ' ' || COALESCE(ai.verso,'') || ' ' ||
+              COALESCE((SELECT string_agg(e1.relato, ' ') FROM atendimento e1 WHERE e1.bam=b.idbam),'') || ' ' ||
+              COALESCE((SELECT string_agg(e2.relato, ' ') FROM evolucaopaciente e2 WHERE e2.nbam=b.idbam AND e2.inativo IS NOT TRUE),'') || ' ' ||
+              COALESCE((SELECT string_agg(e3.relato, ' ') FROM evolucaopacienteenf e3 WHERE e3.nbam=b.idbam),'') || ' ' ||
+              COALESCE((SELECT string_agg(e4.diagnostico, ' ') FROM novointernado e4 WHERE e4.nbam=b.idbam),'')
             ), :acentos, :semAcentos), '[^a-z0-9]+', ' ', 'g') || ' '
             """;
 
-    /** O BAM cita o termo fora de mencao negada. O regex so roda nos textos que ja citam o termo. */
-    private static final String FILTRO_BAM_SQL = """
+    /**
+     * O BAM cumpre a definicao de caso depois de retirar as mencoes negadas. OFFSET 0 impede o
+     * planner de repetir o regex a cada LIKE; o regex so roda nos textos que citam algum termo.
+     */
+    private static String filtroBamSql(String predicado) {
+        return """
             SELECT 1 FROM registro r
             LEFT JOIN avaliacao a ON a.idavaliacao=b.avaliacao_idavaliacao
             LEFT JOIN tratamento t ON t.idtratamento=b.tratamento_idtratamento
             LEFT JOIN anamneseinternacao ai ON ai.nbam=b.idbam
             CROSS JOIN LATERAL (SELECT """ + TEXTO_BAM_SQL + """
-             AS txt) x
+             AS txt OFFSET 0) x
+            CROSS JOIN LATERAL (SELECT CASE WHEN x.txt ILIKE ANY(CAST(string_to_array(:padroesDoenca, '|') AS text[]))
+                THEN REGEXP_REPLACE(x.txt, :negacao, ' ', 'g') ELSE '' END AS limpo OFFSET 0) y
             WHERE r.idregistro=b.registro_idregistro
-              AND x.txt ILIKE ANY(CAST(string_to_array(:padroesDoenca, '|') AS text[]))
-              AND REGEXP_REPLACE(x.txt, :negacao, ' ', 'g') ILIKE ANY(CAST(string_to_array(:padroesDoenca, '|') AS text[]))
-            """;
+              AND """ + predicado + "\n";
+    }
+
+    /** Criterio de uma ou mais regras: condicao SQL sobre y.limpo, termos citados, regex de negacao e padroes do G-PEC. */
+    record CriterioCaso(String predicado, String padroesCitados, String negacao, String padroesGpec) {}
+
+    CriterioCaso criterioCaso(List<Map<String, Object>> regras) {
+        List<String> predicados = new ArrayList<>();
+        java.util.Set<String> citados = new java.util.LinkedHashSet<>();
+        java.util.Set<String> estruturados = new java.util.LinkedHashSet<>();
+        for (Map<String, Object> regra : regras) {
+            String nome = texto(regra.get("nome"));
+            String termos = texto(regra.get("termos"));
+            predicados.add(DefinicaoCasoEpidemiologico.predicadoSql("y.limpo", nome, termos));
+            citados.addAll(DefinicaoCasoEpidemiologico.termosCitados(nome, termos));
+            estruturados.addAll(DefinicaoCasoEpidemiologico.termosEstruturados(nome, termos));
+        }
+        return new CriterioCaso(predicados.isEmpty() ? "FALSE" : "(" + String.join(" OR ", predicados) + ")",
+                padroesDe(citados), regexMencaoNegada(String.join(",", citados)), padroesDe(estruturados));
+    }
+
+    private static String padroesDe(java.util.Collection<String> termos) {
+        return termos.stream().map(termo -> "% " + termo + " %").collect(java.util.stream.Collectors.joining("|"));
+    }
+
+    /** Regras ativas da unidade (sem filtro) ou a regra dos termos filtrados; termo avulso vira regra sem nome. */
+    private List<Map<String, Object>> regrasDaConsulta(String unidade, String doenca) {
+        List<Map<String, Object>> ativas = regrasMapa(unidade).stream()
+                .filter(regra -> Boolean.TRUE.equals(regra.get("ativo")) && !texto(regra.get("termos")).isBlank())
+                .toList();
+        if (doenca.isBlank()) return ativas;
+        List<Map<String, Object>> escolhidas = ativas.stream().filter(regra -> texto(regra.get("termos")).equals(doenca)).toList();
+        return escolhidas.isEmpty() ? List.of(Map.<String, Object>of("nome", "", "termos", doenca)) : escolhidas;
+    }
+
+    private static void adicionarRegioesAbaixoMinimo(List<Map<String, Object>> lista, String nome, Object casos) {
+        if (!(casos instanceof Number) || ((Number) casos).longValue() <= 0) return;
+        Map<String, Object> item = new LinkedHashMap<>();
+        item.put("nome", nome);
+        item.put("casos", ((Number) casos).longValue());
+        lista.add(item);
+    }
 
     private static void limparCaches() {
         MAPA_CACHE.clear();
@@ -189,16 +431,9 @@ public class VigilanciaEpidemiologicaController {
             garantirEstrutura();
             // Sem filtro, o mapa mostra os casos de todas as doenças monitoradas ativas,
             // e não todos os atendimentos do período (a legenda só lista essas doenças).
-            String termosDoenca = texto(doenca);
-            if (termosDoenca.isBlank()) {
-                List<String> termosAtivos = new ArrayList<>();
-                for (Map<String, Object> regra : regrasMapa(unidade)) {
-                    if (Boolean.TRUE.equals(regra.get("ativo")) && !texto(regra.get("termos")).isBlank()) {
-                        termosAtivos.add(texto(regra.get("termos")));
-                    }
-                }
-                termosDoenca = String.join(",", termosAtivos);
-            }
+            List<Map<String, Object>> regrasConsulta = regrasDaConsulta(unidade, texto(doenca));
+            CriterioCaso criterio = criterioCaso(regrasConsulta);
+            String termosDoenca = regrasConsulta.stream().map(regra -> texto(regra.get("termos"))).collect(java.util.stream.Collectors.joining(","));
             if (termosDoenca.isBlank()) {
                 Map<String, Object> vazio = new LinkedHashMap<>();
                 vazio.put("totalCasos", 0);
@@ -209,12 +444,15 @@ public class VigilanciaEpidemiologicaController {
                 vazio.put("fim", dataFim.toString());
                 return Response.ok(vazio).build();
             }
+            if (completo && texto(doenca).isBlank()) {
+                return mapaTodasDoencas(dataInicio, dataFim, unidade, origem, regrasConsulta);
+            }
 
             String sql = """
                     WITH fontes AS (
                         SELECT CAST(p.latitude AS double precision) AS latitude,
                                CAST(p.longitude AS double precision) AS longitude,
-                               CAST(b.idbam AS varchar) AS origem_id,
+                               CAST(b.paciente_idpaciente AS varchar) AS origem_id,
                                NULLIF(UPPER(TRIM(p.bairro)), '') AS bairro,
                                NULLIF(UPPER(TRIM(p.municipio)), '') AS municipio,
                                NULLIF(UPPER(TRIM(p.estado)), '') AS estado,
@@ -225,11 +463,11 @@ public class VigilanciaEpidemiologicaController {
                           AND (:unidade = '' OR b.unidade = :unidade)
                           AND COALESCE(NULLIF(UPPER(:origem), ''), 'TODOS') IN ('TODOS', 'GHBAM')
                           AND (:doenca = '' OR EXISTS (
-                    """ + FILTRO_BAM_SQL + """
+                    """ + filtroBamSql(criterio.predicado()) + """
                           ))
                         UNION ALL
                         SELECT d.latitude, d.longitude,
-                               CAST(CONCAT('GPEC-', a.id) AS varchar) AS origem_id,
+                               CAST(CONCAT('GPEC-', a.id_cidadao) AS varchar) AS origem_id,
                                NULLIF(UPPER(TRIM(d.bairro)), '') AS bairro,
                                CAST(NULL AS varchar) AS municipio,
                                CAST(NULL AS varchar) AS estado,
@@ -246,7 +484,7 @@ public class VigilanciaEpidemiologicaController {
                               SELECT 1 FROM aps_problema pr
                               WHERE pr.id_atendimento = a.id AND pr.tipo = 'PROBLEMA'
                                 AND (' ' || REGEXP_REPLACE(TRANSLATE(LOWER(COALESCE(pr.descricao,'') || ' ' || COALESCE(pr.cid10,'') || ' ' || COALESCE(pr.ciap,'')), :acentos, :semAcentos), '[^a-z0-9]+', ' ', 'g') || ' ')
-                                    ILIKE ANY(CAST(string_to_array(:padroesDoenca, '|') AS text[]))
+                                    ILIKE ANY(CAST(string_to_array(:padroesGpec, '|') AS text[]))
                           ))
                     ), marcadas AS (
                         -- Sem coordenada, fora do Brasil ou no ponto padrao antigo de Itaguai
@@ -292,8 +530,9 @@ public class VigilanciaEpidemiologicaController {
                     .setParameter("unidade", texto(unidade))
                     .setParameter("origem", texto(origem))
                     .setParameter("doenca", termosDoenca)
-                    .setParameter("padroesDoenca", padroesBusca(termosDoenca))
-                    .setParameter("negacao", regexMencaoNegada(termosDoenca))
+                    .setParameter("padroesDoenca", criterio.padroesCitados())
+                    .setParameter("padroesGpec", criterio.padroesGpec())
+                    .setParameter("negacao", criterio.negacao())
                     .setParameter("acentos", ACENTOS)
                     .setParameter("semAcentos", SEM_ACENTOS)
                     .setParameter("latPadrao", GeocodificacaoPacienteService.LATITUDE_PADRAO)
@@ -335,17 +574,17 @@ public class VigilanciaEpidemiologicaController {
             }
 
             String totalSql = """
-                    SELECT COUNT(*) FROM (
-                        SELECT CAST(b.idbam AS varchar) AS origem_id
+                    SELECT COUNT(DISTINCT origem_id) FROM (
+                        SELECT CAST(b.paciente_idpaciente AS varchar) AS origem_id
                         FROM bam b
                         WHERE CAST(b.data AS date) BETWEEN :inicio AND :fim
                           AND (:unidade = '' OR b.unidade = :unidade)
                           AND COALESCE(NULLIF(UPPER(:origem), ''), 'TODOS') IN ('TODOS', 'GHBAM')
                           AND (:doenca = '' OR EXISTS (
-                    """ + FILTRO_BAM_SQL + """
+                    """ + filtroBamSql(criterio.predicado()) + """
                           ))
                         UNION ALL
-                        SELECT CAST(CONCAT('GPEC-', a.id) AS varchar) AS origem_id
+                        SELECT CAST(CONCAT('GPEC-', a.id_cidadao) AS varchar) AS origem_id
                         FROM aps_atendimento a
                         WHERE a.data_referencia BETWEEN :inicio AND :fim
                           AND a.status <> 'CANCELADO'
@@ -355,7 +594,7 @@ public class VigilanciaEpidemiologicaController {
                               SELECT 1 FROM aps_problema pr
                               WHERE pr.id_atendimento = a.id AND pr.tipo = 'PROBLEMA'
                                 AND (' ' || REGEXP_REPLACE(TRANSLATE(LOWER(COALESCE(pr.descricao,'') || ' ' || COALESCE(pr.cid10,'') || ' ' || COALESCE(pr.ciap,'')), :acentos, :semAcentos), '[^a-z0-9]+', ' ', 'g') || ' ')
-                                    ILIKE ANY(CAST(string_to_array(:padroesDoenca, '|') AS text[]))
+                                    ILIKE ANY(CAST(string_to_array(:padroesGpec, '|') AS text[]))
                           ))
                     ) fontes
                     """;
@@ -365,8 +604,9 @@ public class VigilanciaEpidemiologicaController {
                     .setParameter("unidade", texto(unidade))
                     .setParameter("origem", texto(origem))
                     .setParameter("doenca", termosDoenca)
-                    .setParameter("padroesDoenca", padroesBusca(termosDoenca))
-                    .setParameter("negacao", regexMencaoNegada(termosDoenca))
+                    .setParameter("padroesDoenca", criterio.padroesCitados())
+                    .setParameter("padroesGpec", criterio.padroesGpec())
+                    .setParameter("negacao", criterio.negacao())
                     .setParameter("acentos", ACENTOS)
                     .setParameter("semAcentos", SEM_ACENTOS)
                     .getSingleResult();
@@ -374,10 +614,15 @@ public class VigilanciaEpidemiologicaController {
             // Com doenca filtrada valem o minimo e o fator da regra; o catalogo padrao segue o minimo geral.
             LimitesRegra limites = limitesDaRegra(unidade, texto(doenca));
             List<Map<String, Object>> pontos = new ArrayList<>();
+            long casosRegioesPequenas = 0;
             for (Map.Entry<String, double[]> entrada : celulas.entrySet()) {
                 double[] celula = entrada.getValue();
                 long peso = (long) celula[2];
                 if (peso <= 0) continue;
+                if (peso < limites.minimoRegiao()) {
+                    casosRegioesPequenas += peso;
+                    continue;
+                }
                 String[] nomes = nomesCelula.getOrDefault(entrada.getKey(), new String[] { "", "" });
                 Map<String, Object> ponto = new LinkedHashMap<>();
                 ponto.put("latitude", celula[0]);
@@ -408,6 +653,7 @@ public class VigilanciaEpidemiologicaController {
             resposta.put("pontos", pontos);
             resposta.put("casosNoMapa", casosNoMapa);
             resposta.put("casosSemLocalizacao", casosSemLocalizacao);
+            resposta.put("casosRegioesPequenas", casosRegioesPequenas);
             resposta.put("origem", texto(origem).isBlank() ? "GHBAM" : texto(origem));
             List<Map<String, Object>> doencas = new ArrayList<>();
             List<Map<String, Object>> regrasAtivas = new ArrayList<>();
@@ -417,13 +663,13 @@ public class VigilanciaEpidemiologicaController {
                 }
             }
             // Uma consulta por fonte conta todas as doencas (antes: 2 consultas por doenca).
-            List<String> termosRegras = regrasAtivas.stream().map(regra -> texto(regra.get("termos"))).toList();
-            long[][] contagemGhbam = "GPEC".equalsIgnoreCase(texto(origem)) ? new long[termosRegras.size()][2]
-                    : contarPorRegra(unidade, termosRegras, dataInicio, dataFim, false);
-            long[][] contagemGpec = "GHBAM".equalsIgnoreCase(texto(origem)) ? new long[termosRegras.size()][2]
-                    : contarPorRegra(unidade, termosRegras, dataInicio, dataFim, true);
+            long[][] contagemGhbam = "GPEC".equalsIgnoreCase(texto(origem)) ? new long[regrasAtivas.size()][3]
+                    : contarPorRegra(unidade, regrasAtivas, dataInicio, dataFim, false);
+            long[][] contagemGpec = "GHBAM".equalsIgnoreCase(texto(origem)) ? new long[regrasAtivas.size()][3]
+                    : contarPorRegra(unidade, regrasAtivas, dataInicio, dataFim, true);
             // Atendimentos que so citam o termo negando: fora da contagem, mas visiveis para conferencia.
             List<Map<String, Object>> mencoesNegadas = new ArrayList<>();
+            List<Map<String, Object>> semCriterio = new ArrayList<>();
             for (int indiceRegra = 0; indiceRegra < regrasAtivas.size(); indiceRegra++) {
                 Map<String, Object> regra = regrasAtivas.get(indiceRegra);
                 long casosGhbam = contagemGhbam[indiceRegra][0];
@@ -450,8 +696,18 @@ public class VigilanciaEpidemiologicaController {
                     mencao.put("casos", negadas);
                     mencoesNegadas.add(mencao);
                 }
+                long foraDoCriterio = contagemGhbam[indiceRegra][2] + contagemGpec[indiceRegra][2];
+                if (foraDoCriterio > 0 && limitesLegenda.cadastrada()) {
+                    Map<String, Object> fora = new LinkedHashMap<>();
+                    fora.put("nome", regra.get("nome"));
+                    fora.put("casos", foraDoCriterio);
+                    semCriterio.add(fora);
+                }
             }
             resposta.put("mencoesNegadas", mencoesNegadas);
+            resposta.put("semCriterio", semCriterio);
+            List<Map<String, Object>> regioesAbaixoMinimo = new ArrayList<>();
+            resposta.put("regioesAbaixoMinimo", regioesAbaixoMinimo);
             // Quando todas as doenças são consultadas, cada círculo precisa manter
             // a doença que o originou. Reutiliza o mesmo endpoint com o filtro de
             // cada regra, sempre passando a unidade efetiva da sessão/JWT.
@@ -465,6 +721,8 @@ public class VigilanciaEpidemiologicaController {
                     String termos = texto(doencaMapa.get("termos"));
                     Response respostaDoenca = mapaInterno(inicio, fim, unidade, origem, termos, false);
                     if (respostaDoenca.getStatus() != 200 || !(respostaDoenca.getEntity() instanceof Map)) continue;
+                    adicionarRegioesAbaixoMinimo(regioesAbaixoMinimo, texto(doencaMapa.get("nome")),
+                            ((Map<?, ?>) respostaDoenca.getEntity()).get("casosRegioesPequenas"));
                     Object pontosDaDoenca = ((Map<?, ?>) respostaDoenca.getEntity()).get("pontos");
                     if (!(pontosDaDoenca instanceof List<?>) || ((List<?>) pontosDaDoenca).isEmpty()) continue;
                     doencasNoMapa.add(doencaMapa);
@@ -486,6 +744,7 @@ public class VigilanciaEpidemiologicaController {
                         .findFirst()
                         .orElse(texto(doenca));
                 pontos.forEach(ponto -> ponto.put("doenca", nomeDoenca));
+                adicionarRegioesAbaixoMinimo(regioesAbaixoMinimo, nomeDoenca, casosRegioesPequenas);
             }
             resposta.put("doencas", doencas);
             resposta.put("inicio", dataInicio.toString());
@@ -535,7 +794,7 @@ public class VigilanciaEpidemiologicaController {
                                LEFT(TRIM(REGEXP_REPLACE(TRANSLATE(LOWER(t.diagnostico_provisorio), :acentos, :semAcentos), '[^a-z0-9]+', ' ', 'g')), 80) AS chave,
                                CAST(NULL AS varchar) AS descricao,
                                CAST(b.data AS date) >= :inicio AS atual,
-                               CAST(b.idbam AS varchar) AS origem_id
+                               CAST(b.paciente_idpaciente AS varchar) AS origem_id
                         FROM bam b
                         JOIN tratamento t ON t.idtratamento = b.tratamento_idtratamento
                         WHERE CAST(b.data AS date) BETWEEN :inicioBase AND :fim
@@ -548,7 +807,7 @@ public class VigilanciaEpidemiologicaController {
                                      LEFT(TRIM(TRANSLATE(LOWER(pr.descricao), :acentos, :semAcentos)), 80))),
                                pr.descricao,
                                a.data_referencia >= :inicio,
-                               CAST(CONCAT('GPEC-', a.id) AS varchar)
+                               CAST(CONCAT('GPEC-', a.id_cidadao) AS varchar)
                         FROM aps_atendimento a
                         JOIN aps_problema pr ON pr.id_atendimento = a.id AND pr.tipo = 'PROBLEMA'
                         WHERE a.data_referencia BETWEEN :inicioBase AND :fim
@@ -620,6 +879,265 @@ public class VigilanciaEpidemiologicaController {
             return Response.status(Response.Status.SERVICE_UNAVAILABLE)
                     .entity(Map.of("erro", "Nao foi possivel analisar os aumentos de casos.")).build();
         }
+    }
+
+    /**
+     * Pacientes do periodo, um por paciente, com o atendimento mais recente e as doencas em que
+     * se enquadram. Doenca e regiao sao filtros opcionais. Fora de /mapa de proposito: o RBAC so
+     * libera a vigilancia, a CCIH e a administracao; medico e enfermagem seguem nos agregados.
+     */
+    @GET @Path("regiao/casos")
+    @Transactional
+    public Response casosDaRegiao(@QueryParam("inicio") String inicio,
+                                  @QueryParam("fim") String fim,
+                                  @QueryParam("unidade") String unidadeInformada,
+                                  @QueryParam("origem") String origem,
+                                  @QueryParam("doenca") String doenca,
+                                  @QueryParam("latitude") Double latitude,
+                                  @QueryParam("longitude") Double longitude) {
+        try {
+            LocalDate dataInicio = LocalDate.parse(texto(inicio));
+            LocalDate dataFim = LocalDate.parse(texto(fim));
+            String unidade = unidadeEfetiva(unidadeInformada);
+            if (dataFim.isBefore(dataInicio) || dataInicio.plusDays(92).isBefore(dataFim)
+                    || unidade.isBlank() || (latitude == null) != (longitude == null)) {
+                return Response.status(Response.Status.BAD_REQUEST)
+                        .entity(Map.of("erro", "Informe período de até 93 dias, unidade e região completa.")).build();
+            }
+            garantirEstrutura();
+            List<Map<String, Object>> regrasConsulta = regrasDaConsulta(unidade, texto(doenca));
+            if (regrasConsulta.isEmpty()) return Response.ok(Map.of("casos", List.of())).build();
+            List<Object[]> rows = varrer(regrasConsulta, dataInicio, dataFim, unidade, origem);
+            GeocodificacaoPacienteService.PadraoUnidade padraoUnidade = GeocodificacaoPacienteService.padraoDaUnidade(unidade);
+            Map<String, Map<String, Object>> porPaciente = new LinkedHashMap<>();
+            for (Object[] row : rows) {
+                // Quem so cita termos, sem cumprir a definicao, nao e caso.
+                if (texto(row[13]).isBlank()) continue;
+                double[] celula = celulaDoCaso((Number) row[5], (Number) row[6], texto(row[7]), texto(row[8]), texto(row[9]), padraoUnidade);
+                if (latitude != null && (celula == null
+                        || Math.abs(celula[0] - Math.round(latitude * 100) / 100d) > 0.000001
+                        || Math.abs(celula[1] - Math.round(longitude * 100) / 100d) > 0.000001)) continue;
+                // A consulta vem do mais recente para o mais antigo: a primeira linha do paciente e a que aparece.
+                Map<String, Object> caso = porPaciente.get(texto(row[1]));
+                if (caso == null) {
+                    caso = new LinkedHashMap<>();
+                    caso.put("fonte", texto(row[0]));
+                    caso.put("atendimento", texto(row[2]));
+                    caso.put("paciente", texto(row[3]));
+                    caso.put("data", texto(row[4]));
+                    caso.put("bairro", texto(row[7]));
+                    caso.put("latitude", celula == null ? null : celula[0]);
+                    caso.put("longitude", celula == null ? null : celula[1]);
+                    caso.put("setor", texto(row[10]));
+                    caso.put("queixa", texto(row[11]));
+                    caso.put("diagnostico", texto(row[12]));
+                    caso.put("atendimentos", new java.util.LinkedHashSet<String>());
+                    caso.put("doencas", new java.util.LinkedHashSet<String>());
+                    porPaciente.put(texto(row[1]), caso);
+                }
+                @SuppressWarnings("unchecked") java.util.Set<String> atendimentos = (java.util.Set<String>) caso.get("atendimentos");
+                atendimentos.add(texto(row[2]));
+                @SuppressWarnings("unchecked") java.util.Set<String> doencas = (java.util.Set<String>) caso.get("doencas");
+                for (String indice : texto(row[13]).split(",")) {
+                    if (!indice.isBlank()) doencas.add(texto(regrasConsulta.get(Integer.parseInt(indice)).get("nome")));
+                }
+            }
+            List<Map<String, Object>> casos = new ArrayList<>();
+            for (Map<String, Object> caso : porPaciente.values()) {
+                caso.put("atendimentos", ((java.util.Set<?>) caso.get("atendimentos")).size());
+                caso.put("doencas", new ArrayList<>((java.util.Set<?>) caso.get("doencas")));
+                casos.add(caso);
+            }
+            // Rastreabilidade do acesso a dado identificado; o log nao leva dado do paciente.
+            var usuario = securityPermissionService.resolve(requestContext);
+            LOG.infof("Casos do mapa consultados: unidade=%s, matricula=%s, pacientes=%d", unidade,
+                    usuario == null ? "" : usuario.matricula(), casos.size());
+            return Response.ok(Map.of("casos", casos)).build();
+        } catch (java.time.format.DateTimeParseException e) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(Map.of("erro", "As datas devem estar no formato YYYY-MM-DD.")).build();
+        } catch (Exception e) {
+            LOG.error("Falha ao listar casos do mapa", e);
+            return Response.status(Response.Status.SERVICE_UNAVAILABLE)
+                    .entity(Map.of("erro", "Nao foi possivel listar os casos.")).build();
+        }
+    }
+
+    /** Atendimentos que citam termos das regras, ja com o texto normalizado na ultima coluna. O regex fica no Java: no banco custava dezenas de segundos. */
+    static String sqlVarredura() {
+        return """
+                    SELECT * FROM (
+                        SELECT 'GHBAM' AS fonte, CAST(b.paciente_idpaciente AS varchar) AS paciente_id, CAST(b.idbam AS varchar) AS atendimento,
+                               p.nome AS paciente, b.data AS data_caso,
+                               CAST(p.latitude AS double precision) AS lat, CAST(p.longitude AS double precision) AS lon,
+                               NULLIF(UPPER(TRIM(p.bairro)), '') AS bairro, NULLIF(UPPER(TRIM(p.municipio)), '') AS municipio, NULLIF(UPPER(TRIM(p.estado)), '') AS estado,
+                               r.setor AS setor, r.queixaprincipal AS queixa, t.diagnostico_provisorio AS diagnostico, x.txt AS txt
+                        FROM bam b
+                        JOIN pacientes p ON p.idpaciente = b.paciente_idpaciente
+                        JOIN registro r ON r.idregistro = b.registro_idregistro
+                        LEFT JOIN avaliacao a ON a.idavaliacao = b.avaliacao_idavaliacao
+                        LEFT JOIN tratamento t ON t.idtratamento = b.tratamento_idtratamento
+                        LEFT JOIN anamneseinternacao ai ON ai.nbam = b.idbam
+                        CROSS JOIN LATERAL (SELECT """ + TEXTO_BAM_SQL + """
+                         AS txt OFFSET 0) x
+                        WHERE CAST(b.data AS date) BETWEEN :inicio AND :fim
+                          AND (:unidade = '' OR b.unidade = :unidade)
+                          AND COALESCE(NULLIF(UPPER(:origem), ''), 'TODOS') IN ('TODOS', 'GHBAM')
+                          AND x.txt LIKE ANY(CAST(string_to_array(:padroes, '|') AS text[]))
+                        UNION ALL
+                        SELECT 'GPEC', CONCAT('GPEC-', a.id_cidadao), CAST(a.id AS varchar),
+                               COALESCE(NULLIF(TRIM(c.nome_social), ''), c.nome), a.data_referencia,
+                               CAST(d.latitude AS double precision), CAST(d.longitude AS double precision),
+                               NULLIF(UPPER(TRIM(d.bairro)), ''), CAST(NULL AS varchar), CAST(NULL AS varchar),
+                               CAST(NULL AS varchar), CAST(NULL AS varchar), pt.descricao, pt.txt
+                        FROM aps_atendimento a
+                        JOIN aps_cidadao c ON c.id = a.id_cidadao
+                        LEFT JOIN aps_familia f ON f.id = c.id_familia
+                        LEFT JOIN aps_domicilio d ON d.id = f.id_domicilio
+                        CROSS JOIN LATERAL (
+                            SELECT MIN(pr.descricao) AS descricao,
+                                   ' ' || string_agg(REGEXP_REPLACE(TRANSLATE(LOWER(COALESCE(pr.descricao,'') || ' ' || COALESCE(pr.cid10,'') || ' ' || COALESCE(pr.ciap,'')), :acentos, :semAcentos), '[^a-z0-9]+', ' ', 'g'), ' ') || ' ' AS txt
+                            FROM aps_problema pr
+                            WHERE pr.id_atendimento = a.id AND pr.tipo = 'PROBLEMA'
+                        ) pt
+                        WHERE a.data_referencia BETWEEN :inicio AND :fim
+                          AND a.status <> 'CANCELADO'
+                          AND (:unidade = '' OR UPPER(a.unidade) = UPPER(:unidade))
+                          AND COALESCE(NULLIF(UPPER(:origem), ''), 'TODOS') IN ('TODOS', 'GPEC')
+                          AND pt.txt IS NOT NULL
+                    ) casos
+                    ORDER BY data_caso DESC, atendimento DESC
+                    """;
+    }
+
+    /** Colunas 0-12 como na consulta; 13 = regras em que e caso, 14 = cumpre antes de retirar a negacao, 15 = cita termos. */
+    private List<Object[]> varrer(List<Map<String, Object>> regras, LocalDate inicio, LocalDate fim, String unidade, String origem) {
+        CriterioCaso criterio = criterioCaso(regras);
+        @SuppressWarnings("unchecked")
+        List<Object[]> brutas = em.createNativeQuery(sqlVarredura())
+                .setParameter("inicio", inicio)
+                .setParameter("fim", fim)
+                .setParameter("unidade", texto(unidade))
+                .setParameter("origem", texto(origem))
+                .setParameter("padroes", criterio.padroesCitados())
+                .setParameter("acentos", ACENTOS)
+                .setParameter("semAcentos", SEM_ACENTOS)
+                .getResultList();
+        return classificar(brutas, regras, criterio);
+    }
+
+    /** Aplica a definicao de caso de cada regra. Sem acesso a banco, para poder ser medido e testado. */
+    List<Object[]> classificar(List<Object[]> brutas, List<Map<String, Object>> regras, CriterioCaso criterio) {
+        int total = regras.size();
+        List<java.util.function.Predicate<String>> definicoes = new ArrayList<>();
+        List<List<String>> citados = new ArrayList<>();
+        List<List<String>> estruturados = new ArrayList<>();
+        for (Map<String, Object> regra : regras) {
+            String nome = texto(regra.get("nome"));
+            String termos = texto(regra.get("termos"));
+            definicoes.add(DefinicaoCasoEpidemiologico.compilar(nome, termos));
+            citados.add(comEspacos(DefinicaoCasoEpidemiologico.termosCitados(nome, termos)));
+            estruturados.add(comEspacos(DefinicaoCasoEpidemiologico.termosEstruturados(nome, termos)));
+        }
+        java.util.regex.Pattern negacao = java.util.regex.Pattern.compile(criterio.negacao());
+        List<Object[]> linhas = new ArrayList<>();
+        for (Object[] bruta : brutas) {
+            String txt = texto(bruta[13]);
+            if (!txt.startsWith(" ")) txt = " " + txt;
+            if (!txt.endsWith(" ")) txt = txt + " ";
+            boolean gpec = "GPEC".equals(bruta[0]);
+            String limpo = gpec ? txt : negacao.matcher(txt).replaceAll(" ");
+            List<String> casos = new ArrayList<>();
+            List<String> cumprem = new ArrayList<>();
+            List<String> citam = new ArrayList<>();
+            for (int i = 0; i < total; i++) {
+                String indice = String.valueOf(i);
+                if (gpec) {
+                    if (contemAlgum(txt, estruturados.get(i))) {
+                        casos.add(indice);
+                        cumprem.add(indice);
+                        citam.add(indice);
+                    }
+                    continue;
+                }
+                if (definicoes.get(i).test(limpo)) casos.add(indice);
+                if (definicoes.get(i).test(txt)) cumprem.add(indice);
+                if (contemAlgum(txt, citados.get(i))) citam.add(indice);
+            }
+            if (citam.isEmpty()) continue;
+            Object[] linha = java.util.Arrays.copyOf(bruta, 16);
+            linha[13] = String.join(",", casos);
+            linha[14] = String.join(",", cumprem);
+            linha[15] = String.join(",", citam);
+            linhas.add(linha);
+        }
+        return linhas;
+    }
+
+    private static List<String> comEspacos(List<String> termos) {
+        return termos.stream().map(termo -> " " + termo + " ").toList();
+    }
+
+    private static boolean contemAlgum(String texto, List<String> termos) {
+        for (String termo : termos) {
+            if (texto.contains(termo)) return true;
+        }
+        return false;
+    }
+
+    /** {casos, so com mencao negada, citam termos sem cumprir a definicao} por regra, contando cada paciente uma vez. */
+    long[][] contarDasLinhas(List<Object[]> linhas, int totalRegras, LocalDate inicio, LocalDate fim, String fonte) {
+        List<java.util.Set<String>> casos = new ArrayList<>();
+        List<java.util.Set<String>> cumprem = new ArrayList<>();
+        List<java.util.Set<String>> citam = new ArrayList<>();
+        for (int i = 0; i < totalRegras; i++) {
+            casos.add(new java.util.HashSet<>());
+            cumprem.add(new java.util.HashSet<>());
+            citam.add(new java.util.HashSet<>());
+        }
+        for (Object[] linha : linhas) {
+            if (!fonte.equals(linha[0])) continue;
+            LocalDate data = LocalDate.parse(texto(linha[4]).substring(0, 10));
+            if (data.isBefore(inicio) || data.isAfter(fim)) continue;
+            String paciente = texto(linha[1]);
+            marcar(casos, texto(linha[13]), paciente);
+            marcar(cumprem, texto(linha[14]), paciente);
+            marcar(citam, texto(linha[15]), paciente);
+        }
+        long[][] contagem = new long[totalRegras][3];
+        for (int i = 0; i < totalRegras; i++) {
+            contagem[i] = new long[] { casos.get(i).size(), cumprem.get(i).size() - casos.get(i).size(), citam.get(i).size() - cumprem.get(i).size() };
+        }
+        return contagem;
+    }
+
+    private static void marcar(List<java.util.Set<String>> conjuntos, String indices, String paciente) {
+        for (String indice : indices.split(",")) {
+            if (!indice.isBlank()) conjuntos.get(Integer.parseInt(indice)).add(paciente);
+        }
+    }
+
+    /** Coordenada no Brasil e fora do ponto padrao antigo de Itaguai. */
+    private static boolean temCoordenadaPropria(Number lat, Number lon) {
+        if (lat == null || lon == null) return false;
+        double latitude = lat.doubleValue();
+        double longitude = lon.doubleValue();
+        boolean padrao = Math.abs(latitude - GeocodificacaoPacienteService.LATITUDE_PADRAO) < 0.000001
+                && Math.abs(longitude - GeocodificacaoPacienteService.LONGITUDE_PADRAO) < 0.000001;
+        return latitude >= -34 && latitude <= 6 && longitude >= -74 && longitude <= -33 && !padrao;
+    }
+
+    /** Mesma celula do mapa: coordenada propria valida ou posicao aproximada pelo bairro/municipio/unidade. */
+    static double[] celulaDoCaso(Number lat, Number lon, String bairro, String municipio, String estado,
+                                         GeocodificacaoPacienteService.PadraoUnidade padraoUnidade) {
+        if (temCoordenadaPropria(lat, lon)) {
+            // HALF_UP afasta do zero, como o ROUND(numeric, 2) da consulta do mapa.
+            return new double[] {
+                java.math.BigDecimal.valueOf(lat.doubleValue()).setScale(2, java.math.RoundingMode.HALF_UP).doubleValue(),
+                java.math.BigDecimal.valueOf(lon.doubleValue()).setScale(2, java.math.RoundingMode.HALF_UP).doubleValue() };
+        }
+        double[] aproximada = GeocodificacaoPacienteService.coordenadaAproximada(bairro, municipio, estado, padraoUnidade);
+        return aproximada == null ? null : new double[] { Math.round(aproximada[0] * 100) / 100d, Math.round(aproximada[1] * 100) / 100d };
     }
 
     private static final long ALERTA_CACHE_MS = 10 * 60 * 1000L;
@@ -739,7 +1257,9 @@ public class VigilanciaEpidemiologicaController {
     public Response configuracao(@QueryParam("unidade") String unidade) {
         try {
             garantirEstrutura();
-            return Response.ok(regras(unidade)).build();
+            List<Map<String, Object>> lista = regras(unidade);
+            lista.forEach(regra -> regra.put("criterioCaso", DefinicaoCasoEpidemiologico.descricao(texto(regra.get("nome")), texto(regra.get("termos")))));
+            return Response.ok(lista).build();
         } catch (Exception e) {
             LOG.error("Falha ao carregar configuracao da vigilancia epidemiologica", e);
             return Response.status(Response.Status.SERVICE_UNAVAILABLE)
@@ -755,39 +1275,45 @@ public class VigilanciaEpidemiologicaController {
         List<Map<String, Object>> regra = regras("").stream().filter(item -> numero(item.get("id"), 0) == id).toList();
         if (regra.isEmpty()) return Response.status(Response.Status.NOT_FOUND).build();
         Map<String, Object> r = regra.get(0); int janela = numero(r.get("janelaDias"), 7);
+        CriterioCaso criterio = criterioCaso(List.of(r));
+        String noTextoOriginal = criterio.predicado().replace("y.limpo", "x.txt");
         String sql = """
                 SELECT DISTINCT ON (b.idbam)
                        b.idbam,p.idpaciente,p.nome,b.data,b.unidade,r.setor,r.queixaprincipal,t.diagnostico_provisorio,
                        a.anamnese,a.comentario,a.hpp,t.evolucao_prescricao,t.obs_enfermagem,ai.frente,ai.verso,
-                       NOT (REGEXP_REPLACE(""" + TEXTO_BAM_SQL + """
-                       , :negacao, ' ', 'g') ILIKE ANY(CAST(string_to_array(:padroes,'|') AS text[]))) AS mencao_negada
+                       (""" + noTextoOriginal + " AND NOT " + criterio.predicado() + """
+                       ) AS mencao_negada,
+                       NOT """ + noTextoOriginal + """
+                        AS sem_criterio
                 FROM bam b
                 JOIN pacientes p ON p.idpaciente=b.paciente_idpaciente
                 JOIN registro r ON r.idregistro=b.registro_idregistro
                 LEFT JOIN avaliacao a ON a.idavaliacao=b.avaliacao_idavaliacao
                 LEFT JOIN tratamento t ON t.idtratamento=b.tratamento_idtratamento
                 LEFT JOIN anamneseinternacao ai ON ai.nbam=b.idbam
+                CROSS JOIN LATERAL (SELECT """ + TEXTO_BAM_SQL + """
+                 AS txt OFFSET 0) x
+                CROSS JOIN LATERAL (SELECT CASE WHEN x.txt ILIKE ANY(CAST(string_to_array(:padroes,'|') AS text[]))
+                    THEN REGEXP_REPLACE(x.txt, :negacao, ' ', 'g') ELSE '' END AS limpo OFFSET 0) y
                 WHERE CAST(b.data AS date) BETWEEN :inicio AND :fim
                   AND (:unidade='' OR b.unidade=:unidade)
-                  AND (""" + TEXTO_BAM_SQL + """
-                  ) ILIKE ANY(CAST(string_to_array(:padroes,'|') AS text[]))
+                  AND x.txt ILIKE ANY(CAST(string_to_array(:padroes,'|') AS text[]))
                 ORDER BY b.idbam, b.data DESC
                 LIMIT 500
                 """;
-        String padroes = padroesBusca(texto(r.get("termos")));
         @SuppressWarnings("unchecked") List<Object[]> rows = em.createNativeQuery(sql)
                 .setParameter("inicio", LocalDate.now().minusDays(janela - 1))
                 .setParameter("fim", LocalDate.now())
                 .setParameter("unidade", texto(r.get("unidade")))
                 .setParameter("acentos", ACENTOS)
                 .setParameter("semAcentos", SEM_ACENTOS)
-                .setParameter("padroes", padroes)
-                .setParameter("negacao", regexMencaoNegada(texto(r.get("termos"))))
+                .setParameter("padroes", criterio.padroesCitados())
+                .setParameter("negacao", criterio.negacao())
                 .getResultList();
         List<Map<String,Object>> out = new ArrayList<>();
         for (Object[] x : rows) {
             Map<String,Object> m = new LinkedHashMap<>();
-            String[] k={"bam","idpaciente","paciente","data","unidade","setor","queixaPrincipal","diagnostico","anamneseTriagem","comentarioTriagem","hpp","evolucaoMedica","observacaoEnfermagem","anamneseMedicaFrente","anamneseMedicaVerso","mencaoNegada"};
+            String[] k={"bam","idpaciente","paciente","data","unidade","setor","queixaPrincipal","diagnostico","anamneseTriagem","comentarioTriagem","hpp","evolucaoMedica","observacaoEnfermagem","anamneseMedicaFrente","anamneseMedicaVerso","mencaoNegada","semCriterio"};
             for(int i=0;i<k.length;i++)m.put(k[i],x[i]);
             out.add(m);
         }
@@ -868,86 +1394,31 @@ public class VigilanciaEpidemiologicaController {
     }
 
     /**
-     * Mesmos campos e criterios de contar()/contarGpec(), mas para varias regras numa
-     * unica consulta: o texto de cada atendimento e montado uma vez e testado contra
-     * os padroes de cada regra. Devolve {casos, so com mencao negada} na ordem de
-     * termosRegras. O G-PEC usa problema estruturado, sem negacao em texto livre.
+     * Conta pacientes (uma vez cada) por regra numa unica consulta: o texto de cada
+     * atendimento e montado e limpo uma vez e testado contra a definicao de cada regra.
+     * Devolve {casos, so com mencao negada, citam termos sem cumprir a definicao}, na ordem
+     * das regras. O G-PEC usa problema estruturado: conta o agravo registrado pelo profissional.
      */
-    private long[][] contarPorRegra(String unidade, List<String> termosRegras, LocalDate inicio, LocalDate fim, boolean gpec) {
-        long[][] contagem = new long[termosRegras.size()][2];
-        if (termosRegras.isEmpty()) return contagem;
-        String lista = String.join(";;", termosRegras.stream().map(this::padroesBusca).toList());
-        String regrasCte = """
-                WITH regras AS (
-                    SELECT CAST(ord AS int) AS idx, string_to_array(padroes, '|') AS padroes
-                    FROM unnest(string_to_array(:lista, ';;')) WITH ORDINALITY AS x(padroes, ord)
-                    WHERE padroes <> ''
-                ), textos AS (
-                """;
-        String textos = gpec ? """
-                    SELECT a.id AS origem_id,
-                           ' ' || REGEXP_REPLACE(TRANSLATE(LOWER(COALESCE(pr.descricao,'') || ' ' || COALESCE(pr.cid10,'') || ' ' || COALESCE(pr.ciap,'')), :acentos, :semAcentos), '[^a-z0-9]+', ' ', 'g') || ' ' AS txt
-                    FROM aps_atendimento a
-                    JOIN aps_problema pr ON pr.id_atendimento = a.id AND pr.tipo = 'PROBLEMA'
-                    WHERE a.data_referencia BETWEEN :inicio AND :fim
-                      AND a.status <> 'CANCELADO'
-                      AND (:unidade='' OR UPPER(a.unidade)=UPPER(:unidade))
-                """ : """
-                    SELECT b.idbam AS origem_id,
-                    """ + TEXTO_BAM_SQL + """
-                           AS txt
-                    FROM bam b
-                    JOIN registro r ON r.idregistro=b.registro_idregistro
-                    LEFT JOIN avaliacao a ON a.idavaliacao=b.avaliacao_idavaliacao
-                    LEFT JOIN tratamento t ON t.idtratamento=b.tratamento_idtratamento
-                    LEFT JOIN anamneseinternacao ai ON ai.nbam=b.idbam
-                    WHERE CAST(b.data AS date) BETWEEN :inicio AND :fim
-                      AND (:unidade='' OR b.unidade=:unidade)
-                """;
-        String casosSql = gpec ? "COUNT(DISTINCT t.origem_id)"
-                : "COUNT(DISTINCT t.origem_id) FILTER (WHERE REGEXP_REPLACE(t.txt, :negacao, ' ', 'g') ILIKE ANY(g.padroes))";
-        String sql = regrasCte + textos + """
-                )
-                SELECT g.idx, """ + casosSql + """
-                , COUNT(DISTINCT t.origem_id)
-                FROM regras g
-                JOIN textos t ON t.txt ILIKE ANY(g.padroes)
-                GROUP BY g.idx
-                """;
-        Query consulta = em.createNativeQuery(sql)
-                .setParameter("lista", lista)
-                .setParameter("inicio", inicio)
-                .setParameter("fim", fim)
-                .setParameter("unidade", texto(unidade))
-                .setParameter("acentos", ACENTOS)
-                .setParameter("semAcentos", SEM_ACENTOS);
-        if (!gpec) consulta.setParameter("negacao", regexMencaoNegada(String.join(",", termosRegras)));
-        @SuppressWarnings("unchecked")
-        List<Object[]> rows = consulta.getResultList();
-        for (Object[] row : rows) {
-            int idx = ((Number) row[0]).intValue() - 1;
-            if (idx < 0 || idx >= contagem.length) continue;
-            long casos = ((Number) row[1]).longValue();
-            contagem[idx] = new long[] { casos, ((Number) row[2]).longValue() - casos };
-        }
-        return contagem;
+    private long[][] contarPorRegra(String unidade, List<Map<String, Object>> regras, LocalDate inicio, LocalDate fim, boolean gpec) {
+        if (regras.isEmpty()) return new long[0][3];
+        String fonte = gpec ? "GPEC" : "GHBAM";
+        return contarDasLinhas(varrer(regras, inicio, fim, unidade, fonte), regras.size(), inicio, fim, fonte);
     }
 
-    /** [casos atuais, casos das 4 janelas anteriores, atuais so com mencao negada] por regra; duas consultas por janela distinta, nao duas por regra. */
+    /** [casos atuais, casos das 4 janelas anteriores, atuais so com mencao negada, atuais fora da definicao] por regra; duas consultas por janela distinta, nao duas por regra. */
     private Map<Map<String, Object>, long[]> contarPorJanela(String unidade, List<Map<String, Object>> regras) {
         Map<Map<String, Object>, long[]> resultado = new java.util.IdentityHashMap<>();
         Map<Integer, List<Map<String, Object>>> porJanela = new LinkedHashMap<>();
         for (Map<String, Object> regra : regras) {
-            resultado.put(regra, new long[3]);
+            resultado.put(regra, new long[4]);
             if (texto(regra.get("termos")).isBlank()) continue;
             porJanela.computeIfAbsent(numero(regra.get("janelaDias"), 7), j -> new ArrayList<>()).add(regra);
         }
         LocalDate hoje = LocalDate.now();
         porJanela.forEach((janela, grupo) -> {
-            List<String> termos = grupo.stream().map(r -> texto(r.get("termos"))).toList();
-            long[][] atual = contarPorRegra(unidade, termos, hoje.minusDays(janela - 1), hoje, false);
-            long[][] base = contarPorRegra(unidade, termos, hoje.minusDays(janela * 5L), hoje.minusDays(janela), false);
-            for (int i = 0; i < grupo.size(); i++) resultado.put(grupo.get(i), new long[] { atual[i][0], base[i][0], atual[i][1] });
+            long[][] atual = contarPorRegra(unidade, grupo, hoje.minusDays(janela - 1), hoje, false);
+            long[][] base = contarPorRegra(unidade, grupo, hoje.minusDays(janela * 5L), hoje.minusDays(janela), false);
+            for (int i = 0; i < grupo.size(); i++) resultado.put(grupo.get(i), new long[] { atual[i][0], base[i][0], atual[i][1], atual[i][2] });
         });
         return resultado;
     }
@@ -1087,8 +1558,9 @@ public class VigilanciaEpidemiologicaController {
         {"Mpox", "mpox, monkeypox"},
         {"Febre amarela", "febre amarela"},
         {"Malária", "malaria"},
+        {"Hantavirose", "hantavirose, hantavirus, hanta virus"},
         {"Sífilis", "sifilis"},
-        {"Atendimento antirrábico", "mordedura, antirrabic, agressao por animal"},
+        {"Atendimento antirrábico", "mordedura, antirrabica, antirrabico, agressao por animal"},
     };
 
     /**
@@ -1155,13 +1627,20 @@ public class VigilanciaEpidemiologicaController {
                 + ")(?= )";
     }
     /** Minimo e fator do sinal; regra cadastrada usa os seus, catalogo padrao usa o minimo geral. */
-    private record LimitesRegra(int minimo, double fator, int pesoAlto, boolean cadastrada) {}
+    private record LimitesRegra(int minimo, double fator, int pesoAlto, boolean cadastrada, int minimoRegiao) {}
+    // Regiao com menos casos nao vira circulo em doenca comum; os casos seguem no total e no aviso.
+    private static final int MINIMO_REGIAO = 3;
     private LimitesRegra limitesDe(Map<String,Object> regra) {
-        if (regra != null && regra.containsKey("minimoCasos")) {
-            int minimo = numero(regra.get("minimoCasos"), 3);
-            return new LimitesRegra(minimo, decimal(regra.get("fatorAlerta"), 2d), minimo * 2, true);
+        boolean cadastrada = regra != null && regra.containsKey("minimoCasos");
+        double fator = cadastrada ? decimal(regra.get("fatorAlerta"), 2d) : 2d;
+        if (regra != null && DefinicaoCasoEpidemiologico.casoUnicoImporta(texto(regra.get("nome")), texto(regra.get("termos")))) {
+            return new LimitesRegra(1, fator, 2, cadastrada, 1);
         }
-        return new LimitesRegra(MINIMO_INVESTIGACAO + 1, 2d, MINIMO_INVESTIGACAO * 2 + 1, false);
+        if (cadastrada) {
+            int minimo = numero(regra.get("minimoCasos"), 3);
+            return new LimitesRegra(minimo, fator, minimo * 2, true, Math.min(MINIMO_REGIAO, minimo));
+        }
+        return new LimitesRegra(MINIMO_INVESTIGACAO + 1, fator, MINIMO_INVESTIGACAO * 2 + 1, false, MINIMO_REGIAO);
     }
     private LimitesRegra limitesDaRegra(String unidade, String termos) {
         if (termos.isBlank()) return limitesDe(null);

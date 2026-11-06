@@ -13,6 +13,10 @@ public class TemaVisualRepository implements PanacheRepository<TemaVisual> {
         return find("upper(unidade) = ?1", normalizarUnidade(unidade)).firstResultOptional();
     }
 
+    public Optional<TemaVisual> buscarMaisRecente() {
+        return find("ORDER BY atualizadoEm DESC NULLS LAST, idTemaVisual DESC").firstResultOptional();
+    }
+
     public String normalizarUnidade(String unidade) {
         String texto = unidade == null ? "GLOBAL" : unidade.trim();
         int separador = texto.indexOf(':');
