@@ -1,0 +1,566 @@
+{
+  "acessos": {
+    "aguardandoatendimento": [
+      "Administrativo"
+    ],
+    "anotacoesenfermagem": [
+      "Enfermagem"
+    ],
+    "atendimentoperiodo": [
+      "Administrativo",
+      "Enfermagem"
+    ],
+    "auditoriaclinica": [
+      "Administrativo",
+      "Consultorio Admin"
+    ],
+    "avaliacaopacienteia": [
+      "Enfermagem",
+      "Nir"
+    ],
+    "avaliacaopacienteia_adm": [
+      "Administrativo"
+    ],
+    "balancohidrico": [
+      "Enfermagem"
+    ],
+    "biexecutivo": [
+      "Nir"
+    ],
+    "biometria": [
+      "Administrativo"
+    ],
+    "bulariomedico": [
+      "Enfermagem"
+    ],
+    "caddrives": [
+      "Administrativo"
+    ],
+    "cadleitos": [
+      "Nir"
+    ],
+    "cadsalas": [
+      "Administrativo"
+    ],
+    "cadsetor": [
+      "Nir"
+    ],
+    "cadsetores": [
+      "Administrativo"
+    ],
+    "cadunidades": [
+      "Administrativo"
+    ],
+    "cadusuarios": [
+      "Administrativo"
+    ],
+    "cautela": [
+      "Nir"
+    ],
+    "ccih": [
+      "Administrativo",
+      "Enfermagem",
+      "Nir",
+      "Vigilância",
+      "Qualidade e Segurança"
+    ],
+    "chatprofissionais": [
+      "Administrativo",
+      "Recepção",
+      "Triagem",
+      "Enfermagem",
+      "Médico",
+      "Multidisciplinar",
+      "Nir",
+      "Laboratório",
+      "Imagem",
+      "SPA",
+      "Faturamento",
+      "Farmácia",
+      "Consultório",
+      "Consultorio Recepcao",
+      "Consultorio Medico",
+      "Consultorio Financeiro",
+      "Consultorio Admin",
+      "GED",
+      "Dentista",
+      "Centro Cirurgico",
+      "Apoio Assistencial",
+      "Vigilância",
+      "Coordenação de setor",
+      "Almoxarifado",
+      "Qualidade e Segurança",
+      "Faturamento SUS",
+      "RH",
+      "G-PEC"
+    ],
+    "ciclomedicacao": [
+      "Enfermagem"
+    ],
+    "comoestaopaciente": [
+      "Administrativo",
+      "Enfermagem",
+      "Multidisciplinar",
+      "Nir",
+      "Faturamento"
+    ],
+    "configuracaovigilanciaepidemiologica": [
+      "Vigilância"
+    ],
+    "controleassistencial": [
+      "Enfermagem"
+    ],
+    "controleplantoes": [
+      "RH"
+    ],
+    "correcaobam": [
+      "Administrativo"
+    ],
+    "documentosassistenciais": [
+      "Enfermagem"
+    ],
+    "enfermariaseleitos": [
+      "Administrativo",
+      "Enfermagem"
+    ],
+    "escalaenfermagem": [
+      "Enfermagem"
+    ],
+    "evolucaomultidisciplinar": [
+      "Enfermagem"
+    ],
+    "exportardadoslgpd": [
+      "Administrativo"
+    ],
+    "ged": [
+      "Administrativo",
+      "Enfermagem",
+      "GED",
+      "Médico",
+      "Nir"
+    ],
+    "gedconsulta": [
+      "Administrativo",
+      "Enfermagem",
+      "GED",
+      "Médico",
+      "Nir"
+    ],
+    "gerenciarcertificados": [
+      "Administrativo"
+    ],
+    "historicocompleto": [
+      "Enfermagem"
+    ],
+    "historicocompleto_adm": [
+      "Administrativo",
+      "Enfermagem"
+    ],
+    "imprimirbam": [
+      "Administrativo",
+      "Recepção",
+      "Triagem",
+      "Enfermagem",
+      "Médico",
+      "Nir",
+      "Consultório",
+      "Consultorio Recepcao",
+      "Consultorio Medico",
+      "Consultorio Financeiro",
+      "Consultorio Admin",
+      "GED",
+      "Dentista",
+      "Multidisciplinar",
+      "Laboratório",
+      "Imagem",
+      "SPA",
+      "Centro Cirurgico",
+      "Apoio Assistencial",
+      "Vigilância",
+      "Coordenação de setor",
+      "Almoxarifado",
+      "Qualidade e Segurança",
+      "Faturamento",
+      "Faturamento SUS",
+      "Farmácia",
+      "RH",
+      "G-PEC"
+    ],
+    "integracaosus": [
+      "Administrativo",
+      "Apoio Assistencial"
+    ],
+    "internadosvisitaimp": [
+      "Nir"
+    ],
+    "limparpainel": [
+      "Administrativo"
+    ],
+    "listausuarios": [
+      "Administrativo"
+    ],
+    "localcenso": [
+      "Nir"
+    ],
+    "logs": [
+      "Administrativo"
+    ],
+    "mapapacientes": [
+      "Administrativo"
+    ],
+    "migracaodados": [
+      "Administrativo"
+    ],
+    "minhasassinaturas": [
+      "Enfermagem"
+    ],
+    "modeloevolucaoenf": [
+      "Enfermagem"
+    ],
+    "modeloprescricaoenf": [
+      "Enfermagem"
+    ],
+    "monitoramento": [
+      "Administrativo",
+      "Nir",
+      "RH"
+    ],
+    "nir": [
+      "Nir"
+    ],
+    "nirenfermariaseleitos": [
+      "Nir"
+    ],
+    "nirhistoricocompleto": [
+      "Nir"
+    ],
+    "nirlaudointernacao": [
+      "Nir"
+    ],
+    "nirrelatorio": [
+      "Nir"
+    ],
+    "nirrestaurarinternacao": [
+      "Nir"
+    ],
+    "pacientesematendimento": [
+      "Administrativo",
+      "Enfermagem"
+    ],
+    "pacs": [
+      "Administrativo",
+      "Enfermagem",
+      "Médico"
+    ],
+    "palmoxarifado": [
+      "Almoxarifado"
+    ],
+    "palmoxpedir": [
+      "Administrativo",
+      "Recepção",
+      "Triagem",
+      "Enfermagem",
+      "Médico",
+      "Multidisciplinar",
+      "Nir",
+      "Laboratório",
+      "Imagem",
+      "SPA",
+      "Almoxarifado",
+      "Faturamento",
+      "Farmácia",
+      "Consultório",
+      "Consultorio Recepcao",
+      "Consultorio Medico",
+      "Consultorio Financeiro",
+      "Consultorio Admin",
+      "GED",
+      "Dentista",
+      "Centro Cirurgico",
+      "Apoio Assistencial",
+      "Vigilância",
+      "Coordenação de setor",
+      "Qualidade e Segurança",
+      "Faturamento SUS",
+      "RH",
+      "G-PEC"
+    ],
+    "pcentrocirurgico": [
+      "Apoio Assistencial"
+    ],
+    "pcirurgiasalas": [
+      "Centro Cirurgico"
+    ],
+    "pcme": [
+      "Apoio Assistencial"
+    ],
+    "pedidosexame": [
+      "Enfermagem"
+    ],
+    "pendenciaassinatura": [
+      "Administrativo"
+    ],
+    "personalizacaovisual": [
+      "Administrativo"
+    ],
+    "pesquisanir": [
+      "Nir"
+    ],
+    "phemoterapia": [
+      "Apoio Assistencial"
+    ],
+    "pnsp": [
+      "Qualidade e Segurança"
+    ],
+    "pnspgestao": [
+      "Qualidade e Segurança"
+    ],
+    "prhponto": [
+      "RH"
+    ],
+    "prnds": [
+      "Apoio Assistencial"
+    ],
+    "producaomedica": [
+      "Administrativo"
+    ],
+    "produtividaderh": [
+      "RH"
+    ],
+    "prontuariocompleto": [
+      "Administrativo",
+      "Enfermagem"
+    ],
+    "psnd": [
+      "Apoio Assistencial"
+    ],
+    "ragprontuario": [
+      "Administrativo",
+      "Enfermagem",
+      "Dentista",
+      "Médico",
+      "Nir",
+      "Faturamento"
+    ],
+    "regrasdose": [
+      "Qualidade e Segurança"
+    ],
+    "restaurarpaciente": [
+      "Nir"
+    ],
+    "resumoclinicoia": [
+      "Administrativo",
+      "Enfermagem",
+      "Médico"
+    ],
+    "resumopaciente": [
+      "Administrativo",
+      "Enfermagem"
+    ],
+    "saeenfermagem": [
+      "Enfermagem"
+    ],
+    "setorcenso": [
+      "Nir"
+    ],
+    "sinan": [
+      "Enfermagem",
+      "Médico",
+      "Vigilância"
+    ],
+    "treinamentocertificacao": [
+      "RH"
+    ],
+    "verificarassinatura": [
+      "Administrativo"
+    ],
+    "vigilanciaepidemiologica": [
+      "Administrativo",
+      "Vigilância"
+    ]
+  },
+  "menus": {
+    "Administrativo": {
+      "perfis": [
+        "administracao"
+      ],
+      "acessos": []
+    },
+    "Almoxarifado": {
+      "perfis": [
+        "administracao"
+      ],
+      "acessos": [
+        "palmoxarifado"
+      ]
+    },
+    "Apoio Assistencial": {
+      "perfis": [],
+      "acessos": [
+        "papoioassistencial"
+      ]
+    },
+    "Centro Cirurgico": {
+      "perfis": [],
+      "acessos": [
+        "pcentrocirurgico"
+      ]
+    },
+    "Consultorio Admin": {
+      "perfis": [],
+      "acessos": []
+    },
+    "Consultorio Financeiro": {
+      "perfis": [],
+      "acessos": []
+    },
+    "Consultorio Medico": {
+      "perfis": [],
+      "acessos": []
+    },
+    "Consultorio Recepcao": {
+      "perfis": [],
+      "acessos": []
+    },
+    "Consultório": {
+      "perfis": [],
+      "acessos": []
+    },
+    "Coordenação de setor": {
+      "perfis": [
+        "administracao"
+      ],
+      "acessos": []
+    },
+    "Dentista": {
+      "perfis": [
+        "dentista"
+      ],
+      "acessos": []
+    },
+    "Enfermagem": {
+      "perfis": [
+        "enfermagem",
+        "tcenfermagem"
+      ],
+      "acessos": []
+    },
+    "Farmácia": {
+      "perfis": [
+        "farmcentral",
+        "farmhmsfx"
+      ],
+      "acessos": []
+    },
+    "Faturamento": {
+      "perfis": [
+        "remedios",
+        "administracao"
+      ],
+      "acessos": []
+    },
+    "Faturamento SUS": {
+      "perfis": [
+        "remedios",
+        "administracao"
+      ],
+      "acessos": []
+    },
+    "G-PEC": {
+      "perfis": [],
+      "acessos": [
+        "aps",
+        "apsacs",
+        "apsvacina",
+        "apsgestao",
+        "gpecatendimentos",
+        "gpeccidadaos",
+        "gpecagenda",
+        "gpecvacinacao",
+        "gpecterritorio",
+        "gpecregistros",
+        "gpecacompanhamento",
+        "gpecrelatorios",
+        "gpectransmissao",
+        "gpecconfiguracao",
+        "gpecappacs"
+      ]
+    },
+    "GED": {
+      "perfis": [],
+      "acessos": []
+    },
+    "Imagem": {
+      "perfis": [
+        "rx",
+        "tomografia",
+        "ultrassonografia"
+      ],
+      "acessos": []
+    },
+    "Laboratório": {
+      "perfis": [
+        "laboratorio"
+      ],
+      "acessos": []
+    },
+    "Multidisciplinar": {
+      "perfis": [
+        "fonoaudiologia",
+        "psicologia",
+        "nutricao",
+        "assistencia",
+        "fisioterapia"
+      ],
+      "acessos": []
+    },
+    "Médico": {
+      "perfis": [
+        "medico"
+      ],
+      "acessos": []
+    },
+    "Nir": {
+      "perfis": [
+        "faturamento"
+      ],
+      "acessos": []
+    },
+    "Qualidade e Segurança": {
+      "perfis": [],
+      "acessos": []
+    },
+    "RH": {
+      "perfis": [
+        "rh"
+      ],
+      "acessos": []
+    },
+    "Recepção": {
+      "perfis": [
+        "recepcao"
+      ],
+      "acessos": []
+    },
+    "SPA": {
+      "perfis": [
+        "medicacao"
+      ],
+      "acessos": [
+        "painelspa",
+        "painelmaternidade",
+        "painelpediatria"
+      ]
+    },
+    "Triagem": {
+      "perfis": [
+        "triagem"
+      ],
+      "acessos": []
+    },
+    "Vigilância": {
+      "perfis": [],
+      "acessos": []
+    }
+  }
+}

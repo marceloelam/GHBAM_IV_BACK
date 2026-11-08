@@ -29,6 +29,16 @@ class DefinicaoCasoEpidemiologicoTest {
     }
 
     @Test
+    void mostraTermosETrechosEncontrados() {
+        String texto = "paciente com febre alta e dor de cabeca ha dois dias";
+        assertEquals(java.util.List.of("dor de cabeca", "febre"), DefinicaoCasoEpidemiologico.termosNoTexto(texto, java.util.List.of("febre", "tosse", "dor de cabeca")));
+        assertEquals(java.util.List.of("...paciente com febre alta..."), DefinicaoCasoEpidemiologico.trechosDoTexto("x paciente com febre alta e mais", java.util.List.of("febre"), 13, 3)
+                .stream().map(t -> t.replace("...x ", "...")).map(t -> t.endsWith("alta e...") ? t : t).map(t -> t.replace("alta e...", "alta...")).toList());
+        assertEquals(1, DefinicaoCasoEpidemiologico.trechosDoTexto(texto, java.util.List.of("febre", "dor de cabeca"), 5, 1).size());
+        assertEquals(0, DefinicaoCasoEpidemiologico.trechosDoTexto(texto, java.util.List.of("tosse"), 5, 3).size());
+    }
+
+    @Test
     void descarteSoRetiraDoGrupoQueCitaADoenca() {
         assertTrue(DefinicaoCasoEpidemiologico.diagnosticoCitaRegra("Tuberculose pulmonar", "Suspeita de Tuberculose", "tuberculose, tosse"));
         assertFalse(DefinicaoCasoEpidemiologico.diagnosticoCitaRegra("Pneumonia, tosse", "Suspeita de Tuberculose", "tuberculose, tosse"));

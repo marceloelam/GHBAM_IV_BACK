@@ -477,3 +477,12 @@
 2026-11-06 11:40:20.913: [INFO] BookmarkModelLoaded, ids_reassigned: 0
 2026-11-06 11:40:20.913: [INFO] BookmarksLoadDropped droppedNodes=0
 2026-11-06 11:40:20.913: [INFO] BookmarksSnapshot Startup total=0 bar=0 other=0 mobile=0 showBar=0 showBarNTP=1
+2026-11-08 14:31:41.461: [INFO] CurrentProfilePath: C:\Projeto\Backend\GHBAM_IV_BACK\.metadata\.plugins\org.eclipse.swt\EBWebView\Default
+2026-11-08 14:31:41.461: [INFO] Profiles total count: 1
+2026-11-08 14:31:41.461: [INFO] Profile: name=Perfil 1 path=C:\Projeto\Backend\GHBAM_IV_BACK\.metadata\.plugins\org.eclipse.swt\EBWebView\Default lastActive=2026-11-06T11:45:14.357Z
+2026-11-08 14:31:41.461: [INFO] LastUsedProfileDir: C:\Projeto\Backend\GHBAM_IV_BACK\.metadata\.plugins\org.eclipse.swt\EBWebView\Default
+2026-11-08 14:31:41.461: [INFO] MostRecentlyActiveProfile: name=Perfil 1 path=C:\Projeto\Backend\GHBAM_IV_BACK\.metadata\.plugins\org.eclipse.swt\EBWebView\Default lastActive=2026-11-06T11:45:14.357Z
+2026-11-08 14:31:41.461: [INFO] OnDoneLoading sync enabled: 0
+2026-11-08 14:31:41.461: [INFO] BookmarkModelLoaded, ids_reassigned: 0
+2026-11-08 14:31:41.461: [INFO] BookmarksLoadDropped droppedNodes=0
+2026-11-08 14:31:41.461: [INFO] BookmarksSnapshot Startup total=0 bar=0 other=0 mobile=0 showBar=0 showBarNTP=1

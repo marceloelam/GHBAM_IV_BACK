@@ -36,6 +36,7 @@ import br.com.iv.service.EvidenciaCasoEpidemiologico;
 import br.com.iv.service.GeocodificacaoPacienteService;
 import br.com.iv.service.NotificacaoSinanService;
 import br.com.iv.service.OcorrenciaSistemaService;
+import br.com.iv.service.SindromeEpidemiologica;
 
 /** Sinais para investigacao epidemiologica; nao confirma surto ou diagnostico. */
 @Path("vigilancia-epidemiologica")
@@ -1194,6 +1195,8 @@ public class VigilanciaEpidemiologicaController {
     private static final long ALERTA_CACHE_MS = 10 * 60 * 1000L;
     private static final Map<String, Object[]> ALERTA_CACHE = new java.util.concurrent.ConcurrentHashMap<>();
     private static final Map<String, Object[]> ANALISE_CACHE = new java.util.concurrent.ConcurrentHashMap<>();
+    /** Unidades com calculo do alerta em andamento: evita que o cache vencido dispare N calculos pesados ao mesmo tempo. */
+    private static final Map<String, Boolean> ALERTA_CALCULANDO = new java.util.concurrent.ConcurrentHashMap<>();
 
     /**
      * Resumo para o alerta do cabecalho (medico/enfermagem): regioes e diagnosticos
@@ -1204,48 +1207,164 @@ public class VigilanciaEpidemiologicaController {
     @Transactional
     @SuppressWarnings("unchecked")
     public Response alerta(@QueryParam("unidade") String unidade) {
-        String chave = unidadeEfetiva(unidade);
-        if (chave.isBlank()) {
-            return Response.status(Response.Status.BAD_REQUEST)
-                    .entity(Map.of("erro", "Unidade de trabalho nao identificada.")).build();
-        }
-        Object[] cache = ALERTA_CACHE.get(chave);
-        if (cache != null && System.currentTimeMillis() - (Long) cache[0] < ALERTA_CACHE_MS) {
-            return Response.ok(cache[1]).build();
-        }
-        garantirEstrutura();
-        if (!alertaCabecalhoAtivo(chave)) {
-            // Desligado pela unidade: nem calcula, e o cabecalho esconde o selo (total 0).
-            Map<String, Object> desligado = new LinkedHashMap<>();
-            desligado.put("regioes", 0); desligado.put("diagnosticos", 0); desligado.put("total", 0);
-            desligado.put("nivel", "NORMAL"); desligado.put("desativado", true);
-            ALERTA_CACHE.put(chave, new Object[] { System.currentTimeMillis(), desligado });
-            return Response.ok(desligado).build();
-        }
-        String inicio = LocalDate.now().minusDays(6).toString();
-        String fim = LocalDate.now().toString();
-        Response mapa = mapa(inicio, fim, chave, "TODOS", "");
-        Response emergentes = emergentes(inicio, fim, chave, "TODOS");
-        if (mapa.getStatus() != 200 || emergentes.getStatus() != 200) {
+        String chave = "";
+        try {
+            chave = unidadeEfetiva(unidade);
+            if (chave.isBlank()) {
+                return Response.status(Response.Status.BAD_REQUEST)
+                        .entity(Map.of("erro", "Unidade de trabalho nao identificada.")).build();
+            }
+            Object[] cache = ALERTA_CACHE.get(chave);
+            if (cache != null && cache.length >= 2 && cache[0] instanceof Long geradoEm
+                    && System.currentTimeMillis() - geradoEm < ALERTA_CACHE_MS) {
+                return Response.ok(cache[1]).build();
+            }
+            if (ALERTA_CALCULANDO.putIfAbsent(chave, Boolean.TRUE) != null) {
+                // Outro profissional ja esta calculando: devolve o ultimo resultado (mesmo vencido)
+                // ou um resumo neutro, sem cachear, ate o calculo terminar.
+                if (cache != null && cache.length >= 2) return Response.ok(cache[1]).build();
+                Map<String, Object> calculando = new LinkedHashMap<>();
+                calculando.put("regioes", 0); calculando.put("diagnosticos", 0); calculando.put("total", 0);
+                calculando.put("nivel", "NORMAL"); calculando.put("calculando", true);
+                return Response.ok(calculando).build();
+            }
+            try {
+                return calcularAlerta(chave);
+            } finally {
+                ALERTA_CALCULANDO.remove(chave);
+            }
+        } catch (Exception e) {
+            LOG.errorf(e, "Falha ao calcular alerta epidemiologico. unidade=%s", chave);
             return Response.status(Response.Status.SERVICE_UNAVAILABLE)
                     .entity(Map.of("erro", "Nao foi possivel calcular o alerta epidemiologico.")).build();
         }
-        long regioes = ((List<Map<String, Object>>) ((Map<String, Object>) mapa.getEntity()).get("pontos")).stream()
-                .filter(p -> Boolean.TRUE.equals(p.get("sinalParaInvestigacao")))
-                .map(p -> texto(p.get("latitude")) + ":" + texto(p.get("longitude")))
-                .distinct()
-                .count();
-        List<Map<String, Object>> itens = (List<Map<String, Object>>) ((Map<String, Object>) emergentes.getEntity()).get("itens");
-        boolean alto = itens.stream().anyMatch(i -> "ALTO".equals(i.get("nivel")));
-        Map<String, Object> resposta = new LinkedHashMap<>();
-        resposta.put("regioes", regioes);
-        resposta.put("diagnosticos", itens.size());
-        resposta.put("total", regioes + itens.size());
-        resposta.put("nivel", alto ? "ALTO" : (regioes + itens.size() > 0 ? "ATENCAO" : "NORMAL"));
-        resposta.put("inicio", inicio);
-        resposta.put("fim", fim);
-        ALERTA_CACHE.put(chave, new Object[] { System.currentTimeMillis(), resposta });
-        return Response.ok(resposta).build();
+    }
+
+    @SuppressWarnings("unchecked")
+    private Response calcularAlerta(String chave) {
+        try {
+            garantirEstrutura();
+            if (!alertaCabecalhoAtivo(chave)) {
+                // Desligado pela unidade: nem calcula, e o cabecalho esconde o selo (total 0).
+                Map<String, Object> desligado = new LinkedHashMap<>();
+                desligado.put("regioes", 0); desligado.put("diagnosticos", 0); desligado.put("total", 0);
+                desligado.put("nivel", "NORMAL"); desligado.put("desativado", true);
+                ALERTA_CACHE.put(chave, new Object[] { System.currentTimeMillis(), desligado });
+                return Response.ok(desligado).build();
+            }
+            String inicio = LocalDate.now().minusDays(6).toString();
+            String fim = LocalDate.now().toString();
+            Response mapa = mapa(inicio, fim, chave, "TODOS", "");
+            Response emergentes = emergentes(inicio, fim, chave, "TODOS");
+            if (mapa.getStatus() != 200 || emergentes.getStatus() != 200) {
+                LOG.warnf("Calculo do alerta epidemiologico indisponivel. unidade=%s, mapa=%d, emergentes=%d",
+                        chave, mapa.getStatus(), emergentes.getStatus());
+                return Response.status(Response.Status.SERVICE_UNAVAILABLE)
+                        .entity(Map.of("erro", "Nao foi possivel calcular o alerta epidemiologico.")).build();
+            }
+            Object mapaEntity = mapa.getEntity();
+            Object emergentesEntity = emergentes.getEntity();
+            if (!(mapaEntity instanceof Map<?, ?> mapaDados) || !(emergentesEntity instanceof Map<?, ?> emergentesDados)
+                    || !(mapaDados.get("pontos") instanceof List<?> pontos)
+                    || !(emergentesDados.get("itens") instanceof List<?> itens)) {
+                LOG.errorf("Resposta interna invalida ao calcular alerta epidemiologico. unidade=%s", chave);
+                return Response.status(Response.Status.SERVICE_UNAVAILABLE)
+                        .entity(Map.of("erro", "Nao foi possivel calcular o alerta epidemiologico.")).build();
+            }
+            long regioes = pontos.stream().filter(Map.class::isInstance).map(Map.class::cast)
+                    .filter(p -> Boolean.TRUE.equals(p.get("sinalParaInvestigacao")))
+                    .map(p -> texto(p.get("latitude")) + ":" + texto(p.get("longitude")))
+                    .distinct().count();
+            boolean alto = itens.stream().filter(Map.class::isInstance).map(Map.class::cast)
+                    .anyMatch(i -> "ALTO".equals(i.get("nivel")));
+            Map<String, Object> resposta = new LinkedHashMap<>();
+            resposta.put("regioes", regioes);
+            resposta.put("diagnosticos", itens.size());
+            resposta.put("total", regioes + itens.size());
+            resposta.put("nivel", alto ? "ALTO" : (regioes + itens.size() > 0 ? "ATENCAO" : "NORMAL"));
+            resposta.put("inicio", inicio);
+            resposta.put("fim", fim);
+            ALERTA_CACHE.put(chave, new Object[] { System.currentTimeMillis(), resposta });
+            return Response.ok(resposta).build();
+        } catch (Exception e) {
+            LOG.errorf(e, "Falha ao calcular alerta epidemiologico. unidade=%s", chave);
+            return Response.status(Response.Status.SERVICE_UNAVAILABLE)
+                    .entity(Map.of("erro", "Nao foi possivel calcular o alerta epidemiologico.")).build();
+        }
+    }
+
+    private static final Map<String, Object[]> SINDROMES_CACHE = new java.util.concurrent.ConcurrentHashMap<>();
+    private static final Map<String, Boolean> SINDROMES_CALCULANDO = new java.util.concurrent.ConcurrentHashMap<>();
+
+    /**
+     * Vigilancia sindromica para o especialista: sindromes do periodo, doencas compativeis (diferencial),
+     * grau de sustentacao dos casos e escala do evento (aglomerado, possivel surto, possivel epidemia).
+     * So agregados, sem nome de paciente; nada aqui confirma doenca. Cache de 10 min por unidade e periodo.
+     */
+    @GET @Path("sindromes")
+    @Transactional
+    @SuppressWarnings("unchecked")
+    public Response sindromes(@QueryParam("inicio") String inicio, @QueryParam("fim") String fim, @QueryParam("unidade") String unidade) {
+        String chave = "";
+        try {
+            LocalDate dataFim = texto(fim).isBlank() ? LocalDate.now() : LocalDate.parse(texto(fim));
+            LocalDate dataInicio = texto(inicio).isBlank() ? dataFim.minusDays(6) : LocalDate.parse(texto(inicio));
+            if (dataFim.isBefore(dataInicio) || dataInicio.plusDays(30).isBefore(dataFim)) {
+                return Response.status(Response.Status.BAD_REQUEST).entity(Map.of("erro", "Informe um intervalo de até 31 dias.")).build();
+            }
+            String unidadeSessao = unidadeEfetiva(unidade);
+            if (unidadeSessao.isBlank()) {
+                return Response.status(Response.Status.BAD_REQUEST)
+                        .entity(Map.of("erro", "Unidade de trabalho nao identificada. Saia e entre novamente selecionando a unidade no login.")).build();
+            }
+            chave = unidadeSessao + "|" + dataInicio + "|" + dataFim;
+            Object[] cache = SINDROMES_CACHE.get(chave);
+            if (cache != null && cache[0] instanceof Long geradoEm && System.currentTimeMillis() - geradoEm < ALERTA_CACHE_MS) {
+                return Response.ok(cache[1]).build();
+            }
+            if (SINDROMES_CALCULANDO.putIfAbsent(chave, Boolean.TRUE) != null) {
+                if (cache != null) return Response.ok(cache[1]).build();
+                return Response.status(Response.Status.SERVICE_UNAVAILABLE)
+                        .entity(Map.of("erro", "A análise por síndrome já está sendo calculada. Tente novamente em instantes.")).build();
+            }
+            try {
+                long dias = java.time.temporal.ChronoUnit.DAYS.between(dataInicio, dataFim) + 1;
+                LocalDate inicioBase = dataInicio.minusDays(dias * 4);
+                List<Object[]> brutas = em.createNativeQuery(sqlVarredura())
+                        .setParameter("inicio", inicioBase)
+                        .setParameter("fim", dataFim)
+                        .setParameter("unidade", unidadeSessao)
+                        .setParameter("origem", "TODOS")
+                        .setParameter("padroes", padroesDe(SindromeEpidemiologica.termosDeBusca()))
+                        .setParameter("acentos", ACENTOS)
+                        .setParameter("semAcentos", SEM_ACENTOS)
+                        .getResultList();
+                // Negacao ("nega febre", "dengue descartada") sai antes; o G-PEC e problema estruturado, sem negacao.
+                java.util.regex.Pattern negacao = java.util.regex.Pattern.compile(
+                        regexMencaoNegada(String.join(",", SindromeEpidemiologica.termosNegaveis())));
+                List<SindromeEpidemiologica.Caso> casos = new ArrayList<>();
+                for (Object[] row : brutas) {
+                    String txt = " " + texto(row[13]).trim() + " ";
+                    String limpo = "GPEC".equals(row[0]) ? txt : negacao.matcher(txt).replaceAll(" ");
+                    casos.add(new SindromeEpidemiologica.Caso(texto(row[1]), LocalDate.parse(texto(row[4]).substring(0, 10)), texto(row[7]), limpo));
+                }
+                double atendimentosAtuais = atendimentos(unidadeSessao, dataInicio, dataFim);
+                double atendimentosReferencia = atendimentos(unidadeSessao, inicioBase, dataInicio.minusDays(1)) / 4d;
+                Map<String, Object> painel = SindromeEpidemiologica.painel(casos, dataInicio, dataFim,
+                        AvaliacaoSinalEpidemiologico.ajustePorAtendimentos(atendimentosAtuais, atendimentosReferencia));
+                painel.put("unidade", unidadeSessao);
+                SINDROMES_CACHE.put(chave, new Object[] { System.currentTimeMillis(), painel });
+                return Response.ok(painel).build();
+            } finally {
+                SINDROMES_CALCULANDO.remove(chave);
+            }
+        } catch (java.time.format.DateTimeParseException e) {
+            return Response.status(Response.Status.BAD_REQUEST).entity(Map.of("erro", "Data inválida. Use o formato aaaa-mm-dd.")).build();
+        } catch (Exception e) {
+            LOG.errorf(e, "Falha na analise sindromica. chave=%s", chave);
+            return Response.status(Response.Status.SERVICE_UNAVAILABLE)
+                    .entity(Map.of("erro", "Não foi possível calcular a análise por síndrome.")).build();
+        }
     }
 
     /** Com JWT vale a unidade da sessao, nunca a informada; sem JWT (dev legado), a informada. */
@@ -1319,6 +1438,13 @@ public class VigilanciaEpidemiologicaController {
         }
     }
 
+    /** Lista da vigilancia: fica fora de "configuracao" para nao exigir a permissao de configurar regras. */
+    @GET @Path("casos/{id}")
+    @Transactional
+    public Response casosDaVigilancia(@PathParam("id") int id) {
+        return casos(id);
+    }
+
     @GET @Path("configuracao/{id}/casos")
     @Transactional
     public Response casos(@PathParam("id") int id) {
@@ -1326,6 +1452,13 @@ public class VigilanciaEpidemiologicaController {
         List<Map<String, Object>> regra = regras("").stream().filter(item -> numero(item.get("id"), 0) == id).toList();
         if (regra.isEmpty()) return Response.status(Response.Status.NOT_FOUND).build();
         Map<String, Object> r = regra.get(0); int janela = numero(r.get("janelaDias"), 7);
+        // Lista pacientes: regra de outra unidade e recusada, e regra sem unidade so mostra a unidade da sessao.
+        String unidadeSessao = unidadeEfetiva("");
+        String unidadeRegra = texto(r.get("unidade")).split(":")[0].trim();
+        if (!unidadeSessao.isBlank() && !unidadeRegra.isBlank() && !unidadeSessao.equalsIgnoreCase(unidadeRegra)) {
+            return Response.status(Response.Status.FORBIDDEN).entity(Map.of("erro", "Esta regra não pertence à unidade da sessão.")).build();
+        }
+        String unidadeConsulta = unidadeRegra.isBlank() ? unidadeSessao : texto(r.get("unidade"));
         CriterioCaso criterio = criterioCaso(List.of(r));
         String noTextoOriginal = criterio.predicado().replace("y.limpo", "x.txt");
         String sql = """
@@ -1335,7 +1468,7 @@ public class VigilanciaEpidemiologicaController {
                        (""" + noTextoOriginal + " AND NOT " + criterio.predicado() + """
                        ) AS mencao_negada,
                        NOT """ + noTextoOriginal + """
-                        AS sem_criterio
+                        AS sem_criterio, x.txt AS texto_completo
                 FROM bam b
                 JOIN pacientes p ON p.idpaciente=b.paciente_idpaciente
                 JOIN registro r ON r.idregistro=b.registro_idregistro
@@ -1355,7 +1488,7 @@ public class VigilanciaEpidemiologicaController {
         @SuppressWarnings("unchecked") List<Object[]> rows = em.createNativeQuery(sql)
                 .setParameter("inicio", LocalDate.now().minusDays(janela - 1))
                 .setParameter("fim", LocalDate.now())
-                .setParameter("unidade", texto(r.get("unidade")))
+                .setParameter("unidade", unidadeConsulta)
                 .setParameter("acentos", ACENTOS)
                 .setParameter("semAcentos", SEM_ACENTOS)
                 .setParameter("padroes", criterio.padroesCitados())
@@ -1366,10 +1499,19 @@ public class VigilanciaEpidemiologicaController {
             Map<String,Object> m = new LinkedHashMap<>();
             String[] k={"bam","idpaciente","paciente","data","unidade","setor","queixaPrincipal","diagnostico","anamneseTriagem","comentarioTriagem","hpp","evolucaoMedica","observacaoEnfermagem","anamneseMedicaFrente","anamneseMedicaVerso","mencaoNegada","semCriterio"};
             for(int i=0;i<k.length;i++)m.put(k[i],x[i]);
+            // O texto buscado tem mais campos que os informes da tela: mostra o que foi encontrado e de onde veio.
+            List<String> encontrados = DefinicaoCasoEpidemiologico.termosNoTexto(texto(x[k.length]),
+                    DefinicaoCasoEpidemiologico.termosCitados(texto(r.get("nome")), texto(r.get("termos"))));
+            m.put("termosEncontrados", encontrados);
+            m.put("trechosEncontrados", DefinicaoCasoEpidemiologico.trechosDoTexto(texto(x[k.length]), encontrados, 70, 4));
             out.add(m);
         }
         anexarClassificacoes(id, out);
         anexarEvidencias(r, out);
+        // Rastreabilidade do acesso a dado identificado; o log nao leva dado do paciente.
+        var usuario = securityPermissionService.resolve(requestContext);
+        LOG.infof("Casos da regra consultados: regra=%d, unidade=%s, matricula=%s, atendimentos=%d", id, unidadeConsulta,
+                usuario == null ? "" : usuario.matricula(), out.size());
         return Response.ok(out).build();
     }
 
