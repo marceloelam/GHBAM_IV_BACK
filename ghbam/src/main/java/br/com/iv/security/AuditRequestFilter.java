@@ -191,6 +191,14 @@ public class AuditRequestFilter implements ContainerRequestFilter, ContainerResp
         dto.setEvento(buildEvent(action, method, path, status, user, clientIp(requestContext)));
         dto.setUnidade(trimTo(user.unidade(), 20));
         String[] referenciaPaciente = extrairReferenciaPaciente(path);
+        if (referenciaPaciente == null) {
+            referenciaPaciente = extrairReferenciaPacienteDaQuery(requestContext.getUriInfo().getQueryParameters());
+        }
+        if (referenciaPaciente == null
+                && requestContext.getProperty(AuditCorpoPacienteInterceptor.PROPRIEDADE) instanceof String[] doCorpo
+                && doCorpo.length == 2) {
+            referenciaPaciente = doCorpo;
+        }
         if (referenciaPaciente != null) {
             dto.setPacienteTipo(referenciaPaciente[0]);
             dto.setPacienteValor(referenciaPaciente[1]);
@@ -213,6 +221,21 @@ public class AuditRequestFilter implements ContainerRequestFilter, ContainerResp
                     tipo = AuditPacienteResolver.TIPO_BAM;
                 }
                 return new String[] { tipo, valor };
+            }
+        }
+        return null;
+    }
+
+    // Muitas telas mandam o paciente como parametro (?bam=123, ?idpaciente=45) e nao no path:
+    // sem isto o log dizia "alterou dados" sem dizer de quem.
+    static String[] extrairReferenciaPacienteDaQuery(java.util.Map<String, java.util.List<String>> query) {
+        if (query == null || query.isEmpty()) return null;
+        for (java.util.Map.Entry<String, java.util.List<String>> e : query.entrySet()) {
+            String tipo = PATH_MARCADORES_PACIENTE.get(String.valueOf(e.getKey()).toLowerCase(Locale.ROOT));
+            if (tipo == null || e.getValue() == null) continue;
+            for (String valor : e.getValue()) {
+                String v = valor == null ? "" : valor.trim();
+                if (v.matches("\\d{1,12}")) return new String[] { tipo, v };
             }
         }
         return null;

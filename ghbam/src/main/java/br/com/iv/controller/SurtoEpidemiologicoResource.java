@@ -43,9 +43,13 @@ public class SurtoEpidemiologicoResource {
 
     /** Sem unidade e profissional identificados nao ha rastreabilidade: a chamada e recusada. */
     private Sessao sessao() {
-        String unidade = texto(securityPermissionService.unidadeDaSessao(requestContext)).split(":")[0].trim();
         var usuario = securityPermissionService.resolve(requestContext);
-        if (unidade.isBlank() || usuario == null || texto(usuario.matricula()).isBlank()) return null;
+        if (usuario == null || texto(usuario.matricula()).isBlank()) return null;
+        String unidade = texto(securityPermissionService.unidadeDaSessao(requestContext));
+        // Sessao legada (sem Bearer) nao tem a claim: vale o cadastro do servidor, nunca a unidade informada pelo navegador.
+        if (unidade.isBlank()) unidade = texto(usuario.unidade());
+        unidade = unidade.split(":")[0].trim();
+        if (unidade.isBlank()) return null;
         return new Sessao(unidade, usuario.matricula(), texto(usuario.nome()));
     }
 

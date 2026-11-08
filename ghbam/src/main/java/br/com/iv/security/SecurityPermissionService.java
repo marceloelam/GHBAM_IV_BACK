@@ -15,6 +15,7 @@ import io.smallrye.jwt.auth.principal.JWTParser;
 import io.smallrye.jwt.auth.principal.ParseException;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.container.ContainerRequestContext;
 import jakarta.ws.rs.core.HttpHeaders;
@@ -50,6 +51,56 @@ public class SecurityPermissionService {
 
     @Inject
     SessaoAtivaService sessaoAtivaService;
+
+    @Inject
+    EntityManager em;
+
+    // Sem a tabela (antes da V243) a consulta abortaria a transacao do chamador: confere uma vez com to_regclass.
+    private volatile boolean tabelaCoordenacaoPronta;
+
+    @Inject
+    br.com.iv.repository.ServidorUnidadeRepository servidorUnidadeRepository;
+
+    /**
+     * Coordena algum setor numa unidade a que ainda tem acesso (setor_coordenacao): libera o menu e as rotas de
+     * coordenacao-setor. Conta inativa/bloqueada ou transferida para outra unidade nao conta.
+     */
+    @SuppressWarnings("unchecked")
+    boolean coordenaSetor(Servidor s) {
+        if (!acessoPermitido(s)) return false;
+        String m = safe(s.getMatricula());
+        if (m.isBlank()) return false;
+        try {
+            if (!tabelaCoordenacaoPronta) {
+                tabelaCoordenacaoPronta = Boolean.TRUE.equals(
+                        em.createNativeQuery("SELECT to_regclass('setor_coordenacao') IS NOT NULL").getSingleResult());
+                if (!tabelaCoordenacaoPronta) return false;
+            }
+            java.util.List<Object> unidades = em.createNativeQuery(
+                    "SELECT DISTINCT unidade FROM setor_coordenacao WHERE matricula = :m AND papel = 'COORDENADOR' AND removido_em IS NULL")
+                    .setParameter("m", m).getResultList();
+            return unidades.stream().anyMatch(u -> temAcessoAUnidade(s, String.valueOf(u)));
+        } catch (RuntimeException e) {
+            return false;
+        }
+    }
+
+    /** Unidade principal do cadastro ou vinculada em servidor_unidade (mesma regra da troca de unidade). */
+    public boolean temAcessoAUnidade(Servidor s, String unidade) {
+        if (s == null) return false;
+        String u = safe(unidade).split(":")[0].trim();
+        if (u.isBlank()) return false;
+        String principal = safe(s.getUnidade()).split(":")[0].trim();
+        if (principal.equalsIgnoreCase(u)) return true;
+        try {
+            // Cadastro de acessos (servidor2) também define a unidade: é dele que vêm as listas de servidores da unidade.
+            Servidor2 s2 = servidor2Repository.localizarMatricula(safe(s.getMatricula()));
+            if (s2 != null && safe(s2.getUnidade()).split(":")[0].trim().equalsIgnoreCase(u)) return true;
+            return servidorUnidadeRepository.pertenceAUnidade(s.getIdservidor(), u);
+        } catch (RuntimeException e) {
+            return false;
+        }
+    }
 
     @ConfigProperty(name = "ghbam.security.legacy-header-auth.enabled", defaultValue = "false")
     boolean legacyHeaderAuthEnabled;
@@ -291,6 +342,7 @@ public class SecurityPermissionService {
         put(p, "ktcenfermagem", s.getTcenfermagem());
         put(p, "kcriaragenda", s.getCriaragenda());
         put(p, "kagendarpaciente", s.getAgendarpaciente());
+        put(p, "pcoordenadorsetor", coordenaSetor(s));
         put(p, "kconsultorio_admin", s2 != null && Boolean.TRUE.equals(s2.getConsultorioadmin())); // a tela de permissoes grava em servidor2
         put(p, "kconsultorio_recepcao", s2 != null && Boolean.TRUE.equals(s2.getConsultoriorecepcao())); // a tela de permissoes grava em servidor2
         put(p, "kconsultorio_medico", s2 != null && Boolean.TRUE.equals(s2.getConsultoriomedico())); // a tela de permissoes grava em servidor2

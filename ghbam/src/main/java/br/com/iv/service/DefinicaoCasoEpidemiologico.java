@@ -211,6 +211,29 @@ public final class DefinicaoCasoEpidemiologico {
         return new ArrayList<>(out);
     }
 
+    /** Termos citados que aparecem no texto ja normalizado, do mais longo para o mais curto. */
+    public static List<String> termosNoTexto(String textoNormalizado, List<String> termos) {
+        String texto = " " + (textoNormalizado == null ? "" : textoNormalizado.trim()) + " ";
+        return termos.stream().filter(termo -> texto.contains(" " + termo + " "))
+                .sorted((a, b) -> b.length() - a.length()).toList();
+    }
+
+    /** Trecho em volta da primeira ocorrencia de cada termo, para mostrar de onde veio a contagem. */
+    public static List<String> trechosDoTexto(String textoNormalizado, List<String> termos, int margem, int maximo) {
+        String texto = textoNormalizado == null ? "" : textoNormalizado.trim();
+        String comEspacos = " " + texto + " ";
+        List<String> trechos = new ArrayList<>();
+        for (String termo : termos) {
+            if (trechos.size() >= maximo) break;
+            int posicao = comEspacos.indexOf(" " + termo + " ");
+            if (posicao < 0) continue;
+            int inicio = Math.max(0, posicao - margem);
+            int fim = Math.min(texto.length(), posicao + termo.length() + margem);
+            trechos.add((inicio > 0 ? "..." : "") + texto.substring(inicio, fim).trim() + (fim < texto.length() ? "..." : ""));
+        }
+        return trechos;
+    }
+
     /** O diagnostico escrito cita a doenca desta regra? So entao o descarte dela retira o BAM do grupo de acumulos. */
     public static boolean diagnosticoCitaRegra(String diagnostico, String nomeRegra, String termosRegra) {
         String texto = textoBusca(diagnostico);

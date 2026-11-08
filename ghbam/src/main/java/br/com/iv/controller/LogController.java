@@ -55,6 +55,33 @@ public class LogController {
 		}
 	}
 	
+	@Inject
+	br.com.iv.repository.ServidorRepository servidorRepository;
+
+	/**
+	 * Foto de quem aparece no log (tela Logs do Sistema). Só a imagem, pela matrícula; mesmas permissões de quem lê o log.
+	 * 404 quando o servidor não tem foto: a tela mostra as iniciais.
+	 */
+	@GET
+	@Path("/foto/{matricula}")
+	@Produces("image/jpeg")
+	public Response fotoDoUsuario(@PathParam("matricula") String matricula) {
+		String m = matricula == null ? "" : matricula.trim();
+		if (m.isEmpty() || m.length() > 20) return Response.status(Response.Status.NOT_FOUND).build();
+		br.com.iv.entity.Servidor servidor = servidorRepository.localizarMatricula(m);
+		String foto = servidor == null ? null : servidor.getFoto();
+		if (foto == null || foto.isBlank()) return Response.status(Response.Status.NOT_FOUND).build();
+		String base64 = foto.trim();
+		int virgula = base64.indexOf(',');
+		if (virgula >= 0 && virgula < base64.length() - 1) base64 = base64.substring(virgula + 1);
+		try {
+			byte[] bytes = java.util.Base64.getDecoder().decode(base64.replaceAll("\\s+", ""));
+			return Response.ok(bytes).header("Cache-Control", "private, max-age=3600").build();
+		} catch (IllegalArgumentException e) {
+			return Response.status(Response.Status.NOT_FOUND).build();
+		}
+	}
+
 	@GET
 	@Path("/pesquisa/{pesquisa}/unidade/{unidade}")
 	public Response xlistarLog(@PathParam("pesquisa") String pesquisa, @PathParam("unidade") String unidade) {

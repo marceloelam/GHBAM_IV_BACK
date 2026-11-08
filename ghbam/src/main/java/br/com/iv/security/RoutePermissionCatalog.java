@@ -28,6 +28,13 @@ public class RoutePermissionCatalog {
                     "kconsultorio_admin", "kconsultorio_recepcao", "kconsultorio_medico", "kconsultorio_financeiro",
                     "krh", "kadm"),
             entry("servidor2", "kadm", "ksubadm"),
+            // Coordenacao de setor: o coordenador altera acessos da propria equipe (validado no recurso);
+            // definir coordenadores e equipes e so da administracao.
+            entry("coordenacao-setor/gestao", "kadm"),
+            // Liberacao por segunda pessoa (coordenador do NIR) em Cancelar alta / Restaurar paciente.
+            entry("coordenacao-setor/autorizar-coordenador", "pnirrestaurarinternacao", "prestaurarpaciente", "kadm"),
+            entry("coordenacao-setor/autorizar-medico", "pnirrestaurarinternacao", "prestaurarpaciente", "kadm"),
+            entry("coordenacao-setor", "pcoordenadorsetor", "kadm"),
             entry("salas", "pcadsalas", "kadm"),
             entry("setores", "pcadsetores", "kadm"),
             entry("unidades", "pcadunidades", "kadm"),
@@ -35,6 +42,7 @@ public class RoutePermissionCatalog {
             entry("admin/pool-status", "kadm"),
             entry("log/data", "kadm", "plogs", "pauditoriaclinica"),
             entry("log/pesquisa", "kadm", "plogs", "pauditoriaclinica"),
+            entry("log/foto", "kadm", "plogs", "pauditoriaclinica"),
             entry("log", "kadm", "plogs"),
             entry("producao-medica", "pproducaomedica", "kadm"),
             entry("producao-assistencial", "kadm"),
