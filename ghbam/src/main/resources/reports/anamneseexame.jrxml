@@ -201,11 +201,6 @@ where cast(anamneseinternacao.nbam as text)= $P{numerodeinternado} and bam.unida
 		<property name="com.jaspersoft.studio.field.label" value="idanamneseinternacao"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="anamneseinternacao"/>
 	</field>
-	<field name="COLUMN_33" class="java.sql.Date">
-		<property name="com.jaspersoft.studio.field.name" value="data"/>
-		<property name="com.jaspersoft.studio.field.label" value="data"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="anamneseinternacao"/>
-	</field>
 	<field name="frente" class="java.lang.String">
 		<property name="com.jaspersoft.studio.field.name" value="frente"/>
 		<property name="com.jaspersoft.studio.field.label" value="frente"/>
@@ -214,11 +209,6 @@ where cast(anamneseinternacao.nbam as text)= $P{numerodeinternado} and bam.unida
 	<field name="nbam" class="java.lang.Integer">
 		<property name="com.jaspersoft.studio.field.name" value="nbam"/>
 		<property name="com.jaspersoft.studio.field.label" value="nbam"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="anamneseinternacao"/>
-	</field>
-	<field name="COLUMN_36" class="java.lang.String">
-		<property name="com.jaspersoft.studio.field.name" value="prontuario"/>
-		<property name="com.jaspersoft.studio.field.label" value="prontuario"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="anamneseinternacao"/>
 	</field>
 	<field name="verso" class="java.lang.String">
@@ -261,11 +251,6 @@ where cast(anamneseinternacao.nbam as text)= $P{numerodeinternado} and bam.unida
 		<property name="com.jaspersoft.studio.field.label" value="daralta"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="bam"/>
 	</field>
-	<field name="COLUMN_44" class="java.sql.Date">
-		<property name="com.jaspersoft.studio.field.name" value="data"/>
-		<property name="com.jaspersoft.studio.field.label" value="data"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="bam"/>
-	</field>
 	<field name="datadaalta" class="java.lang.String">
 		<property name="com.jaspersoft.studio.field.name" value="datadaalta"/>
 		<property name="com.jaspersoft.studio.field.label" value="datadaalta"/>
@@ -274,11 +259,6 @@ where cast(anamneseinternacao.nbam as text)= $P{numerodeinternado} and bam.unida
 	<field name="ematendimento" class="java.lang.Boolean">
 		<property name="com.jaspersoft.studio.field.name" value="ematendimento"/>
 		<property name="com.jaspersoft.studio.field.label" value="ematendimento"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="bam"/>
-	</field>
-	<field name="COLUMN_47" class="java.lang.String">
-		<property name="com.jaspersoft.studio.field.name" value="hora"/>
-		<property name="com.jaspersoft.studio.field.label" value="hora"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="bam"/>
 	</field>
 	<field name="internar" class="java.lang.Boolean">

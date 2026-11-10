@@ -189,11 +189,6 @@ ORDER BY  p.nome, l.bam, cast(l.dataautorizacao as date) desc]]>
 		<property name="com.jaspersoft.studio.field.label" value="daralta"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="bam"/>
 	</field>
-	<field name="COLUMN_35" class="java.sql.Date">
-		<property name="com.jaspersoft.studio.field.name" value="data"/>
-		<property name="com.jaspersoft.studio.field.label" value="data"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="bam"/>
-	</field>
 	<field name="datadaalta" class="java.lang.String">
 		<property name="com.jaspersoft.studio.field.name" value="datadaalta"/>
 		<property name="com.jaspersoft.studio.field.label" value="datadaalta"/>
@@ -202,11 +197,6 @@ ORDER BY  p.nome, l.bam, cast(l.dataautorizacao as date) desc]]>
 	<field name="ematendimento" class="java.lang.Boolean">
 		<property name="com.jaspersoft.studio.field.name" value="ematendimento"/>
 		<property name="com.jaspersoft.studio.field.label" value="ematendimento"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="bam"/>
-	</field>
-	<field name="COLUMN_38" class="java.lang.String">
-		<property name="com.jaspersoft.studio.field.name" value="hora"/>
-		<property name="com.jaspersoft.studio.field.label" value="hora"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="bam"/>
 	</field>
 	<field name="internar" class="java.lang.Boolean">
@@ -452,11 +442,6 @@ ORDER BY  p.nome, l.bam, cast(l.dataautorizacao as date) desc]]>
 	<field name="tipoacidente" class="java.lang.Integer">
 		<property name="com.jaspersoft.studio.field.name" value="tipoacidente"/>
 		<property name="com.jaspersoft.studio.field.label" value="tipoacidente"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="laudoautorizacao"/>
-	</field>
-	<field name="COLUMN_88" class="java.lang.String">
-		<property name="com.jaspersoft.studio.field.name" value="unidade"/>
-		<property name="com.jaspersoft.studio.field.label" value="unidade"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="laudoautorizacao"/>
 	</field>
 	<variable name="procedimentosolicitado1" class="java.lang.Integer" resetType="Group" resetGroup="Group4" calculation="Count">

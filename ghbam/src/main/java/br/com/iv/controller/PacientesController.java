@@ -137,6 +137,34 @@ public class PacientesController {
 		return Response.ok(pacientes).build();
 	}
 
+	/** Ficha anestesica: pacientes com prontuario e o ultimo BAM na unidade da sessao (JWT). */
+	@GET
+	@Path("/ficha-anestesica/{nome}")
+	public Response listarParaFichaAnestesica(@PathParam("nome") String nome) {
+		String unidade = unidadeDaSessao();
+		if (nome == null || nome.isBlank() || unidade == null || unidade.isBlank()) {
+			return Response.ok(List.of()).build();
+		}
+		List<Map<String, Object>> pacientes = pacientesService.localizarPacientesComProntuarioEUltimoBam(nome, unidade)
+				.stream()
+				.map(r -> {
+					Map<String, Object> m = new LinkedHashMap<>();
+					m.put("idpaciente", r[0]);
+					m.put("nome", r[1]);
+					m.put("nascimento", r[2]);
+					m.put("idade", r[3]);
+					m.put("mae", r[4]);
+					m.put("pai", r[5]);
+					m.put("pacienteespecial", r[6]);
+					m.put("prontuario", r[7]);
+					m.put("idbam", r[8]);
+					m.put("databam", r[9] == null ? null : r[9].toString());
+					return m;
+				})
+				.collect(Collectors.toList());
+		return Response.ok(pacientes).build();
+	}
+
 	@GET
 	@Path("/recentes/{nome}/unidade/{unidade}")
 	public Response listarPacientesComBamRecente(

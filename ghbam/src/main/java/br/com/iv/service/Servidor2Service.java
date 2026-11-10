@@ -144,6 +144,7 @@ public class Servidor2Service implements Serializable {
 		Servidor2.setPalmoxarifado(dto.getPalmoxarifado() != null ? dto.getPalmoxarifado() : false);
 		Servidor2.setPalmoxpedir(dto.getPalmoxpedir() != null ? dto.getPalmoxpedir() : false);
 		Servidor2.setPrhponto(dto.getPrhponto() != null ? dto.getPrhponto() : false);
+		Servidor2.setPprotocoloaprovacao(false); // so muda pelo cartao "Comissão de protocolos"
 		Servidor2.setPfluxopacientes(dto.getPfluxopacientes() != null ? dto.getPfluxopacientes() : false);
 		Servidor2.setPhemoterapia(dto.getPhemoterapia() != null ? dto.getPhemoterapia() : false);
 		Servidor2.setPsnd(dto.getPsnd() != null ? dto.getPsnd() : false);
@@ -321,6 +322,8 @@ public class Servidor2Service implements Serializable {
 		Servidor2.setPalmoxarifado(dto.getPalmoxarifado() != null ? dto.getPalmoxarifado() : Servidor2.getPalmoxarifado());
 		Servidor2.setPalmoxpedir(dto.getPalmoxpedir() != null ? dto.getPalmoxpedir() : Servidor2.getPalmoxpedir());
 		Servidor2.setPrhponto(dto.getPrhponto() != null ? dto.getPrhponto() : Servidor2.getPrhponto());
+		// pprotocoloaprovacao NAO e copiado aqui: so muda pelo cartao "Comissão de protocolos"
+		// (PUT protocolos-fluxograma/aprovacoes/comissao), para o formulario de acessos nao sobrescrever.
 		Servidor2.setPfluxopacientes(dto.getPfluxopacientes() != null ? dto.getPfluxopacientes() : Servidor2.getPfluxopacientes());
 		Servidor2.setPhemoterapia(dto.getPhemoterapia() != null ? dto.getPhemoterapia() : Servidor2.getPhemoterapia());
 		Servidor2.setPsnd(dto.getPsnd() != null ? dto.getPsnd() : Servidor2.getPsnd());

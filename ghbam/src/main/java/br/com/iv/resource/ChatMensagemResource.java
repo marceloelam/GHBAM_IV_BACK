@@ -216,6 +216,13 @@ public class ChatMensagemResource {
         evento.put("messageId", String.valueOf(id));
         evento.put("cienciaPor", nome);
         evento.put("cienciaEm", mensagem != null && mensagem.getCienciaEm() != null ? mensagem.getCienciaEm().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME) : null);
+        // Para o aviso a quem enviou: quem deu ciencia e de qual mensagem (trecho curto).
+        evento.put("cienciaMatricula", user.matricula());
+        if (mensagem != null) {
+            String texto = mensagem.getMensagem() == null ? "" : mensagem.getMensagem();
+            evento.put("remetenteMatricula", mensagem.getRemetenteMatricula());
+            evento.put("trecho", texto.length() > 160 ? texto.substring(0, 160) + "…" : texto);
+        }
         if (mensagem != null && "room".equals(mensagem.getTipo())) {
             publicarUnidade(mensagem.getUnidade(), evento);
         } else if (mensagem != null) {

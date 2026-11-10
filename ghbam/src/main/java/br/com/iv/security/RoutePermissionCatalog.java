@@ -337,6 +337,7 @@ public class RoutePermissionCatalog {
             entry("localcenso/localunidade", "pnirrestaurarinternacao", "prestaurarpaciente", "pccih", "pcadleitos", "kadm"),
             entry("localcenso", "pcadleitos", "kadm"),
             entry("leitoreserva", "pnir", "kfaturamento", "kadm"),
+            entry("resumo-alta", "pnir", "kmedico", "kadm"),
             entry("setorcenso", "pcadsetor", "kfaturamento", "kadm"),
             entry("api/pedidos", "kmedico", "kenfermagem", "klaboratorio", "krx", "ktomografia", "kadm"),
 
@@ -442,6 +443,7 @@ public class RoutePermissionCatalog {
             entry("listasm3u", "kadm"),
             entry("monitoramento", "kmedico", "kenfermagem", "krh", "pmonitoramento", "kadm"),
             entry("fluxo-pacientes", "krecepcao", "ktriagem", "kmedico", "kenfermagem", "ktcenfermagem", "kfaturamento", "ppainelnir", "pfluxopacientes", "kadm"),
+            entry("protocolos-fluxograma", "kmedico", "kadm", "pprotocoloaprovacao"),
             entry("rh/ponto", "krh", "prhponto", "kadm"),
             entry("rh", "krh", "pcontroleplantoes", "pprodutividaderh", "ptreinamentocertificacao", "pgerenciarcertificados", "kadm"),
             entry("unidadevideoconfig", "kadm"),

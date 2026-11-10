@@ -124,6 +124,16 @@ public class ChatPresenceEndpoint {
         return new java.util.ArrayList<>(porMatricula.values());
     }
 
+    /**
+     * Tem alguma aba aberta no chat, em qualquer unidade (mensagem privada vai por matrícula,
+     * então é isso que diz se a pessoa recebe agora).
+     */
+    public static boolean estaConectado(String matricula) {
+        if (matricula == null || matricula.isBlank()) return false;
+        Set<Session> sessoes = BY_USER.get(matricula.trim());
+        return sessoes != null && sessoes.stream().anyMatch(Session::isOpen);
+    }
+
     private static void avisarPresenca(String unit, String matricula, boolean online) {
         if (unit == null || unit.isBlank() || "null".equals(unit)) return;
         enviar(BY_UNIT.get(unit), "{\"event\":\"presence\",\"matricula\":\"" + matricula.replace("\"", "") + "\",\"online\":" + online + "}", null);

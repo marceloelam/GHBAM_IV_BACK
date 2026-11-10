@@ -205,11 +205,6 @@ ORDER BY p.nome, a.cnsdoprofissional, a.procedimento, a.descricao]]>
 		<property name="com.jaspersoft.studio.field.label" value="daralta"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="bam"/>
 	</field>
-	<field name="COLUMN_36" class="java.sql.Date">
-		<property name="com.jaspersoft.studio.field.name" value="data"/>
-		<property name="com.jaspersoft.studio.field.label" value="data"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="bam"/>
-	</field>
 	<field name="datadaalta" class="java.lang.String">
 		<property name="com.jaspersoft.studio.field.name" value="datadaalta"/>
 		<property name="com.jaspersoft.studio.field.label" value="datadaalta"/>
@@ -218,11 +213,6 @@ ORDER BY p.nome, a.cnsdoprofissional, a.procedimento, a.descricao]]>
 	<field name="ematendimento" class="java.lang.Boolean">
 		<property name="com.jaspersoft.studio.field.name" value="ematendimento"/>
 		<property name="com.jaspersoft.studio.field.label" value="ematendimento"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="bam"/>
-	</field>
-	<field name="COLUMN_39" class="java.lang.String">
-		<property name="com.jaspersoft.studio.field.name" value="hora"/>
-		<property name="com.jaspersoft.studio.field.label" value="hora"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="bam"/>
 	</field>
 	<field name="internar" class="java.lang.Boolean">
@@ -320,11 +310,6 @@ ORDER BY p.nome, a.cnsdoprofissional, a.procedimento, a.descricao]]>
 		<property name="com.jaspersoft.studio.field.label" value="controleid"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="afaturar"/>
 	</field>
-	<field name="COLUMN_59" class="java.lang.String">
-		<property name="com.jaspersoft.studio.field.name" value="data"/>
-		<property name="com.jaspersoft.studio.field.label" value="data"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="afaturar"/>
-	</field>
 	<field name="descricao" class="java.lang.String">
 		<property name="com.jaspersoft.studio.field.name" value="descricao"/>
 		<property name="com.jaspersoft.studio.field.label" value="descricao"/>
@@ -333,16 +318,6 @@ ORDER BY p.nome, a.cnsdoprofissional, a.procedimento, a.descricao]]>
 	<field name="idtratamento" class="java.lang.Integer">
 		<property name="com.jaspersoft.studio.field.name" value="idtratamento"/>
 		<property name="com.jaspersoft.studio.field.label" value="idtratamento"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="afaturar"/>
-	</field>
-	<field name="COLUMN_62" class="java.lang.Integer">
-		<property name="com.jaspersoft.studio.field.name" value="idade"/>
-		<property name="com.jaspersoft.studio.field.label" value="idade"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="afaturar"/>
-	</field>
-	<field name="COLUMN_63" class="java.lang.Integer">
-		<property name="com.jaspersoft.studio.field.name" value="idpaciente"/>
-		<property name="com.jaspersoft.studio.field.label" value="idpaciente"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="afaturar"/>
 	</field>
 	<field name="idregistro" class="java.lang.Integer">
@@ -415,19 +390,9 @@ ORDER BY p.nome, a.cnsdoprofissional, a.procedimento, a.descricao]]>
 		<property name="com.jaspersoft.studio.field.label" value="cid10"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="afaturar"/>
 	</field>
-	<field name="COLUMN_78" class="java.lang.Integer">
-		<property name="com.jaspersoft.studio.field.name" value="cep"/>
-		<property name="com.jaspersoft.studio.field.label" value="cep"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="afaturar"/>
-	</field>
 	<field name="carateratend" class="java.lang.Integer">
 		<property name="com.jaspersoft.studio.field.name" value="carateratend"/>
 		<property name="com.jaspersoft.studio.field.label" value="carateratend"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="afaturar"/>
-	</field>
-	<field name="COLUMN_80" class="java.lang.String">
-		<property name="com.jaspersoft.studio.field.name" value="bairro"/>
-		<property name="com.jaspersoft.studio.field.label" value="bairro"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="afaturar"/>
 	</field>
 	<field name="autorizacao" class="java.lang.Integer">
@@ -495,11 +460,6 @@ ORDER BY p.nome, a.cnsdoprofissional, a.procedimento, a.descricao]]>
 		<property name="com.jaspersoft.studio.field.label" value="email"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="afaturar"/>
 	</field>
-	<field name="COLUMN_94" class="java.lang.String">
-		<property name="com.jaspersoft.studio.field.name" value="endereco"/>
-		<property name="com.jaspersoft.studio.field.label" value="endereco"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="afaturar"/>
-	</field>
 	<field name="etnia_raca" class="java.lang.Integer">
 		<property name="com.jaspersoft.studio.field.name" value="etnia_raca"/>
 		<property name="com.jaspersoft.studio.field.label" value="etnia_raca"/>
@@ -540,30 +500,10 @@ ORDER BY p.nome, a.cnsdoprofissional, a.procedimento, a.descricao]]>
 		<property name="com.jaspersoft.studio.field.label" value="raca_cor"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="afaturar"/>
 	</field>
-	<field name="COLUMN_103" class="java.lang.Integer">
-		<property name="com.jaspersoft.studio.field.name" value="telefone"/>
-		<property name="com.jaspersoft.studio.field.label" value="telefone"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="afaturar"/>
-	</field>
-	<field name="COLUMN_104" class="java.lang.String">
-		<property name="com.jaspersoft.studio.field.name" value="sexo"/>
-		<property name="com.jaspersoft.studio.field.label" value="sexo"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="afaturar"/>
-	</field>
 	<field name="pa_tpreg" class="java.lang.String">
 		<property name="com.jaspersoft.studio.field.name" value="pa_tpreg"/>
 		<property name="com.jaspersoft.studio.field.label" value="pa_tpreg"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="afaturar"/>
-	</field>
-	<field name="COLUMN_106" class="java.lang.String">
-		<property name="com.jaspersoft.studio.field.name" value="unidade"/>
-		<property name="com.jaspersoft.studio.field.label" value="unidade"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="afaturar"/>
-	</field>
-	<field name="COLUMN_107" class="java.lang.Integer">
-		<property name="com.jaspersoft.studio.field.name" value="idregistro"/>
-		<property name="com.jaspersoft.studio.field.label" value="idregistro"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="registro"/>
 	</field>
 	<field name="atendidopor" class="java.lang.String">
 		<property name="com.jaspersoft.studio.field.name" value="atendidopor"/>
@@ -573,11 +513,6 @@ ORDER BY p.nome, a.cnsdoprofissional, a.procedimento, a.descricao]]>
 	<field name="causalesao" class="java.lang.String">
 		<property name="com.jaspersoft.studio.field.name" value="causalesao"/>
 		<property name="com.jaspersoft.studio.field.label" value="causalesao"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="registro"/>
-	</field>
-	<field name="COLUMN_110" class="java.lang.String">
-		<property name="com.jaspersoft.studio.field.name" value="controle"/>
-		<property name="com.jaspersoft.studio.field.label" value="controle"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="registro"/>
 	</field>
 	<field name="convenio" class="java.lang.String">
@@ -695,11 +630,6 @@ ORDER BY p.nome, a.cnsdoprofissional, a.procedimento, a.descricao]]>
 		<property name="com.jaspersoft.studio.field.label" value="cargo"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="servidor"/>
 	</field>
-	<field name="COLUMN_134" class="java.lang.String">
-		<property name="com.jaspersoft.studio.field.name" value="cbo"/>
-		<property name="com.jaspersoft.studio.field.label" value="cbo"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="servidor"/>
-	</field>
 	<field name="corem" class="java.lang.String">
 		<property name="com.jaspersoft.studio.field.name" value="corem"/>
 		<property name="com.jaspersoft.studio.field.label" value="corem"/>
@@ -715,19 +645,9 @@ ORDER BY p.nome, a.cnsdoprofissional, a.procedimento, a.descricao]]>
 		<property name="com.jaspersoft.studio.field.label" value="danfe"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="servidor"/>
 	</field>
-	<field name="COLUMN_138" class="java.lang.String">
-		<property name="com.jaspersoft.studio.field.name" value="email"/>
-		<property name="com.jaspersoft.studio.field.label" value="email"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="servidor"/>
-	</field>
 	<field name="enfermagem" class="java.lang.Boolean">
 		<property name="com.jaspersoft.studio.field.name" value="enfermagem"/>
 		<property name="com.jaspersoft.studio.field.label" value="enfermagem"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="servidor"/>
-	</field>
-	<field name="COLUMN_140" class="java.lang.String">
-		<property name="com.jaspersoft.studio.field.name" value="especialidade"/>
-		<property name="com.jaspersoft.studio.field.label" value="especialidade"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="servidor"/>
 	</field>
 	<field name="farmacia" class="java.lang.Boolean">
@@ -770,11 +690,6 @@ ORDER BY p.nome, a.cnsdoprofissional, a.procedimento, a.descricao]]>
 		<property name="com.jaspersoft.studio.field.label" value="medico"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="servidor"/>
 	</field>
-	<field name="COLUMN_149" class="java.lang.String">
-		<property name="com.jaspersoft.studio.field.name" value="nome"/>
-		<property name="com.jaspersoft.studio.field.label" value="nome"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="servidor"/>
-	</field>
 	<field name="pwd" class="java.lang.String">
 		<property name="com.jaspersoft.studio.field.name" value="pwd"/>
 		<property name="com.jaspersoft.studio.field.label" value="pwd"/>
@@ -808,16 +723,6 @@ ORDER BY p.nome, a.cnsdoprofissional, a.procedimento, a.descricao]]>
 	<field name="triagem" class="java.lang.Boolean">
 		<property name="com.jaspersoft.studio.field.name" value="triagem"/>
 		<property name="com.jaspersoft.studio.field.label" value="triagem"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="servidor"/>
-	</field>
-	<field name="COLUMN_157" class="java.lang.String">
-		<property name="com.jaspersoft.studio.field.name" value="unidade"/>
-		<property name="com.jaspersoft.studio.field.label" value="unidade"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="servidor"/>
-	</field>
-	<field name="COLUMN_158" class="java.lang.String">
-		<property name="com.jaspersoft.studio.field.name" value="cns"/>
-		<property name="com.jaspersoft.studio.field.label" value="cns"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="servidor"/>
 	</field>
 	<field name="psicologia" class="java.lang.Boolean">

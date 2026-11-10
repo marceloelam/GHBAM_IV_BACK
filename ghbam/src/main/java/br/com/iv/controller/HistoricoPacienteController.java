@@ -157,7 +157,7 @@ public class HistoricoPacienteController {
         resumo.put("totalInternacoes", contarTipos(eventos, List.of("INTERNACAO", "NIR", "RESUMO_ALTA")));
         resumo.put("totalCirurgias", contarTipos(eventos, List.of("CIRURGIA", "LISTA_ESPERA_CIRURGICA")));
         resumo.put("totalPlanoCuidadosGhbam", contarTipo(eventos, "PLANO_GHBAM"));
-        resumo.put("obito", obitos.isEmpty() ? null : obitos.get(0));
+        resumo.put("obito", obitoPrincipal(obitos));
 
         historico.put("paciente", paciente);
         historico.put("ultimoBam", ultimoBam);
@@ -449,6 +449,22 @@ public class HistoricoPacienteController {
         return eventos(sql, bam, "RESUMO_ALTA", "Resumo de alta", "idresumoalta", "dataalta", "horaobito", "nome", "local", "relato", "diagfinal", "cid2");
     }
 
+    // Fonte mais confiavel primeiro: o sumario de obito e o resumo de alta trazem a data
+    // declarada do obito; o desfecho do atendimento e a menos precisa.
+    private static final List<String> PRIORIDADE_OBITO = List.of(
+            "Sumario de obito", "Obito (resumo de alta)", "Obito (saida do leito/NIR)",
+            "Obito (internacao)", "Obito (desfecho do atendimento)");
+
+    static Map<String, Object> obitoPrincipal(List<Map<String, Object>> obitos) {
+        if (obitos == null || obitos.isEmpty()) return null;
+        for (String titulo : PRIORIDADE_OBITO) {
+            for (Map<String, Object> obito : obitos) {
+                if (titulo.equals(obito.get("titulo")) && obito.get("data") != null) return obito;
+            }
+        }
+        return obitos.get(0);
+    }
+
     private List<Map<String, Object>> listarObitos(int bam) {
         List<Map<String, Object>> obitos = new ArrayList<>();
         obitos.addAll(eventos("""
@@ -457,8 +473,19 @@ public class HistoricoPacienteController {
                 WHERE bam = CAST(:bam AS text) AND obito = true AND COALESCE(status, 'ATIVO') <> 'CANCELADO'
                 """, bam, "OBITO", "Obito (resumo de alta)",
                 "idresumoalta", "dataobito", "horaobito", "profissional", "local", "diagfinal", "cid2"));
+        // b.data/b.hora sao a ABERTURA do BAM, nao o obito: o paciente que deu entrada
+        // dia 29 e faleceu dia 02 aparecia como obito em 29. tratamento nao guarda a
+        // data do desfecho, entao a data vem de quem a registrou (resumo, NIR, internacao);
+        // sem nenhuma, fica sem data em vez de mostrar uma data errada.
         obitos.addAll(eventos("""
-                SELECT b.idbam, b.data, b.hora, t.medicoecrm, b.unidade, t.tipo_alta, t.obs_saida
+                SELECT b.idbam,
+                       COALESCE(
+                         (SELECT r.dataobito FROM resumodealta r WHERE r.bam = CAST(b.idbam AS text) AND r.obito = true AND r.dataobito IS NOT NULL AND COALESCE(r.status, 'ATIVO') <> 'CANCELADO' ORDER BY r.idresumoalta DESC LIMIT 1),
+                         (SELECT n.datadaacao FROM novointernado n WHERE n.nbam = b.idbam AND n.motivosaida ILIKE '%bito%' AND n.datadaacao IS NOT NULL ORDER BY n.idninternado DESC LIMIT 1),
+                         (SELECT i.datasaida FROM internacao i WHERE i.bam = CAST(b.idbam AS text) AND i.motivodaalta ILIKE '%bito%' AND i.datasaida IS NOT NULL ORDER BY i.idninternado DESC LIMIT 1)
+                       ) AS data,
+                       (SELECT r.horaobito FROM resumodealta r WHERE r.bam = CAST(b.idbam AS text) AND r.obito = true AND r.dataobito IS NOT NULL AND COALESCE(r.status, 'ATIVO') <> 'CANCELADO' ORDER BY r.idresumoalta DESC LIMIT 1) AS hora,
+                       t.medicoecrm, b.unidade, t.tipo_alta, t.obs_saida
                 FROM bam b JOIN tratamento t ON t.idtratamento = b.tratamento_idtratamento
                 WHERE b.idbam = :bam AND t.tipo_alta ILIKE '%bito%'
                 """, bam, "OBITO", "Obito (desfecho do atendimento)",
@@ -470,7 +497,7 @@ public class HistoricoPacienteController {
                 """, bam, "OBITO", "Obito (internacao)",
                 "idninternado", "datasaida", "hora", "medicodeualta", "local", "motivodaalta", "cid"));
         obitos.addAll(eventos("""
-                SELECT n.idninternado, NULL AS data, NULL AS hora, n.quemdeualta, COALESCE(s.setor, n.tipo) AS local, n.motivosaida
+                SELECT n.idninternado, n.datadaacao AS data, NULL AS hora, n.quemdeualta, COALESCE(s.setor, n.tipo) AS local, n.motivosaida
                 FROM novointernado n
                 LEFT JOIN setorcenso s ON s.idsetorcenso = n.setor_idsetorcenso
                 WHERE n.nbam = :bam AND n.motivosaida ILIKE '%bito%'
@@ -480,7 +507,7 @@ public class HistoricoPacienteController {
         obitos.addAll(eventos("""
                 SELECT id, dataobito, horaobito, medicoassistente, setor, causabasica, causaterminal, numerodo
                 FROM sumarioobito
-                WHERE bam = CAST(:bam AS text)
+                WHERE bam = CAST(:bam AS text) AND COALESCE(status, 'ATIVO') <> 'CANCELADO'
                 """, bam, "OBITO", "Sumario de obito",
                 "id", "dataobito", "horaobito", "medicoassistente", "setor", "causabasica", "causaterminal", "numerodo"));
         return obitos;

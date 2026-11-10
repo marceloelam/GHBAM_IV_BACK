@@ -188,11 +188,6 @@ FROM public.bam
 		<property name="com.jaspersoft.studio.field.label" value="cpf"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="pacientes"/>
 	</field>
-	<field name="COLUMN_33" class="java.sql.Date">
-		<property name="com.jaspersoft.studio.field.name" value="data"/>
-		<property name="com.jaspersoft.studio.field.label" value="data"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="pacientes"/>
-	</field>
 	<field name="ecivil" class="java.lang.String">
 		<property name="com.jaspersoft.studio.field.name" value="ecivil"/>
 		<property name="com.jaspersoft.studio.field.label" value="ecivil"/>
@@ -211,11 +206,6 @@ FROM public.bam
 	<field name="etnia" class="java.lang.String">
 		<property name="com.jaspersoft.studio.field.name" value="etnia"/>
 		<property name="com.jaspersoft.studio.field.label" value="etnia"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="pacientes"/>
-	</field>
-	<field name="COLUMN_38" class="java.lang.String">
-		<property name="com.jaspersoft.studio.field.name" value="hora"/>
-		<property name="com.jaspersoft.studio.field.label" value="hora"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="pacientes"/>
 	</field>
 	<field name="idade" class="java.lang.Integer">
@@ -315,19 +305,9 @@ FROM public.bam
 		<property name="com.jaspersoft.studio.field.label" value="tempcod"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="pacientes"/>
 	</field>
-	<field name="COLUMN_58" class="java.lang.Integer">
-		<property name="com.jaspersoft.studio.field.name" value="idevolucao"/>
-		<property name="com.jaspersoft.studio.field.label" value="idevolucao"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="evolucaopaciente"/>
-	</field>
 	<field name="crm" class="java.lang.String">
 		<property name="com.jaspersoft.studio.field.name" value="crm"/>
 		<property name="com.jaspersoft.studio.field.label" value="crm"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="evolucaopaciente"/>
-	</field>
-	<field name="COLUMN_60" class="java.sql.Date">
-		<property name="com.jaspersoft.studio.field.name" value="data"/>
-		<property name="com.jaspersoft.studio.field.label" value="data"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="evolucaopaciente"/>
 	</field>
 	<field name="enfermaria" class="java.lang.String">
@@ -370,16 +350,6 @@ FROM public.bam
 		<property name="com.jaspersoft.studio.field.label" value="pedidolimpo"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="evolucaopaciente"/>
 	</field>
-	<field name="COLUMN_69" class="java.lang.String">
-		<property name="com.jaspersoft.studio.field.name" value="prontuario"/>
-		<property name="com.jaspersoft.studio.field.label" value="prontuario"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="evolucaopaciente"/>
-	</field>
-	<field name="COLUMN_70" class="java.lang.String">
-		<property name="com.jaspersoft.studio.field.name" value="relato"/>
-		<property name="com.jaspersoft.studio.field.label" value="relato"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="evolucaopaciente"/>
-	</field>
 	<field name="horaev" class="java.lang.String">
 		<property name="com.jaspersoft.studio.field.name" value="horaev"/>
 		<property name="com.jaspersoft.studio.field.label" value="horaev"/>
@@ -390,16 +360,6 @@ FROM public.bam
 		<property name="com.jaspersoft.studio.field.label" value="alta"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="evolucaopaciente"/>
 	</field>
-	<field name="COLUMN_73" class="java.lang.String">
-		<property name="com.jaspersoft.studio.field.name" value="unidade"/>
-		<property name="com.jaspersoft.studio.field.label" value="unidade"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="evolucaopaciente"/>
-	</field>
-	<field name="COLUMN_74" class="java.lang.Integer">
-		<property name="com.jaspersoft.studio.field.name" value="qtde"/>
-		<property name="com.jaspersoft.studio.field.label" value="qtde"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="evolucaopaciente"/>
-	</field>
 	<field name="idninternado" class="java.lang.Integer">
 		<property name="com.jaspersoft.studio.field.name" value="idninternado"/>
 		<property name="com.jaspersoft.studio.field.label" value="idninternado"/>
@@ -408,11 +368,6 @@ FROM public.bam
 	<field name="agente" class="java.lang.String">
 		<property name="com.jaspersoft.studio.field.name" value="agente"/>
 		<property name="com.jaspersoft.studio.field.label" value="agente"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="novointernado"/>
-	</field>
-	<field name="COLUMN_77" class="java.lang.Boolean">
-		<property name="com.jaspersoft.studio.field.name" value="alta"/>
-		<property name="com.jaspersoft.studio.field.label" value="alta"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="novointernado"/>
 	</field>
 	<field name="datadaacao" class="java.sql.Date">
@@ -455,19 +410,9 @@ FROM public.bam
 		<property name="com.jaspersoft.studio.field.label" value="motivosaida"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="novointernado"/>
 	</field>
-	<field name="COLUMN_86" class="java.lang.Integer">
-		<property name="com.jaspersoft.studio.field.name" value="nbam"/>
-		<property name="com.jaspersoft.studio.field.label" value="nbam"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="novointernado"/>
-	</field>
 	<field name="pendencia" class="java.lang.String">
 		<property name="com.jaspersoft.studio.field.name" value="pendencia"/>
 		<property name="com.jaspersoft.studio.field.label" value="pendencia"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="novointernado"/>
-	</field>
-	<field name="COLUMN_88" class="java.lang.String">
-		<property name="com.jaspersoft.studio.field.name" value="prontuario"/>
-		<property name="com.jaspersoft.studio.field.label" value="prontuario"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="novointernado"/>
 	</field>
 	<field name="tempodias" class="java.lang.Integer">
@@ -498,11 +443,6 @@ FROM public.bam
 	<field name="setor_idsetorcenso" class="java.lang.Integer">
 		<property name="com.jaspersoft.studio.field.name" value="setor_idsetorcenso"/>
 		<property name="com.jaspersoft.studio.field.label" value="setor_idsetorcenso"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="novointernado"/>
-	</field>
-	<field name="COLUMN_95" class="java.lang.String">
-		<property name="com.jaspersoft.studio.field.name" value="unidade"/>
-		<property name="com.jaspersoft.studio.field.label" value="unidade"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="novointernado"/>
 	</field>
 	<field name="tipo_alocacao" class="java.lang.String">
@@ -545,11 +485,6 @@ FROM public.bam
 		<property name="com.jaspersoft.studio.field.label" value="setor"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="setorcenso"/>
 	</field>
-	<field name="COLUMN_104" class="java.lang.String">
-		<property name="com.jaspersoft.studio.field.name" value="unidade"/>
-		<property name="com.jaspersoft.studio.field.label" value="unidade"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="setorcenso"/>
-	</field>
 	<field name="excluido" class="java.lang.Boolean">
 		<property name="com.jaspersoft.studio.field.name" value="excluido"/>
 		<property name="com.jaspersoft.studio.field.label" value="excluido"/>
@@ -560,34 +495,14 @@ FROM public.bam
 		<property name="com.jaspersoft.studio.field.label" value="idsetorlocalcenso"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="localcenso"/>
 	</field>
-	<field name="COLUMN_107" class="java.lang.String">
-		<property name="com.jaspersoft.studio.field.name" value="codigo"/>
-		<property name="com.jaspersoft.studio.field.label" value="codigo"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="localcenso"/>
-	</field>
 	<field name="disponivel" class="java.lang.Boolean">
 		<property name="com.jaspersoft.studio.field.name" value="disponivel"/>
 		<property name="com.jaspersoft.studio.field.label" value="disponivel"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="localcenso"/>
 	</field>
-	<field name="COLUMN_109" class="java.lang.String">
-		<property name="com.jaspersoft.studio.field.name" value="local"/>
-		<property name="com.jaspersoft.studio.field.label" value="local"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="localcenso"/>
-	</field>
 	<field name="setorcenso_idsetorcenso" class="java.lang.Integer">
 		<property name="com.jaspersoft.studio.field.name" value="setorcenso_idsetorcenso"/>
 		<property name="com.jaspersoft.studio.field.label" value="setorcenso_idsetorcenso"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="localcenso"/>
-	</field>
-	<field name="COLUMN_111" class="java.lang.String">
-		<property name="com.jaspersoft.studio.field.name" value="unidade"/>
-		<property name="com.jaspersoft.studio.field.label" value="unidade"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="localcenso"/>
-	</field>
-	<field name="COLUMN_112" class="java.lang.Boolean">
-		<property name="com.jaspersoft.studio.field.name" value="excluido"/>
-		<property name="com.jaspersoft.studio.field.label" value="excluido"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="localcenso"/>
 	</field>
 	<group name="medico">

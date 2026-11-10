@@ -1,17 +1,41 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Created with Jaspersoft Studio version 6.18.1.final using JasperReports Library version 6.18.1-9d75d1969e774d4f179fb3be8401e98a0e6d1611  -->
-<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="subnir" pageWidth="595" pageHeight="842" columnWidth="595" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0" uuid="fdce5a7f-4cbe-442d-818c-ebd62c6aa44e">
-	<property name="com.jaspersoft.studio.data.sql.tables" value=""/>
-	<property name="com.jaspersoft.studio.data.defaultdataadapter" value="itaguai_conn"/>
-	<property name="com.jaspersoft.studio.unit." value="pixel"/>
-	<property name="com.jaspersoft.studio.unit.pageHeight" value="pixel"/>
-	<property name="com.jaspersoft.studio.unit.pageWidth" value="pixel"/>
-	<property name="com.jaspersoft.studio.unit.topMargin" value="pixel"/>
-	<property name="com.jaspersoft.studio.unit.bottomMargin" value="pixel"/>
-	<property name="com.jaspersoft.studio.unit.leftMargin" value="pixel"/>
-	<property name="com.jaspersoft.studio.unit.rightMargin" value="pixel"/>
-	<property name="com.jaspersoft.studio.unit.columnWidth" value="pixel"/>
-	<property name="com.jaspersoft.studio.unit.columnSpacing" value="pixel"/>
+<!-- Histórico clínico do atendimento: layout padronizado (2026-11-09). SQL, parâmetros e campos preservados do original. -->
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="subnir" pageWidth="555" pageHeight="842" whenNoDataType="NoPages" columnWidth="555" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0" uuid="864d9913-faf0-4c08-947c-421847ea6f8f">
+	<style name="Base" isDefault="true" forecolor="#1F2937" fontSize="7.5"/>
+	<style name="Secao" mode="Opaque" forecolor="#0F4C5C" backcolor="#E6EEF1" vTextAlign="Middle" fontSize="8.5" isBold="true">
+		<box leftPadding="7"><leftPen lineWidth="3.0" lineColor="#0F4C5C"/></box>
+	</style>
+	<style name="Rotulo" forecolor="#64748B" fontSize="5.8" isBold="true"/>
+	<style name="Valor" forecolor="#111827" fontSize="8"/>
+	<style name="ValorForte" forecolor="#111827" fontSize="7.5" isBold="true"/>
+	<style name="Celula">
+		<box><bottomPen lineWidth="0.5" lineColor="#D9E1E8"/></box>
+	</style>
+	<style name="Linha">
+		<box><bottomPen lineWidth="0.5" lineColor="#E2E8F0"/></box>
+		<conditionalStyle>
+			<conditionExpression><![CDATA[$V{REPORT_COUNT}.intValue() % 2 == 0]]></conditionExpression>
+			<style mode="Opaque" backcolor="#F6F8FA"/>
+		</conditionalStyle>
+	</style>
+	<style name="Th" mode="Opaque" backcolor="#EEF2F5">
+		<box><bottomPen lineWidth="0.75" lineColor="#94A3B8"/></box>
+	</style>
+	<style name="ThTxt" forecolor="#334155" vTextAlign="Middle" fontSize="6.3" isBold="true">
+		<box leftPadding="3"/>
+	</style>
+	<style name="Td" forecolor="#111827" fontSize="7.2">
+		<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"/>
+	</style>
+	<style name="Assin" forecolor="#64748B" fontSize="5.5">
+		<box leftPadding="3" bottomPadding="2"/>
+	</style>
+	<style name="Pendente" forecolor="#B45309" fontSize="5.5" isBold="true">
+		<box leftPadding="3" bottomPadding="2"/>
+	</style>
+	<style name="PendenteValor" forecolor="#B45309" fontSize="8" isItalic="true"/>
+	<style name="Alerta" forecolor="#B91C1C" fontSize="8" isBold="true"/>
+
 	<parameter name="idbamLab" class="java.lang.String"/>
 	<queryString language="SQL">
 		<![CDATA[select * from novointernado where  cast(bam_idbam as text) =  $P{idbamLab}]]>
@@ -126,109 +150,129 @@
 		<property name="com.jaspersoft.studio.field.label" value="tipo_alocacao"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="novointernado"/>
 	</field>
-	<background>
-		<band splitType="Stretch"/>
-	</background>
+	
 	<title>
-		<band height="17" splitType="Stretch">
-			<staticText>
-				<reportElement x="0" y="3" width="80" height="13" uuid="713b1896-e074-497c-8d49-b8a7e2d0178a">
-					<property name="com.jaspersoft.studio.unit.height" value="px"/>
-				</reportElement>
-				<textElement>
-					<font isBold="true"/>
-				</textElement>
-				<text><![CDATA[* NIR]]></text>
-			</staticText>
-			<line>
-				<reportElement x="74" y="9" width="471" height="1" uuid="aaad580c-6d78-4776-8467-cdfa95bea110"/>
-			</line>
+		<band height="19" splitType="Prevent">
+				<staticText>
+					<reportElement style="Secao" x="0" y="0" width="555" height="15" uuid="fe7aa42f-4c90-487a-a091-ef93ca4344d4"/>
+					<textElement/>
+					<text><![CDATA[NÚCLEO INTERNO DE REGULAÇÃO (NIR) — INTERNAÇÃO]]></text>
+				</staticText>
 		</band>
 	</title>
 	<detail>
 		<band height="72" splitType="Stretch">
-			<textField>
-				<reportElement x="90" y="14" width="490" height="13" uuid="9f8de4a8-df0c-47db-852d-f8971b00e02a"/>
-				<textElement verticalAlignment="Middle">
-					<font size="7"/>
-				</textElement>
-				<textFieldExpression><![CDATA[$F{diagnostico} + " - Especialidade : " + $F{especialidade}]]></textFieldExpression>
-			</textField>
-			<textField pattern="dd/MM/yyyy">
-				<reportElement x="91" y="0" width="60" height="13" uuid="edeb2195-5261-4dfc-b1ed-a4ccdb64c5bc">
-					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+			<frame>
+				<reportElement style="Celula" positionType="Float" x="0" y="0" width="555" height="23" uuid="d31c9189-c5e1-430b-856f-66fafcebeadd">
 				</reportElement>
-				<textElement textAlignment="Left">
-					<font size="7"/>
-				</textElement>
-				<textFieldExpression><![CDATA[$F{diainternacao}]]></textFieldExpression>
-			</textField>
-			<staticText>
-				<reportElement x="4" y="0" width="78" height="13" uuid="1db66c2b-74b9-49ee-a59d-09af2a114bae">
-					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				<staticText>
+					<reportElement style="Rotulo" x="3" y="2" width="79" height="8" uuid="daab6d71-5110-4efa-a55e-fe9fd889f0e6"/>
+					<textElement/>
+					<text><![CDATA[DATA DA INTERNAÇÃO]]></text>
+				</staticText>
+				<textField textAdjust="StretchHeight" pattern="dd/MM/yyyy" isBlankWhenNull="true">
+					<reportElement style="Valor" x="3" y="10" width="79" height="11" uuid="ec88f430-7353-4764-afed-79154738c2f5">
+					</reportElement>
+					<textElement/>
+					<textFieldExpression><![CDATA[$F{diainternacao}]]></textFieldExpression>
+				</textField>
+				<staticText>
+					<reportElement style="Rotulo" x="88" y="2" width="144" height="8" uuid="4347706f-f005-439f-a05e-622932e1432e"/>
+					<textElement/>
+					<text><![CDATA[ESPECIALIDADE]]></text>
+				</staticText>
+				<textField textAdjust="StretchHeight" isBlankWhenNull="true">
+					<reportElement style="Valor" x="88" y="10" width="144" height="11" uuid="531fa217-8ba7-4b28-be34-6ce19fa08657">
+					</reportElement>
+					<textElement/>
+					<textFieldExpression><![CDATA[($F{especialidade} == null ? "" : String.valueOf($F{especialidade}).trim())]]></textFieldExpression>
+				</textField>
+				<staticText>
+					<reportElement style="Rotulo" x="238" y="2" width="104" height="8" uuid="b527dace-743e-43c2-9375-cd5be06b0903"/>
+					<textElement/>
+					<text><![CDATA[TIPO DE ALOCAÇÃO]]></text>
+				</staticText>
+				<textField textAdjust="StretchHeight" isBlankWhenNull="true">
+					<reportElement style="Valor" x="238" y="10" width="104" height="11" uuid="1114bda5-d159-4f4d-a496-78ebf32114ea">
+					</reportElement>
+					<textElement/>
+					<textFieldExpression><![CDATA[($F{tipo_alocacao} == null ? "" : String.valueOf($F{tipo_alocacao}).trim())]]></textFieldExpression>
+				</textField>
+				<staticText>
+					<reportElement style="Rotulo" x="348" y="2" width="134" height="8" uuid="e82ef644-7081-4330-9e1e-e78db2081021"/>
+					<textElement/>
+					<text><![CDATA[LEITO]]></text>
+				</staticText>
+				<textField textAdjust="StretchHeight" isBlankWhenNull="true">
+					<reportElement style="Valor" x="348" y="10" width="134" height="11" uuid="50eaa5ec-7873-4798-a607-1f053093b250">
+					</reportElement>
+					<textElement/>
+					<textFieldExpression><![CDATA[($F{leitoocupado} == null ? "" : String.valueOf($F{leitoocupado}).trim())]]></textFieldExpression>
+				</textField>
+				<staticText>
+					<reportElement style="Rotulo" x="488" y="2" width="64" height="8" uuid="c828cc27-f6b7-4c64-b87f-439ecaddc438"/>
+					<textElement/>
+					<text><![CDATA[PERMANÊNCIA]]></text>
+				</staticText>
+				<textField textAdjust="StretchHeight" isBlankWhenNull="true">
+					<reportElement style="Valor" x="488" y="10" width="64" height="11" uuid="ba078962-3c24-47de-a881-f1bc05ffa36a">
+					</reportElement>
+					<textElement/>
+					<textFieldExpression><![CDATA[($F{tempodias} == null ? "" : $F{tempodias} + " dia(s)")]]></textFieldExpression>
+				</textField>
+			</frame>
+			<frame>
+				<reportElement style="Celula" positionType="Float" x="0" y="23" width="555" height="23" uuid="0e659c3c-c480-4d9b-a431-432c0b0e7f14">
 				</reportElement>
-				<textElement textAlignment="Left" verticalAlignment="Bottom">
-					<font size="7" isBold="true"/>
-				</textElement>
-				<text><![CDATA[D. Internação :]]></text>
-			</staticText>
-			<staticText>
-				<reportElement x="4" y="14" width="80" height="13" uuid="34152ac7-75d2-43f4-a2dc-b971917ebc3a">
-					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				<staticText>
+					<reportElement style="Rotulo" x="3" y="2" width="549" height="8" uuid="7ff46974-e249-4b40-868f-11263172871c"/>
+					<textElement/>
+					<text><![CDATA[DIAGNÓSTICO]]></text>
+				</staticText>
+				<textField textAdjust="StretchHeight" isBlankWhenNull="true">
+					<reportElement style="Valor" x="3" y="10" width="549" height="11" uuid="80c25a28-fb06-4bbf-aab0-8b494eab0bfb">
+					</reportElement>
+					<textElement/>
+					<textFieldExpression><![CDATA[($F{diagnostico} == null ? "" : String.valueOf($F{diagnostico}).trim())]]></textFieldExpression>
+				</textField>
+			</frame>
+			<frame>
+				<reportElement style="Celula" positionType="Float" x="0" y="46" width="555" height="23" uuid="a1befb96-6073-4bf0-9fa0-6a1c572eb975">
 				</reportElement>
-				<textElement textAlignment="Left" verticalAlignment="Bottom">
-					<font size="7" isBold="true"/>
-				</textElement>
-				<text><![CDATA[Diagnóstico :]]></text>
-			</staticText>
-			<staticText>
-				<reportElement x="4" y="29" width="80" height="13" uuid="39f6b7dd-f871-4164-a4e3-aa9cd838956b">
-					<property name="com.jaspersoft.studio.unit.height" value="px"/>
-				</reportElement>
-				<textElement textAlignment="Left" verticalAlignment="Bottom">
-					<font size="7" isBold="true"/>
-				</textElement>
-				<text><![CDATA[Agente :]]></text>
-			</staticText>
-			<textField>
-				<reportElement x="91" y="29" width="188" height="13" uuid="f0e2e9b6-a061-4170-8078-900ee462e4d1"/>
-				<textElement verticalAlignment="Middle">
-					<font size="7"/>
-				</textElement>
-				<textFieldExpression><![CDATA[$F{agente}]]></textFieldExpression>
-			</textField>
-			<staticText>
-				<reportElement x="292" y="28" width="80" height="13" uuid="68e5ae8f-dbc6-45e4-823c-a6061be067e3">
-					<property name="com.jaspersoft.studio.unit.height" value="px"/>
-				</reportElement>
-				<textElement textAlignment="Left" verticalAlignment="Bottom">
-					<font size="7" isBold="true"/>
-				</textElement>
-				<text><![CDATA[Motivo saída :]]></text>
-			</staticText>
-			<textField>
-				<reportElement x="380" y="28" width="200" height="13" uuid="cb8b0df6-b43f-4cda-bf1d-cf8fe8999551"/>
-				<textElement verticalAlignment="Middle">
-					<font size="7"/>
-				</textElement>
-				<textFieldExpression><![CDATA[$F{motivosaida}]]></textFieldExpression>
-			</textField>
-			<staticText>
-				<reportElement x="4" y="45" width="80" height="13" uuid="ff4455ec-84a9-4325-8126-cf183faace92">
-					<property name="com.jaspersoft.studio.unit.height" value="px"/>
-				</reportElement>
-				<textElement textAlignment="Left" verticalAlignment="Bottom">
-					<font size="7" isBold="true"/>
-				</textElement>
-				<text><![CDATA[Alta :]]></text>
-			</staticText>
-			<textField>
-				<reportElement x="90" y="46" width="188" height="13" uuid="07d1a3c0-6620-487e-b272-be34d4534d56"/>
-				<textElement verticalAlignment="Middle">
-					<font size="7"/>
-				</textElement>
-				<textFieldExpression><![CDATA[($F{alta} == true ?"Sim" :"Não ")]]></textFieldExpression>
-			</textField>
+				<staticText>
+					<reportElement style="Rotulo" x="3" y="2" width="179" height="8" uuid="9e2a9310-0699-46f9-a510-15b60df42697"/>
+					<textElement/>
+					<text><![CDATA[AGENTE]]></text>
+				</staticText>
+				<textField textAdjust="StretchHeight" isBlankWhenNull="true">
+					<reportElement style="Valor" x="3" y="10" width="179" height="11" uuid="e67e8079-918e-4e50-90e7-4fb190ff0028">
+					</reportElement>
+					<textElement/>
+					<textFieldExpression><![CDATA[($F{agente} == null ? "" : String.valueOf($F{agente}).trim())]]></textFieldExpression>
+				</textField>
+				<staticText>
+					<reportElement style="Rotulo" x="188" y="2" width="64" height="8" uuid="410fc0f6-5f2f-46ed-b3d8-2fa4e4a332ac"/>
+					<textElement/>
+					<text><![CDATA[ALTA]]></text>
+				</staticText>
+				<textField textAdjust="StretchHeight" isBlankWhenNull="true">
+					<reportElement style="Valor" x="188" y="10" width="64" height="11" uuid="140af909-f451-4906-b997-a11985611da7">
+					</reportElement>
+					<textElement/>
+					<textFieldExpression><![CDATA[(Boolean.TRUE.equals($F{alta}) ? "Sim" : "Não")]]></textFieldExpression>
+				</textField>
+				<staticText>
+					<reportElement style="Rotulo" x="258" y="2" width="294" height="8" uuid="4cf7bee8-450b-4b6b-94b7-b49d6ceb36a9"/>
+					<textElement/>
+					<text><![CDATA[MOTIVO DA SAÍDA]]></text>
+				</staticText>
+				<textField textAdjust="StretchHeight" isBlankWhenNull="true">
+					<reportElement style="Valor" x="258" y="10" width="294" height="11" uuid="742ef967-88fd-4e6e-851e-2b85c0152ef2">
+					</reportElement>
+					<textElement/>
+					<textFieldExpression><![CDATA[($F{motivosaida} == null ? "" : String.valueOf($F{motivosaida}).trim())]]></textFieldExpression>
+				</textField>
+			</frame>
 		</band>
 	</detail>
 </jasperReport>

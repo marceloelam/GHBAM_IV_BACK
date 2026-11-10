@@ -138,11 +138,6 @@ where laudoautorizacao.datasolicitacao between  cast($P{datainicial} as date)  a
 		<property name="com.jaspersoft.studio.field.label" value="datasolicitacao"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="laudoautorizacao"/>
 	</field>
-	<field name="COLUMN_23" class="java.lang.String">
-		<property name="com.jaspersoft.studio.field.name" value="diagnosticoinicial"/>
-		<property name="com.jaspersoft.studio.field.label" value="diagnosticoinicial"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="laudoautorizacao"/>
-	</field>
 	<field name="documento1" class="java.lang.String">
 		<property name="com.jaspersoft.studio.field.name" value="documento1"/>
 		<property name="com.jaspersoft.studio.field.label" value="documento1"/>
@@ -313,11 +308,6 @@ where laudoautorizacao.datasolicitacao between  cast($P{datainicial} as date)  a
 		<property name="com.jaspersoft.studio.field.label" value="tratamento_idtratamento"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="bam"/>
 	</field>
-	<field name="COLUMN_58" class="java.lang.String">
-		<property name="com.jaspersoft.studio.field.name" value="unidade"/>
-		<property name="com.jaspersoft.studio.field.label" value="unidade"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="bam"/>
-	</field>
 	<field name="prioridade" class="java.lang.String">
 		<property name="com.jaspersoft.studio.field.name" value="prioridade"/>
 		<property name="com.jaspersoft.studio.field.label" value="prioridade"/>
@@ -363,11 +353,6 @@ where laudoautorizacao.datasolicitacao between  cast($P{datainicial} as date)  a
 		<property name="com.jaspersoft.studio.field.label" value="cpf"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="pacientes"/>
 	</field>
-	<field name="COLUMN_68" class="java.lang.String">
-		<property name="com.jaspersoft.studio.field.name" value="data"/>
-		<property name="com.jaspersoft.studio.field.label" value="data"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="pacientes"/>
-	</field>
 	<field name="ecivil" class="java.lang.String">
 		<property name="com.jaspersoft.studio.field.name" value="ecivil"/>
 		<property name="com.jaspersoft.studio.field.label" value="ecivil"/>
@@ -386,11 +371,6 @@ where laudoautorizacao.datasolicitacao between  cast($P{datainicial} as date)  a
 	<field name="etnia" class="java.lang.String">
 		<property name="com.jaspersoft.studio.field.name" value="etnia"/>
 		<property name="com.jaspersoft.studio.field.label" value="etnia"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="pacientes"/>
-	</field>
-	<field name="COLUMN_73" class="java.lang.String">
-		<property name="com.jaspersoft.studio.field.name" value="hora"/>
-		<property name="com.jaspersoft.studio.field.label" value="hora"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="pacientes"/>
 	</field>
 	<field name="idade" class="java.lang.Integer">
@@ -426,11 +406,6 @@ where laudoautorizacao.datasolicitacao between  cast($P{datainicial} as date)  a
 	<field name="naturalidade" class="java.lang.String">
 		<property name="com.jaspersoft.studio.field.name" value="naturalidade"/>
 		<property name="com.jaspersoft.studio.field.label" value="naturalidade"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="pacientes"/>
-	</field>
-	<field name="COLUMN_81" class="java.lang.String">
-		<property name="com.jaspersoft.studio.field.name" value="nome"/>
-		<property name="com.jaspersoft.studio.field.label" value="nome"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="pacientes"/>
 	</field>
 	<field name="numero" class="java.lang.String">
@@ -553,11 +528,6 @@ where laudoautorizacao.datasolicitacao between  cast($P{datainicial} as date)  a
 		<property name="com.jaspersoft.studio.field.label" value="pendencia"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="novointernado"/>
 	</field>
-	<field name="COLUMN_106" class="java.lang.String">
-		<property name="com.jaspersoft.studio.field.name" value="prontuario"/>
-		<property name="com.jaspersoft.studio.field.label" value="prontuario"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="novointernado"/>
-	</field>
 	<field name="tempodias" class="java.lang.String">
 		<property name="com.jaspersoft.studio.field.name" value="tempodias"/>
 		<property name="com.jaspersoft.studio.field.label" value="tempodias"/>
@@ -586,11 +556,6 @@ where laudoautorizacao.datasolicitacao between  cast($P{datainicial} as date)  a
 	<field name="setor_idsetorcenso" class="java.lang.String">
 		<property name="com.jaspersoft.studio.field.name" value="setor_idsetorcenso"/>
 		<property name="com.jaspersoft.studio.field.label" value="setor_idsetorcenso"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="novointernado"/>
-	</field>
-	<field name="COLUMN_113" class="java.lang.String">
-		<property name="com.jaspersoft.studio.field.name" value="unidade"/>
-		<property name="com.jaspersoft.studio.field.label" value="unidade"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="novointernado"/>
 	</field>
 	<field name="tipo_alocacao" class="java.lang.String">

@@ -68,6 +68,7 @@ public class SumarioObitoController {
             item.put("setor", texto(c[22]));
             item.put("medicoAssistente", texto(c[23]));
             item.put("crmAssistente", texto(c[24]));
+            item.put("semResumoAlta", Boolean.TRUE.equals(c[25]));
             resultado.add(item);
         }
         return resultado;
@@ -112,18 +113,21 @@ public class SumarioObitoController {
                  WHERE r.obito = true AND COALESCE(r.status, 'ATIVO') <> 'CANCELADO'
                    AND r.bam ~ '^[0-9]{1,9}$'
                 UNION
+                -- Sem resumo de alta o obito tambem entra (selo "Sem resumo de alta"): antes o
+                -- paciente que saiu por obito sem resumo sumia desta lista.
                 SELECT b.idbam FROM bam b
                  JOIN tratamento t ON t.idtratamento = b.tratamento_idtratamento
                  WHERE b.unidade = :unidade AND t.tipo_alta ILIKE '%bito%'
-                   AND EXISTS (SELECT 1 FROM resumodealta r WHERE r.bam = CAST(b.idbam AS text) AND r.obito = true AND r.dataobito IS NOT NULL AND COALESCE(r.status, 'ATIVO') <> 'CANCELADO')
                 UNION
                 SELECT CAST(i.bam AS integer) FROM internacao i
                  WHERE i.motivodaalta ILIKE '%bito%' AND i.bam ~ '^[0-9]{1,9}$'
-                   AND EXISTS (SELECT 1 FROM resumodealta r WHERE r.bam = i.bam AND r.obito = true AND r.dataobito IS NOT NULL AND COALESCE(r.status, 'ATIVO') <> 'CANCELADO')
+                UNION
+                SELECT n.nbam FROM novointernado n
+                 WHERE n.alta = true AND n.motivosaida ILIKE '%bito%'
             )
             SELECT b.idbam, p.nome, p.prontuario, p.nascimento, p.idade, p.sexo,
                    p.endereco, p.numero, p.bairro, p.cep, p.estado, p.municipio, p.telefone,
-                   r.idresumoalta, r.datainternacao, r.dataobito, r.horaobito, r.causamorte, r.relato,
+                   r.idresumoalta, r.datainternacao, COALESCE(r.dataobito, d.datasaida), r.horaobito, r.causamorte, r.relato,
                    s.id, s.status,
                    CASE WHEN s.id IS NOT NULL AND (
                      NULLIF(BTRIM(COALESCE(s.numerodo, '')), '') IS NOT NULL OR
@@ -133,7 +137,8 @@ public class SumarioObitoController {
                      NULLIF(BTRIM(COALESCE(s.medicoassistente, '')), '') IS NOT NULL
                    ) THEN true ELSE false END,
                    COALESCE(NULLIF(CONCAT_WS(' - ', c.enfermaria, CASE WHEN c.leito ~* '^leito' THEN c.leito WHEN c.leito IS NOT NULL THEN 'Leito ' || c.leito END), ''), i.local),
-                   i.medicodeualta, m.crm
+                   i.medicodeualta, m.crm,
+                   (r.idresumoalta IS NULL)
             FROM obitos o
             JOIN bam b ON b.idbam = o.idbam AND b.unidade = :unidade
             JOIN pacientes p ON p.idpaciente = b.paciente_idpaciente
@@ -172,7 +177,16 @@ public class SumarioObitoController {
                   AND NULLIF(BTRIM(sv.crm), '') IS NOT NULL
                 HAVING COUNT(DISTINCT BTRIM(sv.crm)) = 1
             ) m ON true
-            ORDER BY r.dataobito DESC NULLS LAST, b.idbam DESC
+            LEFT JOIN LATERAL (
+                -- Data da saida por obito (leito do NIR ou alta da internacao) quando nao ha resumo.
+                SELECT COALESCE(
+                    (SELECT n.datadaacao FROM novointernado n WHERE n.nbam = b.idbam AND n.motivosaida ILIKE '%bito%' AND n.datadaacao IS NOT NULL ORDER BY n.idninternado DESC LIMIT 1),
+                    (SELECT i2.datasaida FROM internacao i2 WHERE i2.bam = CAST(b.idbam AS text) AND i2.motivodaalta ILIKE '%bito%' AND i2.datasaida IS NOT NULL ORDER BY i2.idninternado DESC LIMIT 1)
+                ) AS datasaida
+            ) d ON true
+            -- b.data so ordena (nao e exibida como data do obito): sem ela o obito sem data
+            -- ia para o fim e caia fora do LIMIT.
+            ORDER BY COALESCE(r.dataobito, d.datasaida, b.data) DESC NULLS LAST, b.idbam DESC
             LIMIT """ + " " + LIMITE_OBITOS;
     static String motivoValido(String motivo) {
         if (motivo == null) return null;
