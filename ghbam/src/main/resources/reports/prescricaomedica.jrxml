@@ -279,11 +279,6 @@ and  b.idbam =  cast($P{pbam}  as integer ) order by  cast(p.data as date)  desc
 		<property name="com.jaspersoft.studio.field.label" value="daralta"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="bam"/>
 	</field>
-	<field name="COLUMN_45" class="java.sql.Date">
-		<property name="com.jaspersoft.studio.field.name" value="data"/>
-		<property name="com.jaspersoft.studio.field.label" value="data"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="bam"/>
-	</field>
 	<field name="datadaalta" class="java.lang.String">
 		<property name="com.jaspersoft.studio.field.name" value="datadaalta"/>
 		<property name="com.jaspersoft.studio.field.label" value="datadaalta"/>
@@ -292,11 +287,6 @@ and  b.idbam =  cast($P{pbam}  as integer ) order by  cast(p.data as date)  desc
 	<field name="ematendimento" class="java.lang.Boolean">
 		<property name="com.jaspersoft.studio.field.name" value="ematendimento"/>
 		<property name="com.jaspersoft.studio.field.label" value="ematendimento"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="bam"/>
-	</field>
-	<field name="COLUMN_48" class="java.lang.String">
-		<property name="com.jaspersoft.studio.field.name" value="hora"/>
-		<property name="com.jaspersoft.studio.field.label" value="hora"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="bam"/>
 	</field>
 	<field name="internar" class="java.lang.Boolean">
@@ -399,11 +389,6 @@ and  b.idbam =  cast($P{pbam}  as integer ) order by  cast(p.data as date)  desc
 		<property name="com.jaspersoft.studio.field.label" value="cpf"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="pacientes"/>
 	</field>
-	<field name="COLUMN_69" class="java.sql.Date">
-		<property name="com.jaspersoft.studio.field.name" value="data"/>
-		<property name="com.jaspersoft.studio.field.label" value="data"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="pacientes"/>
-	</field>
 	<field name="ecivil" class="java.lang.String">
 		<property name="com.jaspersoft.studio.field.name" value="ecivil"/>
 		<property name="com.jaspersoft.studio.field.label" value="ecivil"/>
@@ -422,11 +407,6 @@ and  b.idbam =  cast($P{pbam}  as integer ) order by  cast(p.data as date)  desc
 	<field name="etnia" class="java.lang.String">
 		<property name="com.jaspersoft.studio.field.name" value="etnia"/>
 		<property name="com.jaspersoft.studio.field.label" value="etnia"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="pacientes"/>
-	</field>
-	<field name="COLUMN_74" class="java.lang.String">
-		<property name="com.jaspersoft.studio.field.name" value="hora"/>
-		<property name="com.jaspersoft.studio.field.label" value="hora"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="pacientes"/>
 	</field>
 	<field name="idade" class="java.lang.Integer">
@@ -589,11 +569,6 @@ and  b.idbam =  cast($P{pbam}  as integer ) order by  cast(p.data as date)  desc
 		<property name="com.jaspersoft.studio.field.label" value="pendencia"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="novointernado"/>
 	</field>
-	<field name="COLUMN_107" class="java.lang.String">
-		<property name="com.jaspersoft.studio.field.name" value="prontuario"/>
-		<property name="com.jaspersoft.studio.field.label" value="prontuario"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="novointernado"/>
-	</field>
 	<field name="tempodias" class="java.lang.Integer">
 		<property name="com.jaspersoft.studio.field.name" value="tempodias"/>
 		<property name="com.jaspersoft.studio.field.label" value="tempodias"/>
@@ -622,11 +597,6 @@ and  b.idbam =  cast($P{pbam}  as integer ) order by  cast(p.data as date)  desc
 	<field name="setor_idsetorcenso" class="java.lang.Integer">
 		<property name="com.jaspersoft.studio.field.name" value="setor_idsetorcenso"/>
 		<property name="com.jaspersoft.studio.field.label" value="setor_idsetorcenso"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="novointernado"/>
-	</field>
-	<field name="COLUMN_114" class="java.lang.String">
-		<property name="com.jaspersoft.studio.field.name" value="unidade"/>
-		<property name="com.jaspersoft.studio.field.label" value="unidade"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="novointernado"/>
 	</field>
 	<field name="tipo_alocacao" class="java.lang.String">
@@ -679,11 +649,6 @@ and  b.idbam =  cast($P{pbam}  as integer ) order by  cast(p.data as date)  desc
 		<property name="com.jaspersoft.studio.field.label" value="setorcenso_idsetorcenso"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="localcenso"/>
 	</field>
-	<field name="COLUMN_125" class="java.lang.String">
-		<property name="com.jaspersoft.studio.field.name" value="unidade"/>
-		<property name="com.jaspersoft.studio.field.label" value="unidade"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="localcenso"/>
-	</field>
 	<field name="excluido" class="java.lang.Boolean">
 		<property name="com.jaspersoft.studio.field.name" value="excluido"/>
 		<property name="com.jaspersoft.studio.field.label" value="excluido"/>
@@ -694,24 +659,9 @@ and  b.idbam =  cast($P{pbam}  as integer ) order by  cast(p.data as date)  desc
 		<property name="com.jaspersoft.studio.field.label" value="idsetorcenso"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="setorcenso"/>
 	</field>
-	<field name="COLUMN_128" class="java.lang.String">
-		<property name="com.jaspersoft.studio.field.name" value="codigo"/>
-		<property name="com.jaspersoft.studio.field.label" value="codigo"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="setorcenso"/>
-	</field>
 	<field name="setor" class="java.lang.String">
 		<property name="com.jaspersoft.studio.field.name" value="setor"/>
 		<property name="com.jaspersoft.studio.field.label" value="setor"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="setorcenso"/>
-	</field>
-	<field name="COLUMN_130" class="java.lang.String">
-		<property name="com.jaspersoft.studio.field.name" value="unidade"/>
-		<property name="com.jaspersoft.studio.field.label" value="unidade"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="setorcenso"/>
-	</field>
-	<field name="COLUMN_131" class="java.lang.Boolean">
-		<property name="com.jaspersoft.studio.field.name" value="excluido"/>
-		<property name="com.jaspersoft.studio.field.label" value="excluido"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="setorcenso"/>
 	</field>
 	<field name="idavaliacao" class="java.lang.Integer">
@@ -779,21 +729,6 @@ and  b.idbam =  cast($P{pbam}  as integer ) order by  cast(p.data as date)  desc
 		<property name="com.jaspersoft.studio.field.label" value="comentario"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
 	</field>
-	<field name="COLUMN_145" class="java.lang.String">
-		<property name="com.jaspersoft.studio.field.name" value="controle"/>
-		<property name="com.jaspersoft.studio.field.label" value="controle"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
-	</field>
-	<field name="COLUMN_146" class="java.lang.Integer">
-		<property name="com.jaspersoft.studio.field.name" value="cor"/>
-		<property name="com.jaspersoft.studio.field.label" value="cor"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
-	</field>
-	<field name="COLUMN_147" class="java.lang.String">
-		<property name="com.jaspersoft.studio.field.name" value="data"/>
-		<property name="com.jaspersoft.studio.field.label" value="data"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
-	</field>
 	<field name="desidratado" class="java.lang.Boolean">
 		<property name="com.jaspersoft.studio.field.name" value="desidratado"/>
 		<property name="com.jaspersoft.studio.field.label" value="desidratado"/>
@@ -844,11 +779,6 @@ and  b.idbam =  cast($P{pbam}  as integer ) order by  cast(p.data as date)  desc
 		<property name="com.jaspersoft.studio.field.label" value="hipocorado"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
 	</field>
-	<field name="COLUMN_158" class="java.lang.String">
-		<property name="com.jaspersoft.studio.field.name" value="hora"/>
-		<property name="com.jaspersoft.studio.field.label" value="hora"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
-	</field>
 	<field name="icterico" class="java.lang.Boolean">
 		<property name="com.jaspersoft.studio.field.name" value="icterico"/>
 		<property name="com.jaspersoft.studio.field.label" value="icterico"/>
@@ -857,11 +787,6 @@ and  b.idbam =  cast($P{pbam}  as integer ) order by  cast(p.data as date)  desc
 	<field name="idmedico" class="java.lang.Integer">
 		<property name="com.jaspersoft.studio.field.name" value="idmedico"/>
 		<property name="com.jaspersoft.studio.field.label" value="idmedico"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
-	</field>
-	<field name="COLUMN_161" class="java.lang.Integer">
-		<property name="com.jaspersoft.studio.field.name" value="idpaciente"/>
-		<property name="com.jaspersoft.studio.field.label" value="idpaciente"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
 	</field>
 	<field name="isocorico" class="java.lang.Boolean">
@@ -957,11 +882,6 @@ and  b.idbam =  cast($P{pbam}  as integer ) order by  cast(p.data as date)  desc
 	<field name="torporoso" class="java.lang.Boolean">
 		<property name="com.jaspersoft.studio.field.name" value="torporoso"/>
 		<property name="com.jaspersoft.studio.field.label" value="torporoso"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
-	</field>
-	<field name="COLUMN_181" class="java.lang.String">
-		<property name="com.jaspersoft.studio.field.name" value="unidade"/>
-		<property name="com.jaspersoft.studio.field.label" value="unidade"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
 	</field>
 	<field name="glasgow" class="java.lang.Integer">

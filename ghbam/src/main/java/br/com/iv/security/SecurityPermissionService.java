@@ -117,14 +117,20 @@ public class SecurityPermissionService {
         }
         String storedPassword = safe(servidor.getPwd());
         String requestedPassword = safe(senha);
+        boolean jaConferidaNoBcrypt = false;
         if (requestedPassword.isBlank() && !safe(senhaMontada).isBlank()) {
             requestedPassword = resolvePasswordFromKeypad(storedPassword, senhaMontada);
+            // No caminho bcrypt o candidato devolvido ja passou no checkpw;
+            // repetir custaria mais um hash a toa.
+            jaConferidaNoBcrypt = !requestedPassword.isBlank() && isBcryptHash(storedPassword);
         }
-        if (!passwordMatches(storedPassword, requestedPassword)) {
+        if (!jaConferidaNoBcrypt && !passwordMatches(storedPassword, requestedPassword)) {
             return null;
         }
         migrarSenhaParaBcryptSeNecessario(servidor, storedPassword, requestedPassword);
-        return fromServidor(servidor, senhaAindaEhPadrao(servidor.getPwd()));
+        // A senha em texto ja esta conferida aqui: comparar direto evita outro
+        // BCrypt.checkpw("123456", hash) so para saber se ainda e a padrao.
+        return fromServidor(servidor, "123456".equals(requestedPassword));
     }
 
     // Reutilizado tambem fora do login (RbacRequestFilter, a cada requisicao
@@ -431,6 +437,7 @@ public class SecurityPermissionService {
         put(p, "palmoxarifado", s2 != null && Boolean.TRUE.equals(s2.getPalmoxarifado()));
         put(p, "palmoxpedir", s2 != null && Boolean.TRUE.equals(s2.getPalmoxpedir()));
         put(p, "prhponto", s2 != null && Boolean.TRUE.equals(s2.getPrhponto()));
+        put(p, "pprotocoloaprovacao", s2 != null && Boolean.TRUE.equals(s2.getPprotocoloaprovacao()));
         put(p, "pfluxopacientes", s2 != null && Boolean.TRUE.equals(s2.getPfluxopacientes()));
         put(p, "phemoterapia", s2 != null && Boolean.TRUE.equals(s2.getPhemoterapia()));
         put(p, "psnd", s2 != null && Boolean.TRUE.equals(s2.getPsnd()));
@@ -692,26 +699,32 @@ public class SecurityPermissionService {
             opcoes[posicao][0] = keypad.charAt(indice);
             opcoes[posicao][1] = keypad.charAt(indice + 1);
         }
-        return resolverCandidatoBcrypt(storedHash, opcoes, new char[6], 0);
+        java.util.Set<String> candidatos = new java.util.LinkedHashSet<>();
+        montarCandidatosBcrypt(opcoes, new char[6], 0, candidatos);
+        // Ate 64 checkpw em sequencia davam varios segundos no "Entrar".
+        // Em paralelo o tempo cai para ~64/nucleos hashes; findAny para no
+        // primeiro acerto (so a senha real bate, entao o resultado e unico).
+        return candidatos.parallelStream()
+            .filter(tentativa -> {
+                try {
+                    return BCrypt.checkpw(tentativa, storedHash);
+                } catch (IllegalArgumentException e) {
+                    return false;
+                }
+            })
+            .findAny()
+            .orElse("");
     }
 
-    private String resolverCandidatoBcrypt(String storedHash, char[][] opcoes, char[] candidato, int posicao) {
+    private void montarCandidatosBcrypt(char[][] opcoes, char[] candidato, int posicao, java.util.Set<String> destino) {
         if (posicao == opcoes.length) {
-            String tentativa = new String(candidato);
-            try {
-                return BCrypt.checkpw(tentativa, storedHash) ? tentativa : "";
-            } catch (IllegalArgumentException e) {
-                return "";
-            }
+            destino.add(new String(candidato));
+            return;
         }
         for (char opcao : opcoes[posicao]) {
             candidato[posicao] = opcao;
-            String resultado = resolverCandidatoBcrypt(storedHash, opcoes, candidato, posicao + 1);
-            if (!resultado.isEmpty()) {
-                return resultado;
-            }
+            montarCandidatosBcrypt(opcoes, candidato, posicao + 1, destino);
         }
-        return "";
     }
 
     private String extractPasswordFromKeypad(String storedPassword, String senhaMontada) {

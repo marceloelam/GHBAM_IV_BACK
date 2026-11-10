@@ -161,7 +161,8 @@
 	so.dataassinaturaassistente AS so_dataassinaturaassistente,
 	so.revisor AS so_revisor,
 	so.crmrevisor AS so_crmrevisor,
-	so.dataassinaturarevisor AS so_dataassinaturarevisor
+	so.dataassinaturarevisor AS so_dataassinaturarevisor,
+	adendos.texto AS adendos
 FROM public.bam
 	INNER JOIN public.pacientes ON 
 	 public.bam.paciente_idpaciente = public.pacientes.idpaciente 
@@ -180,10 +181,22 @@ FROM public.bam
 		ORDER BY a.idassinatura DESC
 		LIMIT 1
 	) assinatura ON TRUE
+	LEFT JOIN LATERAL (
+		-- Adendos do resumo assinado: o documento impresso precisa mostrar as correcoes.
+		SELECT string_agg(
+				to_char(ad.adendo_em, 'DD/MM/YYYY HH24:MI') || ' - ' || COALESCE(ad.adendo_por, 'Profissional nao informado')
+				|| COALESCE(' (matr. ' || ad.adendo_por_matricula || ')', '') || E'\n' || COALESCE(ad.adendo_texto, ''),
+				E'\n\n' ORDER BY ad.adendo_em, ad.idassinatura) AS texto
+		FROM public.assinatura_clinica ad
+		WHERE upper(ad.tipo_documento) = 'RESUMO_ALTA'
+			AND upper(ad.status) = 'ADENDO'
+			AND (ad.iddocumento = public.resumodealta.idResumoalta OR ad.assinatura_origem_id = assinatura.idassinatura)
+	) adendos ON TRUE
 	LEFT JOIN public.sumarioobito so ON so.idresumoalta = public.resumodealta.idResumoalta
 		AND so.unidade = public.bam.unidade
 	 WHERE public.resumodealta.bam =  $P{pbam} and public.bam.unidade =  $P{ssigla}]]>
 	</queryString>
+	<field name="adendos" class="java.lang.String"/>
 	<field name="idpaciente" class="java.lang.Integer">
 		<property name="com.jaspersoft.studio.field.name" value="idpaciente"/>
 		<property name="com.jaspersoft.studio.field.label" value="idpaciente"/>
@@ -2674,7 +2687,7 @@ FROM public.bam
 				<textFieldExpression><![CDATA["Pág: " + $V{PAGE_NUMBER}]]></textFieldExpression>
 			</textField>
 		</band>
-		<band height="214" splitType="Stretch">
+		<band height="262" splitType="Stretch">
 			<rectangle>
 				<reportElement x="1" y="26" width="555" height="29" uuid="b9f76a2c-3388-4023-84cd-2c83fb243103">
 					<property name="com.jaspersoft.studio.unit.width" value="cm"/>
@@ -2788,6 +2801,31 @@ FROM public.bam
 					<font isBold="true"/>
 				</textElement>
 				<textFieldExpression><![CDATA[$F{prontuario}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement positionType="Float" x="0" y="220" width="556" height="12" uuid="6a1d0e5b-7c2f-4e8a-9d31-0a2b3c4d5e01">
+					<printWhenExpression><![CDATA[$F{adendos} != null]]></printWhenExpression>
+				</reportElement>
+				<textElement>
+					<font size="8" isBold="true"/>
+				</textElement>
+				<text><![CDATA[ADENDOS AO RESUMO ASSINADO (o texto original acima nao foi alterado)]]></text>
+			</staticText>
+			<textField textAdjust="StretchHeight">
+				<reportElement positionType="Float" x="0" y="233" width="556" height="26" uuid="6a1d0e5b-7c2f-4e8a-9d31-0a2b3c4d5e02">
+					<printWhenExpression><![CDATA[$F{adendos} != null]]></printWhenExpression>
+				</reportElement>
+				<box>
+					<topPen lineWidth="0.5" lineColor="#1F6F78"/>
+					<leftPen lineWidth="0.5" lineColor="#1F6F78"/>
+					<bottomPen lineWidth="0.5" lineColor="#1F6F78"/>
+					<rightPen lineWidth="0.5" lineColor="#1F6F78"/>
+				</box>
+				<textElement>
+					<font size="8"/>
+					<paragraph leftIndent="5" rightIndent="5" spacingBefore="3" spacingAfter="3"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{adendos}]]></textFieldExpression>
 			</textField>
 		</band>
 	</detail>

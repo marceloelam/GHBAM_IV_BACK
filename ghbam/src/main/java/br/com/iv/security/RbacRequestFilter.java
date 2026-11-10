@@ -82,6 +82,8 @@ public class RbacRequestFilter implements ContainerRequestFilter {
     private static final Set<String> AUTHENTICATED_ONLY_GET_PATHS = Set.of(
             // Videos de ajuda das telas: material de treinamento, sem dado de paciente.
             "videos-ajuda",
+            // Setores com coordenador cuja equipe nao inclui o usuario (fecha o menu do setor).
+            "coordenacao-setor/meus-setores",
             "sala/unidade",
             "setores/unidade",
             "setores/unidadetriar",

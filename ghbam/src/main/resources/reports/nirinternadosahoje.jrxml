@@ -125,11 +125,6 @@ FROM  pacientes p, internacao i, bam b
 		<property name="com.jaspersoft.studio.field.label" value="naturalidade"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="pacientes"/>
 	</field>
-	<field name="COLUMN_20" class="java.lang.String">
-		<property name="com.jaspersoft.studio.field.name" value="nome"/>
-		<property name="com.jaspersoft.studio.field.label" value="nome"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="pacientes"/>
-	</field>
 	<field name="numero" class="java.lang.String">
 		<property name="com.jaspersoft.studio.field.name" value="numero"/>
 		<property name="com.jaspersoft.studio.field.label" value="numero"/>
@@ -260,11 +255,6 @@ FROM  pacientes p, internacao i, bam b
 		<property name="com.jaspersoft.studio.field.label" value="procedencia"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="internacao"/>
 	</field>
-	<field name="COLUMN_47" class="java.lang.String">
-		<property name="com.jaspersoft.studio.field.name" value="prontuario"/>
-		<property name="com.jaspersoft.studio.field.label" value="prontuario"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="internacao"/>
-	</field>
 	<field name="tpdocumento" class="java.lang.String">
 		<property name="com.jaspersoft.studio.field.name" value="tpdocumento"/>
 		<property name="com.jaspersoft.studio.field.label" value="tpdocumento"/>
@@ -295,11 +285,6 @@ FROM  pacientes p, internacao i, bam b
 		<property name="com.jaspersoft.studio.field.label" value="daralta"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="bam"/>
 	</field>
-	<field name="COLUMN_54" class="java.sql.Date">
-		<property name="com.jaspersoft.studio.field.name" value="data"/>
-		<property name="com.jaspersoft.studio.field.label" value="data"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="bam"/>
-	</field>
 	<field name="datadaalta" class="java.lang.String">
 		<property name="com.jaspersoft.studio.field.name" value="datadaalta"/>
 		<property name="com.jaspersoft.studio.field.label" value="datadaalta"/>
@@ -308,11 +293,6 @@ FROM  pacientes p, internacao i, bam b
 	<field name="ematendimento" class="java.lang.Boolean">
 		<property name="com.jaspersoft.studio.field.name" value="ematendimento"/>
 		<property name="com.jaspersoft.studio.field.label" value="ematendimento"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="bam"/>
-	</field>
-	<field name="COLUMN_57" class="java.lang.String">
-		<property name="com.jaspersoft.studio.field.name" value="hora"/>
-		<property name="com.jaspersoft.studio.field.label" value="hora"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="bam"/>
 	</field>
 	<field name="internar" class="java.lang.Boolean">
@@ -363,11 +343,6 @@ FROM  pacientes p, internacao i, bam b
 	<field name="tratamento_idtratamento" class="java.lang.Integer">
 		<property name="com.jaspersoft.studio.field.name" value="tratamento_idtratamento"/>
 		<property name="com.jaspersoft.studio.field.label" value="tratamento_idtratamento"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="bam"/>
-	</field>
-	<field name="COLUMN_68" class="java.lang.String">
-		<property name="com.jaspersoft.studio.field.name" value="unidade"/>
-		<property name="com.jaspersoft.studio.field.label" value="unidade"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="bam"/>
 	</field>
 	<field name="prioridade" class="java.lang.Integer">

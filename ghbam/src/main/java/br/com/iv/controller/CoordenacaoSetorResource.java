@@ -194,6 +194,32 @@ public class CoordenacaoSetorResource {
         return Response.ok(Map.of("setor", setor, "matricula", matricula, "removido", true)).build();
     }
 
+    /**
+     * Setores (grupos do menu) da unidade da sessao que tem coordenador e cuja equipe nao inclui a sessao: o menu
+     * e as telas desses grupos ficam fechados para ela, mesmo com o acesso ligado em /servidores. Setor sem
+     * coordenador segue so pelas permissoes. Administracao e superusuario nao sofrem a restricao.
+     */
+    @GET
+    @Path("meus-setores")
+    @Transactional
+    public Response meusSetores() {
+        Sessao s = sessao();
+        if (s == null) return erro(Response.Status.UNAUTHORIZED, "Unidade ou profissional não identificados na sessão.");
+        AuthenticatedUser usuario = securityPermissionService.resolve(requestContext);
+        if (s.administrador() || usuario.hasPermission("ksuperusuario") || usuario.hasPermission("superusuario")) {
+            return Response.ok(Map.of("unidade", s.unidade(), "restritos", List.of(), "equipes", List.of())).build();
+        }
+        List<Vinculo> vinculos = vinculos(s.unidade());
+        Set<String> comCoordenador = new LinkedHashSet<>();
+        Set<String> minhas = new LinkedHashSet<>();
+        for (Vinculo v : vinculos) {
+            if (RegrasCoordenacaoSetor.COORDENADOR.equals(v.papel())) comCoordenador.add(v.setor());
+            if (v.matricula().equalsIgnoreCase(s.matricula())) minhas.add(v.setor());
+        }
+        List<String> restritos = comCoordenador.stream().filter(setor -> !minhas.contains(setor)).sorted().toList();
+        return Response.ok(Map.of("unidade", s.unidade(), "restritos", restritos, "equipes", List.copyOf(minhas))).build();
+    }
+
     private static Set<String> setoresCoordenados(List<Vinculo> vinculos, Sessao s) {
         Set<String> out = new LinkedHashSet<>();
         for (Vinculo v : vinculos) {

@@ -157,11 +157,6 @@ AND
 		<property name="com.jaspersoft.studio.field.label" value="cpf"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="pacientes"/>
 	</field>
-	<field name="COLUMN_28" class="java.sql.Date">
-		<property name="com.jaspersoft.studio.field.name" value="data"/>
-		<property name="com.jaspersoft.studio.field.label" value="data"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="pacientes"/>
-	</field>
 	<field name="ecivil" class="java.lang.String">
 		<property name="com.jaspersoft.studio.field.name" value="ecivil"/>
 		<property name="com.jaspersoft.studio.field.label" value="ecivil"/>
@@ -180,11 +175,6 @@ AND
 	<field name="etnia" class="java.lang.String">
 		<property name="com.jaspersoft.studio.field.name" value="etnia"/>
 		<property name="com.jaspersoft.studio.field.label" value="etnia"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="pacientes"/>
-	</field>
-	<field name="COLUMN_33" class="java.lang.String">
-		<property name="com.jaspersoft.studio.field.name" value="hora"/>
-		<property name="com.jaspersoft.studio.field.label" value="hora"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="pacientes"/>
 	</field>
 	<field name="idade" class="java.lang.Integer">
@@ -292,11 +282,6 @@ AND
 		<property name="com.jaspersoft.studio.field.label" value="causalesao"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="registro"/>
 	</field>
-	<field name="COLUMN_55" class="java.lang.String">
-		<property name="com.jaspersoft.studio.field.name" value="controle"/>
-		<property name="com.jaspersoft.studio.field.label" value="controle"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="registro"/>
-	</field>
 	<field name="convenio" class="java.lang.String">
 		<property name="com.jaspersoft.studio.field.name" value="convenio"/>
 		<property name="com.jaspersoft.studio.field.label" value="convenio"/>
@@ -402,11 +387,6 @@ AND
 		<property name="com.jaspersoft.studio.field.label" value="arquivoresultado"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="laboratorio"/>
 	</field>
-	<field name="COLUMN_77" class="java.lang.String">
-		<property name="com.jaspersoft.studio.field.name" value="atendidopor"/>
-		<property name="com.jaspersoft.studio.field.label" value="atendidopor"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="laboratorio"/>
-	</field>
 	<field name="az" class="java.lang.Boolean">
 		<property name="com.jaspersoft.studio.field.name" value="az"/>
 		<property name="com.jaspersoft.studio.field.label" value="az"/>
@@ -420,11 +400,6 @@ AND
 	<field name="controleid" class="java.lang.String">
 		<property name="com.jaspersoft.studio.field.name" value="controleid"/>
 		<property name="com.jaspersoft.studio.field.label" value="controleid"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="laboratorio"/>
-	</field>
-	<field name="COLUMN_81" class="java.lang.String">
-		<property name="com.jaspersoft.studio.field.name" value="data"/>
-		<property name="com.jaspersoft.studio.field.label" value="data"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="laboratorio"/>
 	</field>
 	<field name="descricao" class="java.lang.String">
@@ -442,19 +417,9 @@ AND
 		<property name="com.jaspersoft.studio.field.label" value="entrada"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="laboratorio"/>
 	</field>
-	<field name="COLUMN_85" class="java.lang.Integer">
-		<property name="com.jaspersoft.studio.field.name" value="idbam"/>
-		<property name="com.jaspersoft.studio.field.label" value="idbam"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="laboratorio"/>
-	</field>
 	<field name="idpacientes" class="java.lang.Integer">
 		<property name="com.jaspersoft.studio.field.name" value="idpacientes"/>
 		<property name="com.jaspersoft.studio.field.label" value="idpacientes"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="laboratorio"/>
-	</field>
-	<field name="COLUMN_87" class="java.lang.Integer">
-		<property name="com.jaspersoft.studio.field.name" value="idregistro"/>
-		<property name="com.jaspersoft.studio.field.label" value="idregistro"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="laboratorio"/>
 	</field>
 	<field name="idtratamento" class="java.lang.Integer">

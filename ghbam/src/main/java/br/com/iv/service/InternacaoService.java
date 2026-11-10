@@ -34,6 +34,9 @@ public class InternacaoService implements Serializable {
 	FaturamentoAihService faturamentoAihService;
 
 	@Inject
+	NovoInternadoService novoInternadoService;
+
+	@Inject
 	ProntuarioDefinitivoService prontuarioDefinitivoService;
 
 	// Listando todas as Internacao
@@ -85,7 +88,24 @@ public class InternacaoService implements Serializable {
 	@SuppressWarnings("static-access")
 	@Transactional
 	public Internacao alterarInternacao(int id, InternacaoDto dto) {
+		// Mesma trava da alta do leito (ghbam.alta.exigir-resumo-assinado, desligada por padrao).
+		boolean altaComBam = dto.getDatasaida() != null && dto.getBam() != null && dto.getBam().trim().matches("\\d+");
+		if (altaComBam) {
+			novoInternadoService.conferirResumoAltaAssinado(Integer.parseInt(dto.getBam().trim()), dto.getMotivodaalta());
+			// ALTA ADM nao encerra a internacao: registra a alta ADM no leito, como a tela do leito faz.
+			if ("ALTA ADM".equalsIgnoreCase(dto.getMotivodaalta() == null ? "" : dto.getMotivodaalta().trim())) {
+				novoInternadoService.registrarAltaAdmPelaInternacao(Integer.parseInt(dto.getBam().trim()),
+						dto.getDatasaida(), dto.getMedicodeualta());
+				return null;
+			}
+		}
 		internacaoRepository.alterarInternacao(id, dto);
+		if (altaComBam) {
+			// Saiu da internacao => sai do leito (mesma transacao: ou grava os dois, ou nenhum).
+			novoInternadoService.liberarLeitoNaAltaDaInternacao(Integer.parseInt(dto.getBam().trim()),
+					dto.getDatasaida(), "Alta da internacao: " + (dto.getMedicodeualta() == null ? "" : dto.getMedicodeualta()),
+					dto.getMotivodaalta());
+		}
 		if (preAihNaAlta && dto.getDatasaida() != null) {
 			// Alta registrada agora: adianta a pre-AIH em vez de esperar o preparo de
 			// madrugada (FaturamentoAutomacaoJob). So cria quando ja existe laudo de

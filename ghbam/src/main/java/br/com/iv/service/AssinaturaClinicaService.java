@@ -159,6 +159,13 @@ public class AssinaturaClinicaService implements Serializable {
         assinatura.persist();
         if (RESUMO_ALTA.equals(tipoDocumento)) {
             fhirDispatchService.enfileirarAposAssinatura(assinatura);
+            // Resumo assinado atende o pedido do NIR (resumo_alta_solicitacao), seja quem for o medico.
+            if (assinatura.getIdbam() != null) {
+                AssinaturaClinica.getEntityManager().createNativeQuery(
+                        "UPDATE resumo_alta_solicitacao SET resolvido_em = now() WHERE idbam = :idbam AND resolvido_em IS NULL")
+                        .setParameter("idbam", assinatura.getIdbam())
+                        .executeUpdate();
+            }
         }
         return assinatura;
     }

@@ -317,6 +317,10 @@ public class PacientesService implements Serializable {
 		return pacientesRepository.findByProntuario(prontuario);
 	}
 
+	public List<Object[]> localizarPacientesComProntuarioEUltimoBam(String nome, String unidade) {
+		return pacientesRepository.filtrarPacientesComProntuarioEUltimoBam(nome, unidade);
+	}
+
 	public List<Pacientes> localizarPacientesComBamRecente(String nome, String unidade) {
 		return pacientesRepository.filtrarPacientesComBamRecente(
 				nome, UnidadeUtil.normalizar(unidade));

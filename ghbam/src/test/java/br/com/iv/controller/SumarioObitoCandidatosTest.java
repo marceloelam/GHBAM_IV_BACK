@@ -35,9 +35,16 @@ class SumarioObitoCandidatosTest {
     }
 
     @Test
-    void fontesDeAltaSemDataNaoCriamCandidatos() {
-        assertTrue(SQL.contains("AND EXISTS (SELECT 1 FROM resumodealta r WHERE r.bam = CAST(b.idbam AS text) AND r.obito = true AND r.dataobito IS NOT NULL"));
-        assertTrue(SQL.contains("AND EXISTS (SELECT 1 FROM resumodealta r WHERE r.bam = i.bam AND r.obito = true AND r.dataobito IS NOT NULL"));
+    void obitoSemResumoDeAltaApareceComPendencia() {
+        String cte = SQL.substring(SQL.indexOf("WITH obitos AS ("), SQL.indexOf("SELECT b.idbam, p.nome"));
+        assertTrue(!cte.contains("EXISTS (SELECT 1 FROM resumodealta"));
+        assertTrue(cte.contains("n.motivosaida ILIKE '%bito%'"));
+        assertTrue(SQL.contains("(r.idresumoalta IS NULL)"));
+    }
+
+    @Test
+    void dataDoObitoVemDoResumoOuDaSaida() {
+        assertTrue(SQL.contains("COALESCE(r.dataobito, d.datasaida)"));
     }
 
     @Test

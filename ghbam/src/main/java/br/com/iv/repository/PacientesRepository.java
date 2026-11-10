@@ -60,6 +60,40 @@ public class PacientesRepository implements PanacheRepository<Pacientes> {
 		return l;
 	}
 
+	/**
+	 * Ficha anestesica: so paciente com prontuario (nao vazio e diferente do padrao "0")
+	 * e com BAM na unidade; devolve junto o ultimo BAM, pelo mesmo criterio de
+	 * BamRepository.filtrarPorIdDoPcienteUltimoBam (maior idbam, unidade exata).
+	 * Colunas: idpaciente, nome, nascimento, idade, mae, pai, pacienteespecial, prontuario, idbam, databam.
+	 */
+	@SuppressWarnings("unchecked")
+	public List<Object[]> filtrarPacientesComProntuarioEUltimoBam(String nome, String unidade) {
+		String nomeCompacto = nome == null ? "" : nome.replaceAll("\\s", "").toUpperCase();
+		String sql = """
+				SELECT p.idpaciente, p.nome, p.nascimento, p.idade, p.mae, p.pai, p.pacienteespecial,
+				       p.prontuario, ub.idbam, ub.data
+				FROM pacientes p
+				JOIN LATERAL (
+				    SELECT b.idbam, b.data
+				    FROM bam b
+				    WHERE b.paciente_idpaciente = p.idpaciente
+				      AND b.unidade = :unidade
+				    ORDER BY b.idbam DESC
+				    LIMIT 1
+				) ub ON true
+				WHERE replace(upper(p.nome), ' ', '') LIKE :nome
+				  AND p.unificado_em IS NULL
+				  AND p.prontuario IS NOT NULL
+				  AND trim(p.prontuario) NOT IN ('', '0')
+				ORDER BY p.nome
+				LIMIT 100
+				""";
+		return entityManager.createNativeQuery(sql)
+				.setParameter("nome", nomeCompacto + "%")
+				.setParameter("unidade", unidade)
+				.getResultList();
+	}
+
 	@SuppressWarnings("unchecked")
 	public List<Pacientes> filtrarPacientesComBamRecente(String nome, String unidade) {
 		String nomeCompacto = nome == null ? "" : nome.replaceAll("\\s", "").toUpperCase();

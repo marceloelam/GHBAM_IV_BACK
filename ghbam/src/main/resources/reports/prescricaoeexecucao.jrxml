@@ -238,11 +238,6 @@ and n.local_idsetorlocalcenso = l.idsetorlocalcenso and b.avaliacao_idavaliacao 
 		<property name="com.jaspersoft.studio.field.label" value="daralta"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="bam"/>
 	</field>
-	<field name="COLUMN_42" class="java.sql.Date">
-		<property name="com.jaspersoft.studio.field.name" value="data"/>
-		<property name="com.jaspersoft.studio.field.label" value="data"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="bam"/>
-	</field>
 	<field name="datadaalta" class="java.lang.String">
 		<property name="com.jaspersoft.studio.field.name" value="datadaalta"/>
 		<property name="com.jaspersoft.studio.field.label" value="datadaalta"/>
@@ -251,11 +246,6 @@ and n.local_idsetorlocalcenso = l.idsetorlocalcenso and b.avaliacao_idavaliacao 
 	<field name="ematendimento" class="java.lang.Boolean">
 		<property name="com.jaspersoft.studio.field.name" value="ematendimento"/>
 		<property name="com.jaspersoft.studio.field.label" value="ematendimento"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="bam"/>
-	</field>
-	<field name="COLUMN_45" class="java.lang.String">
-		<property name="com.jaspersoft.studio.field.name" value="hora"/>
-		<property name="com.jaspersoft.studio.field.label" value="hora"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="bam"/>
 	</field>
 	<field name="internar" class="java.lang.Boolean">
@@ -358,11 +348,6 @@ and n.local_idsetorlocalcenso = l.idsetorlocalcenso and b.avaliacao_idavaliacao 
 		<property name="com.jaspersoft.studio.field.label" value="cpf"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="pacientes"/>
 	</field>
-	<field name="COLUMN_66" class="java.sql.Date">
-		<property name="com.jaspersoft.studio.field.name" value="data"/>
-		<property name="com.jaspersoft.studio.field.label" value="data"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="pacientes"/>
-	</field>
 	<field name="ecivil" class="java.lang.String">
 		<property name="com.jaspersoft.studio.field.name" value="ecivil"/>
 		<property name="com.jaspersoft.studio.field.label" value="ecivil"/>
@@ -381,11 +366,6 @@ and n.local_idsetorlocalcenso = l.idsetorlocalcenso and b.avaliacao_idavaliacao 
 	<field name="etnia" class="java.lang.String">
 		<property name="com.jaspersoft.studio.field.name" value="etnia"/>
 		<property name="com.jaspersoft.studio.field.label" value="etnia"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="pacientes"/>
-	</field>
-	<field name="COLUMN_71" class="java.lang.String">
-		<property name="com.jaspersoft.studio.field.name" value="hora"/>
-		<property name="com.jaspersoft.studio.field.label" value="hora"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="pacientes"/>
 	</field>
 	<field name="idade" class="java.lang.Integer">
@@ -548,11 +528,6 @@ and n.local_idsetorlocalcenso = l.idsetorlocalcenso and b.avaliacao_idavaliacao 
 		<property name="com.jaspersoft.studio.field.label" value="pendencia"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="novointernado"/>
 	</field>
-	<field name="COLUMN_104" class="java.lang.String">
-		<property name="com.jaspersoft.studio.field.name" value="prontuario"/>
-		<property name="com.jaspersoft.studio.field.label" value="prontuario"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="novointernado"/>
-	</field>
 	<field name="tempodias" class="java.lang.Integer">
 		<property name="com.jaspersoft.studio.field.name" value="tempodias"/>
 		<property name="com.jaspersoft.studio.field.label" value="tempodias"/>
@@ -581,11 +556,6 @@ and n.local_idsetorlocalcenso = l.idsetorlocalcenso and b.avaliacao_idavaliacao 
 	<field name="setor_idsetorcenso" class="java.lang.Integer">
 		<property name="com.jaspersoft.studio.field.name" value="setor_idsetorcenso"/>
 		<property name="com.jaspersoft.studio.field.label" value="setor_idsetorcenso"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="novointernado"/>
-	</field>
-	<field name="COLUMN_111" class="java.lang.String">
-		<property name="com.jaspersoft.studio.field.name" value="unidade"/>
-		<property name="com.jaspersoft.studio.field.label" value="unidade"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="novointernado"/>
 	</field>
 	<field name="tipo_alocacao" class="java.lang.String">
@@ -638,11 +608,6 @@ and n.local_idsetorlocalcenso = l.idsetorlocalcenso and b.avaliacao_idavaliacao 
 		<property name="com.jaspersoft.studio.field.label" value="setorcenso_idsetorcenso"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="localcenso"/>
 	</field>
-	<field name="COLUMN_122" class="java.lang.String">
-		<property name="com.jaspersoft.studio.field.name" value="unidade"/>
-		<property name="com.jaspersoft.studio.field.label" value="unidade"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="localcenso"/>
-	</field>
 	<field name="excluido" class="java.lang.Boolean">
 		<property name="com.jaspersoft.studio.field.name" value="excluido"/>
 		<property name="com.jaspersoft.studio.field.label" value="excluido"/>
@@ -653,24 +618,9 @@ and n.local_idsetorlocalcenso = l.idsetorlocalcenso and b.avaliacao_idavaliacao 
 		<property name="com.jaspersoft.studio.field.label" value="idsetorcenso"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="setorcenso"/>
 	</field>
-	<field name="COLUMN_125" class="java.lang.String">
-		<property name="com.jaspersoft.studio.field.name" value="codigo"/>
-		<property name="com.jaspersoft.studio.field.label" value="codigo"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="setorcenso"/>
-	</field>
 	<field name="setor" class="java.lang.String">
 		<property name="com.jaspersoft.studio.field.name" value="setor"/>
 		<property name="com.jaspersoft.studio.field.label" value="setor"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="setorcenso"/>
-	</field>
-	<field name="COLUMN_127" class="java.lang.String">
-		<property name="com.jaspersoft.studio.field.name" value="unidade"/>
-		<property name="com.jaspersoft.studio.field.label" value="unidade"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="setorcenso"/>
-	</field>
-	<field name="COLUMN_128" class="java.lang.Boolean">
-		<property name="com.jaspersoft.studio.field.name" value="excluido"/>
-		<property name="com.jaspersoft.studio.field.label" value="excluido"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="setorcenso"/>
 	</field>
 	<field name="idavaliacao" class="java.lang.Integer">
@@ -738,21 +688,6 @@ and n.local_idsetorlocalcenso = l.idsetorlocalcenso and b.avaliacao_idavaliacao 
 		<property name="com.jaspersoft.studio.field.label" value="comentario"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
 	</field>
-	<field name="COLUMN_142" class="java.lang.String">
-		<property name="com.jaspersoft.studio.field.name" value="controle"/>
-		<property name="com.jaspersoft.studio.field.label" value="controle"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
-	</field>
-	<field name="COLUMN_143" class="java.lang.Integer">
-		<property name="com.jaspersoft.studio.field.name" value="cor"/>
-		<property name="com.jaspersoft.studio.field.label" value="cor"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
-	</field>
-	<field name="COLUMN_144" class="java.lang.String">
-		<property name="com.jaspersoft.studio.field.name" value="data"/>
-		<property name="com.jaspersoft.studio.field.label" value="data"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
-	</field>
 	<field name="desidratado" class="java.lang.Boolean">
 		<property name="com.jaspersoft.studio.field.name" value="desidratado"/>
 		<property name="com.jaspersoft.studio.field.label" value="desidratado"/>
@@ -803,11 +738,6 @@ and n.local_idsetorlocalcenso = l.idsetorlocalcenso and b.avaliacao_idavaliacao 
 		<property name="com.jaspersoft.studio.field.label" value="hipocorado"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
 	</field>
-	<field name="COLUMN_155" class="java.lang.String">
-		<property name="com.jaspersoft.studio.field.name" value="hora"/>
-		<property name="com.jaspersoft.studio.field.label" value="hora"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
-	</field>
 	<field name="icterico" class="java.lang.Boolean">
 		<property name="com.jaspersoft.studio.field.name" value="icterico"/>
 		<property name="com.jaspersoft.studio.field.label" value="icterico"/>
@@ -816,11 +746,6 @@ and n.local_idsetorlocalcenso = l.idsetorlocalcenso and b.avaliacao_idavaliacao 
 	<field name="idmedico" class="java.lang.Integer">
 		<property name="com.jaspersoft.studio.field.name" value="idmedico"/>
 		<property name="com.jaspersoft.studio.field.label" value="idmedico"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
-	</field>
-	<field name="COLUMN_158" class="java.lang.Integer">
-		<property name="com.jaspersoft.studio.field.name" value="idpaciente"/>
-		<property name="com.jaspersoft.studio.field.label" value="idpaciente"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
 	</field>
 	<field name="isocorico" class="java.lang.Boolean">
@@ -916,11 +841,6 @@ and n.local_idsetorlocalcenso = l.idsetorlocalcenso and b.avaliacao_idavaliacao 
 	<field name="torporoso" class="java.lang.Boolean">
 		<property name="com.jaspersoft.studio.field.name" value="torporoso"/>
 		<property name="com.jaspersoft.studio.field.label" value="torporoso"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
-	</field>
-	<field name="COLUMN_178" class="java.lang.String">
-		<property name="com.jaspersoft.studio.field.name" value="unidade"/>
-		<property name="com.jaspersoft.studio.field.label" value="unidade"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="avaliacao"/>
 	</field>
 	<field name="glasgow" class="java.lang.Integer">

@@ -1,17 +1,41 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Created with Jaspersoft Studio version 6.20.5.final using JasperReports Library version 6.20.5-3efcf2e67f959db3888d79f73dde2dbd7acb4f8e  -->
-<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="sublaboratorio" pageWidth="595" pageHeight="842" columnWidth="595" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0" uuid="fdce5a7f-4cbe-442d-818c-ebd62c6aa44e">
-	<property name="com.jaspersoft.studio.data.sql.tables" value=""/>
-	<property name="com.jaspersoft.studio.data.defaultdataadapter" value="conn"/>
-	<property name="com.jaspersoft.studio.unit." value="pixel"/>
-	<property name="com.jaspersoft.studio.unit.pageHeight" value="pixel"/>
-	<property name="com.jaspersoft.studio.unit.pageWidth" value="pixel"/>
-	<property name="com.jaspersoft.studio.unit.topMargin" value="pixel"/>
-	<property name="com.jaspersoft.studio.unit.bottomMargin" value="pixel"/>
-	<property name="com.jaspersoft.studio.unit.leftMargin" value="pixel"/>
-	<property name="com.jaspersoft.studio.unit.rightMargin" value="pixel"/>
-	<property name="com.jaspersoft.studio.unit.columnWidth" value="pixel"/>
-	<property name="com.jaspersoft.studio.unit.columnSpacing" value="pixel"/>
+<!-- Histórico clínico do atendimento: layout padronizado (2026-11-09). SQL, parâmetros e campos preservados do original. -->
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="sublaboratorio" pageWidth="555" pageHeight="842" whenNoDataType="NoPages" columnWidth="555" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0" uuid="fc14c768-df29-4c50-ae3a-950762663b95">
+	<style name="Base" isDefault="true" forecolor="#1F2937" fontSize="7.5"/>
+	<style name="Secao" mode="Opaque" forecolor="#0F4C5C" backcolor="#E6EEF1" vTextAlign="Middle" fontSize="8.5" isBold="true">
+		<box leftPadding="7"><leftPen lineWidth="3.0" lineColor="#0F4C5C"/></box>
+	</style>
+	<style name="Rotulo" forecolor="#64748B" fontSize="5.8" isBold="true"/>
+	<style name="Valor" forecolor="#111827" fontSize="8"/>
+	<style name="ValorForte" forecolor="#111827" fontSize="7.5" isBold="true"/>
+	<style name="Celula">
+		<box><bottomPen lineWidth="0.5" lineColor="#D9E1E8"/></box>
+	</style>
+	<style name="Linha">
+		<box><bottomPen lineWidth="0.5" lineColor="#E2E8F0"/></box>
+		<conditionalStyle>
+			<conditionExpression><![CDATA[$V{REPORT_COUNT}.intValue() % 2 == 0]]></conditionExpression>
+			<style mode="Opaque" backcolor="#F6F8FA"/>
+		</conditionalStyle>
+	</style>
+	<style name="Th" mode="Opaque" backcolor="#EEF2F5">
+		<box><bottomPen lineWidth="0.75" lineColor="#94A3B8"/></box>
+	</style>
+	<style name="ThTxt" forecolor="#334155" vTextAlign="Middle" fontSize="6.3" isBold="true">
+		<box leftPadding="3"/>
+	</style>
+	<style name="Td" forecolor="#111827" fontSize="7.2">
+		<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"/>
+	</style>
+	<style name="Assin" forecolor="#64748B" fontSize="5.5">
+		<box leftPadding="3" bottomPadding="2"/>
+	</style>
+	<style name="Pendente" forecolor="#B45309" fontSize="5.5" isBold="true">
+		<box leftPadding="3" bottomPadding="2"/>
+	</style>
+	<style name="PendenteValor" forecolor="#B45309" fontSize="8" isItalic="true"/>
+	<style name="Alerta" forecolor="#B91C1C" fontSize="8" isBold="true"/>
+
 	<parameter name="idbamLab" class="java.lang.String"/>
 	<queryString language="SQL">
 		<![CDATA[select * from laboratorio where  cast(idbam as text) =  $P{idbamLab} order by cast(data as date ) desc]]>
@@ -136,77 +160,63 @@
 		<property name="com.jaspersoft.studio.field.label" value="ordem"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="laboratorio"/>
 	</field>
-	<background>
-		<band splitType="Stretch"/>
-	</background>
+	
 	<title>
-		<band height="30" splitType="Stretch">
-			<staticText>
-				<reportElement x="0" y="3" width="80" height="13" uuid="713b1896-e074-497c-8d49-b8a7e2d0178a">
-					<property name="com.jaspersoft.studio.unit.height" value="px"/>
-				</reportElement>
-				<textElement>
-					<font isBold="true"/>
-				</textElement>
-				<text><![CDATA[* Laboratório]]></text>
-			</staticText>
-			<line>
-				<reportElement x="74" y="9" width="471" height="1" uuid="aaad580c-6d78-4776-8467-cdfa95bea110"/>
-			</line>
-			<staticText>
-				<reportElement x="60" y="15" width="320" height="13" uuid="34152ac7-75d2-43f4-a2dc-b971917ebc3a">
-					<property name="com.jaspersoft.studio.unit.height" value="px"/>
-				</reportElement>
-				<textElement textAlignment="Center" verticalAlignment="Bottom">
-					<font size="7" isBold="true"/>
-				</textElement>
-				<text><![CDATA[Descrição]]></text>
-			</staticText>
-			<staticText>
-				<reportElement x="380" y="16" width="171" height="13" uuid="275d2a0b-9d07-4087-a99b-b626382c5019">
-					<property name="com.jaspersoft.studio.unit.height" value="px"/>
-				</reportElement>
-				<textElement textAlignment="Center" verticalAlignment="Bottom">
-					<font size="7" isBold="true"/>
-				</textElement>
-				<text><![CDATA[Pedido por]]></text>
-			</staticText>
-			<staticText>
-				<reportElement x="2" y="17" width="57" height="13" uuid="1db66c2b-74b9-49ee-a59d-09af2a114bae">
-					<property name="com.jaspersoft.studio.unit.height" value="px"/>
-				</reportElement>
-				<textElement textAlignment="Center" verticalAlignment="Bottom">
-					<font size="7" isBold="true"/>
-				</textElement>
-				<text><![CDATA[Data]]></text>
-			</staticText>
+		<band height="19" splitType="Prevent">
+				<staticText>
+					<reportElement style="Secao" x="0" y="0" width="555" height="15" uuid="39d6d801-70a0-43b5-8323-c59c19aed14b"/>
+					<textElement/>
+					<text><![CDATA[EXAMES LABORATORIAIS]]></text>
+				</staticText>
 		</band>
 	</title>
-	<detail>
-		<band height="15" splitType="Stretch">
-			<textField>
-				<reportElement x="60" y="2" width="320" height="13" uuid="9f8de4a8-df0c-47db-852d-f8971b00e02a"/>
-				<textElement verticalAlignment="Middle">
-					<font size="7"/>
-				</textElement>
-				<textFieldExpression><![CDATA[$F{descricao}]]></textFieldExpression>
-			</textField>
-			<textField>
-				<reportElement x="381" y="2" width="170" height="13" uuid="a84da614-8f50-4376-93f0-416d34613fbf"/>
-				<textElement verticalAlignment="Middle">
-					<font size="7"/>
-				</textElement>
-				<textFieldExpression><![CDATA[$F{atendidopor}]]></textFieldExpression>
-			</textField>
-			<textField pattern="dd/MM/yyyy">
-				<reportElement x="0" y="1" width="60" height="13" uuid="edeb2195-5261-4dfc-b1ed-a4ccdb64c5bc">
-					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+	<columnHeader>
+		<band height="13" splitType="Prevent">
+			<frame>
+				<reportElement style="Th" x="0" y="0" width="555" height="13" uuid="287c30fd-563b-4351-aa8c-8aa58b017f7f">
 				</reportElement>
-				<textElement textAlignment="Center">
-					<font size="7"/>
-				</textElement>
-				<textFieldExpression><![CDATA[$F{data}]]></textFieldExpression>
-			</textField>
+				<staticText>
+					<reportElement style="ThTxt" x="0" y="0" width="62" height="13" uuid="fcfbe498-cbff-40c4-829f-72e160aa780c"/>
+					<textElement/>
+					<text><![CDATA[DATA]]></text>
+				</staticText>
+				<staticText>
+					<reportElement style="ThTxt" x="62" y="0" width="328" height="13" uuid="08af1571-37f3-40c6-9182-2267c30bf030"/>
+					<textElement/>
+					<text><![CDATA[EXAME / DESCRIÇÃO]]></text>
+				</staticText>
+				<staticText>
+					<reportElement style="ThTxt" x="390" y="0" width="165" height="13" uuid="fd727e7d-1e9c-4541-b1c8-37737cb24b19"/>
+					<textElement/>
+					<text><![CDATA[ATENDIDO POR]]></text>
+				</staticText>
+			</frame>
+		</band>
+	</columnHeader>
+	<detail>
+		<band height="14" splitType="Stretch">
+			<frame>
+				<reportElement style="Linha" x="0" y="0" width="555" height="14" uuid="1038b849-c202-41bc-b91e-b9494ca1408a">
+				</reportElement>
+				<textField textAdjust="StretchHeight" isBlankWhenNull="true">
+					<reportElement style="Td" x="0" y="0" width="62" height="13" uuid="adbd0102-a0a6-40d8-92c6-9348397aaade">
+					</reportElement>
+					<textElement/>
+					<textFieldExpression><![CDATA[($F{data} == null ? "" : ($F{data}.matches("^\\d{4}[-/]\\d{2}[-/]\\d{2}.*") ? $F{data}.substring(8,10) + "/" + $F{data}.substring(5,7) + "/" + $F{data}.substring(0,4) : $F{data}))]]></textFieldExpression>
+				</textField>
+				<textField textAdjust="StretchHeight" isBlankWhenNull="true">
+					<reportElement style="Td" x="62" y="0" width="328" height="13" uuid="b915799f-6598-48c3-b6cc-875e7ac59dc8">
+					</reportElement>
+					<textElement/>
+					<textFieldExpression><![CDATA[($F{descricao} == null ? "" : $F{descricao}.replace("** PROCEDIMENTOS SELECIONADOS** <br /><br />* <b>0301100012 - ADMINISTRACAO DE MEDICAÇÃO</b><br /><br /> ** PEDIDO ** <br /><br />", "").replaceAll("(?i)<br\\s*/?>", "\n").replaceAll("<[^>]+>", "").replace("&nbsp;", " ").replaceAll("\n{3,}", "\n\n").trim())]]></textFieldExpression>
+				</textField>
+				<textField textAdjust="StretchHeight" isBlankWhenNull="true">
+					<reportElement style="Td" x="390" y="0" width="165" height="13" uuid="72070a9e-5fc9-45b7-ad8c-44bb66dac036">
+					</reportElement>
+					<textElement/>
+					<textFieldExpression><![CDATA[($F{atendidopor} == null ? "" : String.valueOf($F{atendidopor}).trim())]]></textFieldExpression>
+				</textField>
+			</frame>
 		</band>
 	</detail>
 </jasperReport>

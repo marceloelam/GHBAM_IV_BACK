@@ -224,11 +224,6 @@ order by s.setor, l.local, p.nome]]>
 		<property name="com.jaspersoft.studio.field.label" value="daralta"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="bam"/>
 	</field>
-	<field name="COLUMN_37" class="java.sql.Date">
-		<property name="com.jaspersoft.studio.field.name" value="data"/>
-		<property name="com.jaspersoft.studio.field.label" value="data"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="bam"/>
-	</field>
 	<field name="datadaalta" class="java.lang.String">
 		<property name="com.jaspersoft.studio.field.name" value="datadaalta"/>
 		<property name="com.jaspersoft.studio.field.label" value="datadaalta"/>
@@ -237,11 +232,6 @@ order by s.setor, l.local, p.nome]]>
 	<field name="ematendimento" class="java.lang.Boolean">
 		<property name="com.jaspersoft.studio.field.name" value="ematendimento"/>
 		<property name="com.jaspersoft.studio.field.label" value="ematendimento"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="bam"/>
-	</field>
-	<field name="COLUMN_40" class="java.lang.String">
-		<property name="com.jaspersoft.studio.field.name" value="hora"/>
-		<property name="com.jaspersoft.studio.field.label" value="hora"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="bam"/>
 	</field>
 	<field name="internar" class="java.lang.Boolean">
@@ -384,11 +374,6 @@ order by s.setor, l.local, p.nome]]>
 		<property name="com.jaspersoft.studio.field.label" value="pendencia"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="novointernado"/>
 	</field>
-	<field name="COLUMN_70" class="java.lang.String">
-		<property name="com.jaspersoft.studio.field.name" value="prontuario"/>
-		<property name="com.jaspersoft.studio.field.label" value="prontuario"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="novointernado"/>
-	</field>
 	<field name="tempodias" class="java.lang.Integer">
 		<property name="com.jaspersoft.studio.field.name" value="tempodias"/>
 		<property name="com.jaspersoft.studio.field.label" value="tempodias"/>
@@ -417,11 +402,6 @@ order by s.setor, l.local, p.nome]]>
 	<field name="setor_idsetorcenso" class="java.lang.Integer">
 		<property name="com.jaspersoft.studio.field.name" value="setor_idsetorcenso"/>
 		<property name="com.jaspersoft.studio.field.label" value="setor_idsetorcenso"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="novointernado"/>
-	</field>
-	<field name="COLUMN_77" class="java.lang.String">
-		<property name="com.jaspersoft.studio.field.name" value="unidade"/>
-		<property name="com.jaspersoft.studio.field.label" value="unidade"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="novointernado"/>
 	</field>
 	<field name="tipo_alocacao" class="java.lang.String">
@@ -454,11 +434,6 @@ order by s.setor, l.local, p.nome]]>
 		<property name="com.jaspersoft.studio.field.label" value="setorcenso_idsetorcenso"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="localcenso"/>
 	</field>
-	<field name="COLUMN_84" class="java.lang.String">
-		<property name="com.jaspersoft.studio.field.name" value="unidade"/>
-		<property name="com.jaspersoft.studio.field.label" value="unidade"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="localcenso"/>
-	</field>
 	<field name="excluido" class="java.lang.Boolean">
 		<property name="com.jaspersoft.studio.field.name" value="excluido"/>
 		<property name="com.jaspersoft.studio.field.label" value="excluido"/>
@@ -469,19 +444,9 @@ order by s.setor, l.local, p.nome]]>
 		<property name="com.jaspersoft.studio.field.label" value="idsetorcenso"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="setorcenso"/>
 	</field>
-	<field name="COLUMN_87" class="java.lang.String">
-		<property name="com.jaspersoft.studio.field.name" value="codigo"/>
-		<property name="com.jaspersoft.studio.field.label" value="codigo"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="setorcenso"/>
-	</field>
 	<field name="setor" class="java.lang.String">
 		<property name="com.jaspersoft.studio.field.name" value="setor"/>
 		<property name="com.jaspersoft.studio.field.label" value="setor"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="setorcenso"/>
-	</field>
-	<field name="COLUMN_89" class="java.lang.String">
-		<property name="com.jaspersoft.studio.field.name" value="unidade"/>
-		<property name="com.jaspersoft.studio.field.label" value="unidade"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="setorcenso"/>
 	</field>
 	<field name="diasinternados" class="java.lang.Integer">

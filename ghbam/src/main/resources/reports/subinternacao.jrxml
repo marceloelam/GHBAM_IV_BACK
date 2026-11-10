@@ -1,17 +1,41 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Created with Jaspersoft Studio version 6.18.1.final using JasperReports Library version 6.18.1-9d75d1969e774d4f179fb3be8401e98a0e6d1611  -->
-<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="subinternacao" pageWidth="595" pageHeight="842" columnWidth="595" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0" uuid="fdce5a7f-4cbe-442d-818c-ebd62c6aa44e">
-	<property name="com.jaspersoft.studio.data.sql.tables" value=""/>
-	<property name="com.jaspersoft.studio.unit." value="pixel"/>
-	<property name="com.jaspersoft.studio.unit.pageHeight" value="pixel"/>
-	<property name="com.jaspersoft.studio.unit.pageWidth" value="pixel"/>
-	<property name="com.jaspersoft.studio.unit.topMargin" value="pixel"/>
-	<property name="com.jaspersoft.studio.unit.bottomMargin" value="pixel"/>
-	<property name="com.jaspersoft.studio.unit.leftMargin" value="pixel"/>
-	<property name="com.jaspersoft.studio.unit.rightMargin" value="pixel"/>
-	<property name="com.jaspersoft.studio.unit.columnWidth" value="pixel"/>
-	<property name="com.jaspersoft.studio.unit.columnSpacing" value="pixel"/>
-	<property name="com.jaspersoft.studio.data.defaultdataadapter" value="itaguai_conn"/>
+<!-- Histórico clínico do atendimento: layout padronizado (2026-11-09). SQL, parâmetros e campos preservados do original. -->
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="subinternacao" pageWidth="555" pageHeight="842" whenNoDataType="NoPages" columnWidth="555" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0" uuid="6b54ef15-8dca-4367-98a8-3074dd15914d">
+	<style name="Base" isDefault="true" forecolor="#1F2937" fontSize="7.5"/>
+	<style name="Secao" mode="Opaque" forecolor="#0F4C5C" backcolor="#E6EEF1" vTextAlign="Middle" fontSize="8.5" isBold="true">
+		<box leftPadding="7"><leftPen lineWidth="3.0" lineColor="#0F4C5C"/></box>
+	</style>
+	<style name="Rotulo" forecolor="#64748B" fontSize="5.8" isBold="true"/>
+	<style name="Valor" forecolor="#111827" fontSize="8"/>
+	<style name="ValorForte" forecolor="#111827" fontSize="7.5" isBold="true"/>
+	<style name="Celula">
+		<box><bottomPen lineWidth="0.5" lineColor="#D9E1E8"/></box>
+	</style>
+	<style name="Linha">
+		<box><bottomPen lineWidth="0.5" lineColor="#E2E8F0"/></box>
+		<conditionalStyle>
+			<conditionExpression><![CDATA[$V{REPORT_COUNT}.intValue() % 2 == 0]]></conditionExpression>
+			<style mode="Opaque" backcolor="#F6F8FA"/>
+		</conditionalStyle>
+	</style>
+	<style name="Th" mode="Opaque" backcolor="#EEF2F5">
+		<box><bottomPen lineWidth="0.75" lineColor="#94A3B8"/></box>
+	</style>
+	<style name="ThTxt" forecolor="#334155" vTextAlign="Middle" fontSize="6.3" isBold="true">
+		<box leftPadding="3"/>
+	</style>
+	<style name="Td" forecolor="#111827" fontSize="7.2">
+		<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"/>
+	</style>
+	<style name="Assin" forecolor="#64748B" fontSize="5.5">
+		<box leftPadding="3" bottomPadding="2"/>
+	</style>
+	<style name="Pendente" forecolor="#B45309" fontSize="5.5" isBold="true">
+		<box leftPadding="3" bottomPadding="2"/>
+	</style>
+	<style name="PendenteValor" forecolor="#B45309" fontSize="8" isItalic="true"/>
+	<style name="Alerta" forecolor="#B91C1C" fontSize="8" isBold="true"/>
+
 	<parameter name="idbamLab" class="java.lang.String"/>
 	<queryString language="SQL">
 		<![CDATA[select * from laudoautorizacao where  cast(bam as text) =  $P{idbamLab} order by cast(dataautorizacao as date )]]>
@@ -191,159 +215,183 @@
 		<property name="com.jaspersoft.studio.field.label" value="unidade"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="laudoautorizacao"/>
 	</field>
-	<background>
-		<band splitType="Stretch"/>
-	</background>
+	
 	<title>
-		<band height="26" splitType="Stretch">
-			<staticText>
-				<reportElement x="0" y="3" width="160" height="13" uuid="713b1896-e074-497c-8d49-b8a7e2d0178a">
-					<property name="com.jaspersoft.studio.unit.height" value="px"/>
-				</reportElement>
-				<textElement>
-					<font isBold="true"/>
-				</textElement>
-				<text><![CDATA[* Autorização para Internação]]></text>
-			</staticText>
-			<line>
-				<reportElement x="160" y="10" width="391" height="1" uuid="aaad580c-6d78-4776-8467-cdfa95bea110"/>
-			</line>
+		<band height="19" splitType="Prevent">
+				<staticText>
+					<reportElement style="Secao" x="0" y="0" width="555" height="15" uuid="09605daf-0099-47b4-903d-cc3bc8361c67"/>
+					<textElement/>
+					<text><![CDATA[LAUDO PARA SOLICITAÇÃO DE INTERNAÇÃO (AIH)]]></text>
+				</staticText>
 		</band>
 	</title>
 	<detail>
-		<band height="209" splitType="Stretch">
-			<textField>
-				<reportElement x="110" y="22" width="439" height="23" uuid="9f8de4a8-df0c-47db-852d-f8971b00e02a"/>
-				<textElement verticalAlignment="Top">
-					<font size="7"/>
-				</textElement>
-				<textFieldExpression><![CDATA[$F{diagnosticoinicial}]]></textFieldExpression>
-			</textField>
-			<textField>
-				<reportElement x="113" y="175" width="386" height="13" uuid="a84da614-8f50-4376-93f0-416d34613fbf"/>
-				<textElement verticalAlignment="Middle">
-					<font size="7" isBold="true" isItalic="true"/>
-				</textElement>
-				<textFieldExpression><![CDATA[$F{solicitanteassistente}]]></textFieldExpression>
-			</textField>
-			<textField pattern="dd/MM/yyyy">
-				<reportElement x="112" y="2" width="60" height="13" uuid="edeb2195-5261-4dfc-b1ed-a4ccdb64c5bc">
-					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+		<band height="163" splitType="Stretch">
+			<frame>
+				<reportElement style="Celula" positionType="Float" x="0" y="0" width="555" height="23" uuid="e3e41a6f-94e3-4583-aa23-4ba9d542ca64">
 				</reportElement>
-				<textElement textAlignment="Center">
-					<font size="7"/>
-				</textElement>
-				<textFieldExpression><![CDATA[$F{dataautorizacao}]]></textFieldExpression>
-			</textField>
-			<staticText>
-				<reportElement x="6" y="0" width="38" height="13" uuid="1db66c2b-74b9-49ee-a59d-09af2a114bae">
-					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				<staticText>
+					<reportElement style="Rotulo" x="3" y="2" width="79" height="8" uuid="5b2e0481-a68d-47c9-8805-c95fcab7d52a"/>
+					<textElement/>
+					<text><![CDATA[SOLICITADO EM]]></text>
+				</staticText>
+				<textField textAdjust="StretchHeight" pattern="dd/MM/yyyy" isBlankWhenNull="true">
+					<reportElement style="Valor" x="3" y="10" width="79" height="11" uuid="45d483e5-39e2-424d-9a0c-82a3a829db2b">
+					</reportElement>
+					<textElement/>
+					<textFieldExpression><![CDATA[$F{datasolicitacao}]]></textFieldExpression>
+				</textField>
+				<staticText>
+					<reportElement style="Rotulo" x="88" y="2" width="79" height="8" uuid="2c8352bb-c0b9-481c-bf48-1c2f38b2394e"/>
+					<textElement/>
+					<text><![CDATA[AUTORIZADO EM]]></text>
+				</staticText>
+				<textField textAdjust="StretchHeight" pattern="dd/MM/yyyy" isBlankWhenNull="true">
+					<reportElement style="Valor" x="88" y="10" width="79" height="11" uuid="6b6cde99-ea2e-46ce-9711-fe9b08fd7f13">
+					</reportElement>
+					<textElement/>
+					<textFieldExpression><![CDATA[$F{dataautorizacao}]]></textFieldExpression>
+				</textField>
+				<staticText>
+					<reportElement style="Rotulo" x="173" y="2" width="139" height="8" uuid="b3d7d2da-3bcd-45bd-b05b-fcd621b6d9af"/>
+					<textElement/>
+					<text><![CDATA[CLÍNICA]]></text>
+				</staticText>
+				<textField textAdjust="StretchHeight" isBlankWhenNull="true">
+					<reportElement style="Valor" x="173" y="10" width="139" height="11" uuid="0168d69c-3566-4549-b58b-9201d91dc009">
+					</reportElement>
+					<textElement/>
+					<textFieldExpression><![CDATA[($F{clinica} == null ? "" : String.valueOf($F{clinica}).trim())]]></textFieldExpression>
+				</textField>
+				<staticText>
+					<reportElement style="Rotulo" x="318" y="2" width="114" height="8" uuid="37ed1963-c930-4e70-a699-d24702666285"/>
+					<textElement/>
+					<text><![CDATA[CARÁTER DA INTERNAÇÃO]]></text>
+				</staticText>
+				<textField textAdjust="StretchHeight" isBlankWhenNull="true">
+					<reportElement style="Valor" x="318" y="10" width="114" height="11" uuid="29a2794b-ec83-4e8a-9936-86e997fff92e">
+					</reportElement>
+					<textElement/>
+					<textFieldExpression><![CDATA[($F{caraterinternacao} == null ? "" : String.valueOf($F{caraterinternacao}).trim())]]></textFieldExpression>
+				</textField>
+				<staticText>
+					<reportElement style="Rotulo" x="438" y="2" width="114" height="8" uuid="c8d3e45b-2dc6-44bf-aca1-a42f9aff5c72"/>
+					<textElement/>
+					<text><![CDATA[CID PRINCIPAL]]></text>
+				</staticText>
+				<textField textAdjust="StretchHeight" isBlankWhenNull="true">
+					<reportElement style="Valor" x="438" y="10" width="114" height="11" uuid="3dd484b8-1f17-4cc7-8b1c-9e5a31aa245c">
+					</reportElement>
+					<textElement/>
+					<textFieldExpression><![CDATA[($F{cidprincipal} == null ? "" : String.valueOf($F{cidprincipal}).trim())]]></textFieldExpression>
+				</textField>
+			</frame>
+			<frame>
+				<reportElement style="Celula" positionType="Float" isRemoveLineWhenBlank="true" x="0" y="23" width="555" height="23" uuid="128e5668-baff-42f2-9382-9cc8483558ec">
+					<printWhenExpression><![CDATA[!($F{diagnosticoinicial} == null || String.valueOf($F{diagnosticoinicial}).trim().isEmpty())]]></printWhenExpression>
 				</reportElement>
-				<textElement textAlignment="Left" verticalAlignment="Bottom">
-					<font size="7" isBold="true"/>
-				</textElement>
-				<text><![CDATA[Data :]]></text>
-			</staticText>
-			<staticText>
-				<reportElement x="2" y="22" width="108" height="13" uuid="34152ac7-75d2-43f4-a2dc-b971917ebc3a">
-					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				<staticText>
+					<reportElement style="Rotulo" x="3" y="2" width="549" height="8" uuid="9ff57bf5-fc83-4cc3-b24c-2c4938086e46"/>
+					<textElement/>
+					<text><![CDATA[DIAGNÓSTICO INICIAL]]></text>
+				</staticText>
+				<textField textAdjust="StretchHeight" isBlankWhenNull="true">
+					<reportElement style="Valor" x="3" y="10" width="549" height="11" uuid="6c3e1d19-76eb-4519-8819-e9091b4c9150">
+					</reportElement>
+					<textElement/>
+					<textFieldExpression><![CDATA[($F{diagnosticoinicial} == null ? "" : String.valueOf($F{diagnosticoinicial}).trim())]]></textFieldExpression>
+				</textField>
+			</frame>
+			<frame>
+				<reportElement style="Celula" positionType="Float" isRemoveLineWhenBlank="true" x="0" y="46" width="555" height="23" uuid="7083019a-d447-4786-b1be-8451f4465782">
+					<printWhenExpression><![CDATA[!($F{sintomasclinicos} == null || String.valueOf($F{sintomasclinicos}).trim().isEmpty())]]></printWhenExpression>
 				</reportElement>
-				<textElement textAlignment="Left" verticalAlignment="Bottom">
-					<font size="7" isBold="true"/>
-				</textElement>
-				<text><![CDATA[Diagnóstico inicial :]]></text>
-			</staticText>
-			<textField>
-				<reportElement x="110" y="52" width="439" height="23" uuid="d72a7bde-943c-4b70-bc8f-b9c28a9f95d5"/>
-				<textElement verticalAlignment="Top">
-					<font size="7"/>
-				</textElement>
-				<textFieldExpression><![CDATA[$F{sintomasclinicos}]]></textFieldExpression>
-			</textField>
-			<staticText>
-				<reportElement x="4" y="52" width="108" height="13" uuid="30501e5c-ec69-4654-b2c3-d17f6ffe7f75">
-					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				<staticText>
+					<reportElement style="Rotulo" x="3" y="2" width="549" height="8" uuid="6ff63799-9003-4ee2-959e-f3f731fbb7f0"/>
+					<textElement/>
+					<text><![CDATA[SINAIS E SINTOMAS CLÍNICOS]]></text>
+				</staticText>
+				<textField textAdjust="StretchHeight" isBlankWhenNull="true">
+					<reportElement style="Valor" x="3" y="10" width="549" height="11" uuid="b58f554d-2c94-4fa6-bc34-ff68fe6c10f6">
+					</reportElement>
+					<textElement/>
+					<textFieldExpression><![CDATA[($F{sintomasclinicos} == null ? "" : String.valueOf($F{sintomasclinicos}).trim())]]></textFieldExpression>
+				</textField>
+			</frame>
+			<frame>
+				<reportElement style="Celula" positionType="Float" isRemoveLineWhenBlank="true" x="0" y="69" width="555" height="23" uuid="312d7df9-0b65-43f5-aa1f-1459b4e92101">
+					<printWhenExpression><![CDATA[!($F{provasdiag} == null || String.valueOf($F{provasdiag}).trim().isEmpty())]]></printWhenExpression>
 				</reportElement>
-				<textElement textAlignment="Left" verticalAlignment="Bottom">
-					<font size="7" isBold="true"/>
-				</textElement>
-				<text><![CDATA[Sintomas clínicos :]]></text>
-			</staticText>
-			<staticText>
-				<reportElement x="4" y="84" width="108" height="13" uuid="308b5342-47f6-4d6d-aed3-2f7b9ad47fd3">
-					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				<staticText>
+					<reportElement style="Rotulo" x="3" y="2" width="549" height="8" uuid="572084ee-dada-4b6c-9fae-246723919104"/>
+					<textElement/>
+					<text><![CDATA[RESULTADOS DE PROVAS DIAGNÓSTICAS]]></text>
+				</staticText>
+				<textField textAdjust="StretchHeight" isBlankWhenNull="true">
+					<reportElement style="Valor" x="3" y="10" width="549" height="11" uuid="cd2b107b-6857-4bc6-9b8a-8b6e7b74fd24">
+					</reportElement>
+					<textElement/>
+					<textFieldExpression><![CDATA[($F{provasdiag} == null ? "" : String.valueOf($F{provasdiag}).trim())]]></textFieldExpression>
+				</textField>
+			</frame>
+			<frame>
+				<reportElement style="Celula" positionType="Float" isRemoveLineWhenBlank="true" x="0" y="92" width="555" height="23" uuid="4fdacb77-4599-49d2-93d8-7539ee8a056a">
+					<printWhenExpression><![CDATA[!($F{procedimentosolicitado} == null || String.valueOf($F{procedimentosolicitado}).trim().isEmpty())]]></printWhenExpression>
 				</reportElement>
-				<textElement textAlignment="Left" verticalAlignment="Bottom">
-					<font size="7" isBold="true"/>
-				</textElement>
-				<text><![CDATA[Provas diagnóstico :]]></text>
-			</staticText>
-			<textField>
-				<reportElement x="112" y="84" width="439" height="23" uuid="1158e364-f25e-4820-98bc-3e51d4c6631c"/>
-				<textElement verticalAlignment="Top">
-					<font size="7"/>
-				</textElement>
-				<textFieldExpression><![CDATA[$F{provasdiag}]]></textFieldExpression>
-			</textField>
-			<staticText>
-				<reportElement x="4" y="114" width="108" height="13" uuid="5718e575-d4a4-42ee-a5b7-afad546ec93b">
-					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				<staticText>
+					<reportElement style="Rotulo" x="3" y="2" width="549" height="8" uuid="11d31617-9566-4305-af3f-05c77d3d3c73"/>
+					<textElement/>
+					<text><![CDATA[PROCEDIMENTO SOLICITADO]]></text>
+				</staticText>
+				<textField textAdjust="StretchHeight" isBlankWhenNull="true">
+					<reportElement style="Valor" x="3" y="10" width="549" height="11" uuid="7f5bd24f-24b4-47ac-b7c4-37dc714289ed">
+					</reportElement>
+					<textElement/>
+					<textFieldExpression><![CDATA[($F{codprocedimento} == null ? "" : String.valueOf($F{codprocedimento}).trim()) + ($F{codprocedimento} == null || $F{codprocedimento}.trim().isEmpty() ? "" : " — ") + ($F{procedimentosolicitado} == null ? "" : String.valueOf($F{procedimentosolicitado}).trim())]]></textFieldExpression>
+				</textField>
+			</frame>
+			<frame>
+				<reportElement style="Celula" positionType="Float" isRemoveLineWhenBlank="true" x="0" y="115" width="555" height="23" uuid="584b52c4-03c7-41e7-a366-43e43926fdea">
+					<printWhenExpression><![CDATA[!($F{jusinternacao} == null || String.valueOf($F{jusinternacao}).trim().isEmpty())]]></printWhenExpression>
 				</reportElement>
-				<textElement textAlignment="Left" verticalAlignment="Bottom">
-					<font size="7" isBold="true"/>
-				</textElement>
-				<text><![CDATA[Proced. solicitados :]]></text>
-			</staticText>
-			<textField>
-				<reportElement x="112" y="114" width="439" height="23" uuid="e1f203fc-9715-4e66-8418-8595c9570412"/>
-				<textElement verticalAlignment="Top">
-					<font size="7"/>
-				</textElement>
-				<textFieldExpression><![CDATA[$F{procedimentosolicitado}]]></textFieldExpression>
-			</textField>
-			<staticText>
-				<reportElement x="3" y="144" width="108" height="13" uuid="4237716b-04a1-426c-ba9d-5ae425c010dd">
-					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				<staticText>
+					<reportElement style="Rotulo" x="3" y="2" width="549" height="8" uuid="16989077-b1a7-47bd-95d5-af7e82f14577"/>
+					<textElement/>
+					<text><![CDATA[JUSTIFICATIVA DA INTERNAÇÃO]]></text>
+				</staticText>
+				<textField textAdjust="StretchHeight" isBlankWhenNull="true">
+					<reportElement style="Valor" x="3" y="10" width="549" height="11" uuid="6a2f6d8c-764b-4613-9ec8-778dcc543a22">
+					</reportElement>
+					<textElement/>
+					<textFieldExpression><![CDATA[($F{jusinternacao} == null ? "" : String.valueOf($F{jusinternacao}).trim())]]></textFieldExpression>
+				</textField>
+			</frame>
+			<frame>
+				<reportElement style="Celula" positionType="Float" x="0" y="138" width="555" height="23" uuid="b99965ca-7cf8-455b-bd33-205a1cda8aac">
 				</reportElement>
-				<textElement textAlignment="Left" verticalAlignment="Bottom">
-					<font size="7" isBold="true"/>
-				</textElement>
-				<text><![CDATA[Just. internação  :]]></text>
-			</staticText>
-			<textField>
-				<reportElement x="111" y="144" width="439" height="23" uuid="c7910c53-a7ea-4906-9be2-63f7f279a9ed"/>
-				<textElement verticalAlignment="Top">
-					<font size="7"/>
-				</textElement>
-				<textFieldExpression><![CDATA[$F{jusinternacao}]]></textFieldExpression>
-			</textField>
-			<staticText>
-				<reportElement x="5" y="175" width="108" height="13" uuid="12fb4412-7257-4ddf-aefb-253100966a12">
-					<property name="com.jaspersoft.studio.unit.height" value="px"/>
-				</reportElement>
-				<textElement textAlignment="Left" verticalAlignment="Bottom">
-					<font size="7" isBold="true"/>
-				</textElement>
-				<text><![CDATA[Solicitado por :]]></text>
-			</staticText>
-			<staticText>
-				<reportElement x="339" y="1" width="52" height="13" uuid="204d71fa-b292-4159-adfd-e40c6880e31d">
-					<property name="com.jaspersoft.studio.unit.height" value="px"/>
-				</reportElement>
-				<textElement textAlignment="Left" verticalAlignment="Bottom">
-					<font size="7" isBold="true"/>
-				</textElement>
-				<text><![CDATA[Clínica :]]></text>
-			</staticText>
-			<textField pattern="dd/MM/yyyy">
-				<reportElement x="391" y="2" width="160" height="13" uuid="72e946e6-856b-4085-b2f7-04bca103b043">
-					<property name="com.jaspersoft.studio.unit.height" value="px"/>
-				</reportElement>
-				<textElement textAlignment="Left">
-					<font size="7"/>
-				</textElement>
-				<textFieldExpression><![CDATA[$F{clinica}]]></textFieldExpression>
-			</textField>
+				<staticText>
+					<reportElement style="Rotulo" x="3" y="2" width="274" height="8" uuid="f32e8332-b550-4ade-b4b6-fdf5db231205"/>
+					<textElement/>
+					<text><![CDATA[PROFISSIONAL SOLICITANTE]]></text>
+				</staticText>
+				<textField textAdjust="StretchHeight" isBlankWhenNull="true">
+					<reportElement style="Valor" x="3" y="10" width="274" height="11" uuid="c5b46f55-9454-4c3d-8f85-c8597fd9b446">
+					</reportElement>
+					<textElement/>
+					<textFieldExpression><![CDATA[($F{solicitanteassistente} == null ? "" : String.valueOf($F{solicitanteassistente}).trim())]]></textFieldExpression>
+				</textField>
+				<staticText>
+					<reportElement style="Rotulo" x="283" y="2" width="269" height="8" uuid="023761f3-2251-4c59-b608-9705056367e7"/>
+					<textElement/>
+					<text><![CDATA[PROFISSIONAL AUTORIZADOR]]></text>
+				</staticText>
+				<textField textAdjust="StretchHeight" isBlankWhenNull="true">
+					<reportElement style="Valor" x="283" y="10" width="269" height="11" uuid="b2117b44-2a3d-4b5d-98b1-2723d5117bcf">
+					</reportElement>
+					<textElement/>
+					<textFieldExpression><![CDATA[($F{profissionalautorizador} == null ? "" : String.valueOf($F{profissionalautorizador}).trim())]]></textFieldExpression>
+				</textField>
+			</frame>
 		</band>
 	</detail>
 </jasperReport>

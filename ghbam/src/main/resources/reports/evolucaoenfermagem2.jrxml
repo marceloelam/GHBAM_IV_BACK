@@ -218,11 +218,6 @@ ORDER BY cast(e.data as date) DESC, e.hora]]>
 		<property name="com.jaspersoft.studio.field.label" value="cpf"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="pacientes"/>
 	</field>
-	<field name="COLUMN_32" class="java.sql.Date">
-		<property name="com.jaspersoft.studio.field.name" value="data"/>
-		<property name="com.jaspersoft.studio.field.label" value="data"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="pacientes"/>
-	</field>
 	<field name="ecivil" class="java.lang.String">
 		<property name="com.jaspersoft.studio.field.name" value="ecivil"/>
 		<property name="com.jaspersoft.studio.field.label" value="ecivil"/>
@@ -241,11 +236,6 @@ ORDER BY cast(e.data as date) DESC, e.hora]]>
 	<field name="etnia" class="java.lang.String">
 		<property name="com.jaspersoft.studio.field.name" value="etnia"/>
 		<property name="com.jaspersoft.studio.field.label" value="etnia"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="pacientes"/>
-	</field>
-	<field name="COLUMN_37" class="java.lang.String">
-		<property name="com.jaspersoft.studio.field.name" value="hora"/>
-		<property name="com.jaspersoft.studio.field.label" value="hora"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="pacientes"/>
 	</field>
 	<field name="idade" class="java.lang.Integer">
@@ -353,11 +343,6 @@ ORDER BY cast(e.data as date) DESC, e.hora]]>
 		<property name="com.jaspersoft.studio.field.label" value="crm"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="evolucaopacienteenf"/>
 	</field>
-	<field name="COLUMN_59" class="java.sql.Date">
-		<property name="com.jaspersoft.studio.field.name" value="data"/>
-		<property name="com.jaspersoft.studio.field.label" value="data"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="evolucaopacienteenf"/>
-	</field>
 	<field name="enfermaria" class="java.lang.String">
 		<property name="com.jaspersoft.studio.field.name" value="enfermaria"/>
 		<property name="com.jaspersoft.studio.field.label" value="enfermaria"/>
@@ -398,29 +383,9 @@ ORDER BY cast(e.data as date) DESC, e.hora]]>
 		<property name="com.jaspersoft.studio.field.label" value="pedidolimpo"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="evolucaopacienteenf"/>
 	</field>
-	<field name="COLUMN_68" class="java.lang.String">
-		<property name="com.jaspersoft.studio.field.name" value="prontuario"/>
-		<property name="com.jaspersoft.studio.field.label" value="prontuario"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="evolucaopacienteenf"/>
-	</field>
-	<field name="COLUMN_69" class="java.lang.String">
-		<property name="com.jaspersoft.studio.field.name" value="relato"/>
-		<property name="com.jaspersoft.studio.field.label" value="relato"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="evolucaopacienteenf"/>
-	</field>
-	<field name="COLUMN_70" class="java.lang.String">
-		<property name="com.jaspersoft.studio.field.name" value="hora"/>
-		<property name="com.jaspersoft.studio.field.label" value="hora"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="evolucaopacienteenf"/>
-	</field>
 	<field name="enfermeiro" class="java.lang.String">
 		<property name="com.jaspersoft.studio.field.name" value="enfermeiro"/>
 		<property name="com.jaspersoft.studio.field.label" value="enfermeiro"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="evolucaopacienteenf"/>
-	</field>
-	<field name="COLUMN_72" class="java.lang.String">
-		<property name="com.jaspersoft.studio.field.name" value="unidade"/>
-		<property name="com.jaspersoft.studio.field.label" value="unidade"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="evolucaopacienteenf"/>
 	</field>
 	<field name="quem" class="java.lang.String">
@@ -483,19 +448,9 @@ ORDER BY cast(e.data as date) DESC, e.hora]]>
 		<property name="com.jaspersoft.studio.field.label" value="motivosaida"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="novointernado"/>
 	</field>
-	<field name="COLUMN_85" class="java.lang.Integer">
-		<property name="com.jaspersoft.studio.field.name" value="nbam"/>
-		<property name="com.jaspersoft.studio.field.label" value="nbam"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="novointernado"/>
-	</field>
 	<field name="pendencia" class="java.lang.String">
 		<property name="com.jaspersoft.studio.field.name" value="pendencia"/>
 		<property name="com.jaspersoft.studio.field.label" value="pendencia"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="novointernado"/>
-	</field>
-	<field name="COLUMN_87" class="java.lang.String">
-		<property name="com.jaspersoft.studio.field.name" value="prontuario"/>
-		<property name="com.jaspersoft.studio.field.label" value="prontuario"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="novointernado"/>
 	</field>
 	<field name="tempodias" class="java.lang.Integer">
@@ -526,11 +481,6 @@ ORDER BY cast(e.data as date) DESC, e.hora]]>
 	<field name="setor_idsetorcenso" class="java.lang.Integer">
 		<property name="com.jaspersoft.studio.field.name" value="setor_idsetorcenso"/>
 		<property name="com.jaspersoft.studio.field.label" value="setor_idsetorcenso"/>
-		<property name="com.jaspersoft.studio.field.tree.path" value="novointernado"/>
-	</field>
-	<field name="COLUMN_94" class="java.lang.String">
-		<property name="com.jaspersoft.studio.field.name" value="unidade"/>
-		<property name="com.jaspersoft.studio.field.label" value="unidade"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="novointernado"/>
 	</field>
 	<field name="tipo_alocacao" class="java.lang.String">

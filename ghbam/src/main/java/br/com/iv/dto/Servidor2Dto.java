@@ -105,6 +105,7 @@ public class Servidor2Dto implements Serializable {
 	private Boolean palmoxarifado;
 	private Boolean palmoxpedir;
 	private Boolean prhponto;
+	private Boolean pprotocoloaprovacao;
 	private Boolean pfluxopacientes;
 	private Boolean phemoterapia;
 	private Boolean psnd;

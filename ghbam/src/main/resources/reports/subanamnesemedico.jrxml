@@ -1,17 +1,41 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Created with Jaspersoft Studio version 6.18.1.final using JasperReports Library version 6.18.1-9d75d1969e774d4f179fb3be8401e98a0e6d1611  -->
-<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="subatendimentomedico" pageWidth="595" pageHeight="842" columnWidth="595" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0" uuid="fdce5a7f-4cbe-442d-818c-ebd62c6aa44e">
-	<property name="com.jaspersoft.studio.data.sql.tables" value=""/>
-	<property name="com.jaspersoft.studio.data.defaultdataadapter" value="itaguai_conn"/>
-	<property name="com.jaspersoft.studio.unit." value="pixel"/>
-	<property name="com.jaspersoft.studio.unit.pageHeight" value="pixel"/>
-	<property name="com.jaspersoft.studio.unit.pageWidth" value="pixel"/>
-	<property name="com.jaspersoft.studio.unit.topMargin" value="pixel"/>
-	<property name="com.jaspersoft.studio.unit.bottomMargin" value="pixel"/>
-	<property name="com.jaspersoft.studio.unit.leftMargin" value="pixel"/>
-	<property name="com.jaspersoft.studio.unit.rightMargin" value="pixel"/>
-	<property name="com.jaspersoft.studio.unit.columnWidth" value="pixel"/>
-	<property name="com.jaspersoft.studio.unit.columnSpacing" value="pixel"/>
+<!-- Histórico clínico do atendimento: layout padronizado (2026-11-09). SQL, parâmetros e campos preservados do original. -->
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="subanamnesemedico" pageWidth="555" pageHeight="842" whenNoDataType="NoPages" columnWidth="555" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0" uuid="0781e254-31b3-47ba-ad02-1212762c9f18">
+	<style name="Base" isDefault="true" forecolor="#1F2937" fontSize="7.5"/>
+	<style name="Secao" mode="Opaque" forecolor="#0F4C5C" backcolor="#E6EEF1" vTextAlign="Middle" fontSize="8.5" isBold="true">
+		<box leftPadding="7"><leftPen lineWidth="3.0" lineColor="#0F4C5C"/></box>
+	</style>
+	<style name="Rotulo" forecolor="#64748B" fontSize="5.8" isBold="true"/>
+	<style name="Valor" forecolor="#111827" fontSize="8"/>
+	<style name="ValorForte" forecolor="#111827" fontSize="7.5" isBold="true"/>
+	<style name="Celula">
+		<box><bottomPen lineWidth="0.5" lineColor="#D9E1E8"/></box>
+	</style>
+	<style name="Linha">
+		<box><bottomPen lineWidth="0.5" lineColor="#E2E8F0"/></box>
+		<conditionalStyle>
+			<conditionExpression><![CDATA[$V{REPORT_COUNT}.intValue() % 2 == 0]]></conditionExpression>
+			<style mode="Opaque" backcolor="#F6F8FA"/>
+		</conditionalStyle>
+	</style>
+	<style name="Th" mode="Opaque" backcolor="#EEF2F5">
+		<box><bottomPen lineWidth="0.75" lineColor="#94A3B8"/></box>
+	</style>
+	<style name="ThTxt" forecolor="#334155" vTextAlign="Middle" fontSize="6.3" isBold="true">
+		<box leftPadding="3"/>
+	</style>
+	<style name="Td" forecolor="#111827" fontSize="7.2">
+		<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"/>
+	</style>
+	<style name="Assin" forecolor="#64748B" fontSize="5.5">
+		<box leftPadding="3" bottomPadding="2"/>
+	</style>
+	<style name="Pendente" forecolor="#B45309" fontSize="5.5" isBold="true">
+		<box leftPadding="3" bottomPadding="2"/>
+	</style>
+	<style name="PendenteValor" forecolor="#B45309" fontSize="8" isItalic="true"/>
+	<style name="Alerta" forecolor="#B91C1C" fontSize="8" isBold="true"/>
+
 	<parameter name="idbamLab" class="java.lang.String"/>
 	<queryString language="SQL">
 		<![CDATA[select a.*, t.parecer_especialista, t.destino, t.medicoecrm from avaliacao a inner join bam b on  
@@ -302,118 +326,81 @@ where  cast(b.idbam as text) =  $P{idbamLab} order by b.idbam desc limit 1]]>
 		<property name="com.jaspersoft.studio.field.label" value="medicoecrm"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="tratamento"/>
 	</field>
-	<background>
-		<band splitType="Stretch"/>
-	</background>
+	
 	<title>
-		<band height="1" splitType="Stretch"/>
+		<band height="19" splitType="Prevent">
+				<staticText>
+					<reportElement style="Secao" x="0" y="0" width="555" height="15" uuid="4f98d464-4413-4993-8980-ea8f3471a2bc"/>
+					<textElement/>
+					<text><![CDATA[AVALIAÇÃO MÉDICA]]></text>
+				</staticText>
+		</band>
 	</title>
 	<detail>
-		<band height="460" splitType="Stretch">
-			<textField>
-				<reportElement x="10" y="34" width="520" height="276" uuid="9f8de4a8-df0c-47db-852d-f8971b00e02a"/>
-				<box padding="5">
-					<pen lineWidth="0.0"/>
-					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
-					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
-					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
-					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
-				</box>
-				<textElement verticalAlignment="Top">
-					<font size="7"/>
-				</textElement>
-				<textFieldExpression><![CDATA[$F{anamnese}]]></textFieldExpression>
-			</textField>
-			<staticText>
-				<reportElement x="10" y="19" width="310" height="13" uuid="34152ac7-75d2-43f4-a2dc-b971917ebc3a">
-					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+		<band height="94" splitType="Stretch">
+			<frame>
+				<reportElement style="Celula" positionType="Float" x="0" y="0" width="555" height="23" uuid="f53fcb0b-f586-4543-98a0-377bc8c7e7d6">
 				</reportElement>
-				<textElement textAlignment="Left" verticalAlignment="Bottom">
-					<font size="7" isBold="true"/>
-				</textElement>
-				<text><![CDATA[Anamnese]]></text>
-			</staticText>
-			<line>
-				<reportElement x="10" y="459" width="536" height="1" uuid="29b74306-603f-40a3-8e1a-b01066bc28e9"/>
-			</line>
-			<textField>
-				<reportElement x="14" y="367" width="516" height="52" uuid="26b0bf5b-ed0a-4092-a729-682448053139"/>
-				<box padding="0">
-					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
-					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
-					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
-					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
-				</box>
-				<textElement verticalAlignment="Top">
-					<font size="7"/>
-				</textElement>
-				<textFieldExpression><![CDATA[$F{parecer_especialista}]]></textFieldExpression>
-			</textField>
-			<staticText>
-				<reportElement x="14" y="354" width="171" height="13" uuid="93e4aa42-9351-4264-90ef-4b6afcf204e5">
-					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				<staticText>
+					<reportElement style="Rotulo" x="3" y="2" width="549" height="8" uuid="8a9cb410-0cc3-4fe7-be8c-838297f9ac39"/>
+					<textElement/>
+					<text><![CDATA[ANAMNESE / EXAME CLÍNICO]]></text>
+				</staticText>
+				<textField textAdjust="StretchHeight" isBlankWhenNull="true">
+					<reportElement style="Valor" x="3" y="10" width="549" height="11" uuid="fcd0d857-906d-445b-953e-936d5c53f0f6">
+					</reportElement>
+					<textElement/>
+					<textFieldExpression><![CDATA[($F{anamnese} == null ? "" : String.valueOf($F{anamnese}).trim())]]></textFieldExpression>
+				</textField>
+			</frame>
+			<frame>
+				<reportElement style="Celula" positionType="Float" isRemoveLineWhenBlank="true" x="0" y="23" width="555" height="23" uuid="6c2a1d41-e5b9-4542-bd01-7adc4b40b573">
+					<printWhenExpression><![CDATA[!($F{destino} == null || String.valueOf($F{destino}).trim().isEmpty())]]></printWhenExpression>
 				</reportElement>
-				<textElement textAlignment="Left" verticalAlignment="Bottom">
-					<font size="7" isBold="true"/>
-				</textElement>
-				<text><![CDATA[Parecer Especialista]]></text>
-			</staticText>
-			<textField>
-				<reportElement x="15" y="334" width="515" height="14" uuid="13b85139-6b9b-4a15-9b34-31e3ebd87fe7"/>
-				<box padding="0">
-					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
-					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
-					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
-					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
-				</box>
-				<textElement verticalAlignment="Middle">
-					<font size="7"/>
-				</textElement>
-				<textFieldExpression><![CDATA[$F{destino}]]></textFieldExpression>
-			</textField>
-			<staticText>
-				<reportElement x="15" y="321" width="171" height="13" uuid="7e0c47de-340d-4a15-87c3-b6b1675a5699">
-					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				<staticText>
+					<reportElement style="Rotulo" x="3" y="2" width="549" height="8" uuid="4377bc2d-018d-49e1-ba91-4f73159bb8ae"/>
+					<textElement/>
+					<text><![CDATA[DESTINO / CONDUTA]]></text>
+				</staticText>
+				<textField textAdjust="StretchHeight" isBlankWhenNull="true">
+					<reportElement style="Valor" x="3" y="10" width="549" height="11" uuid="a906b92c-ed7f-4d0a-8624-76717d5ee513">
+					</reportElement>
+					<textElement/>
+					<textFieldExpression><![CDATA[($F{destino} == null ? "" : String.valueOf($F{destino}).trim())]]></textFieldExpression>
+				</textField>
+			</frame>
+			<frame>
+				<reportElement style="Celula" positionType="Float" isRemoveLineWhenBlank="true" x="0" y="46" width="555" height="23" uuid="0683fd07-7545-4d2a-8bf7-fb5e43167d83">
+					<printWhenExpression><![CDATA[!($F{parecer_especialista} == null || String.valueOf($F{parecer_especialista}).trim().isEmpty())]]></printWhenExpression>
 				</reportElement>
-				<textElement textAlignment="Left" verticalAlignment="Bottom">
-					<font size="7" isBold="true"/>
-				</textElement>
-				<text><![CDATA[Destino ]]></text>
-			</staticText>
-			<staticText>
-				<reportElement x="16" y="426" width="171" height="13" uuid="3fdc6b21-5aec-4e09-8633-934fdaab3e21">
-					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				<staticText>
+					<reportElement style="Rotulo" x="3" y="2" width="549" height="8" uuid="e16c0399-301e-4517-a2f5-75b5bea14671"/>
+					<textElement/>
+					<text><![CDATA[PARECER DE ESPECIALISTA]]></text>
+				</staticText>
+				<textField textAdjust="StretchHeight" isBlankWhenNull="true">
+					<reportElement style="Valor" x="3" y="10" width="549" height="11" uuid="6ca672c2-11bc-438a-bcd5-a4f3a50fde61">
+					</reportElement>
+					<textElement/>
+					<textFieldExpression><![CDATA[($F{parecer_especialista} == null ? "" : String.valueOf($F{parecer_especialista}).trim())]]></textFieldExpression>
+				</textField>
+			</frame>
+			<frame>
+				<reportElement style="Celula" positionType="Float" isRemoveLineWhenBlank="true" x="0" y="69" width="555" height="23" uuid="e0f43db0-9276-4252-9c29-0f064cb29523">
+					<printWhenExpression><![CDATA[!($F{medicoecrm} == null || String.valueOf($F{medicoecrm}).trim().isEmpty())]]></printWhenExpression>
 				</reportElement>
-				<textElement textAlignment="Left" verticalAlignment="Bottom">
-					<font size="7" isBold="true"/>
-				</textElement>
-				<text><![CDATA[Médico - CRM]]></text>
-			</staticText>
-			<textField>
-				<reportElement x="16" y="439" width="514" height="14" uuid="c063ac2a-3db0-4d5c-90a5-2a432c919c5c"/>
-				<box padding="0">
-					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
-					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
-					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
-					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
-				</box>
-				<textElement verticalAlignment="Middle">
-					<font size="7"/>
-				</textElement>
-				<textFieldExpression><![CDATA[$F{medicoecrm}]]></textFieldExpression>
-			</textField>
-			<line>
-				<reportElement x="135" y="7" width="329" height="1" uuid="aaad580c-6d78-4776-8467-cdfa95bea110"/>
-			</line>
-			<staticText>
-				<reportElement x="4" y="0" width="136" height="19" uuid="713b1896-e074-497c-8d49-b8a7e2d0178a">
-					<property name="com.jaspersoft.studio.unit.height" value="px"/>
-				</reportElement>
-				<textElement>
-					<font size="11" isBold="true"/>
-				</textElement>
-				<text><![CDATA[* Observação  Médica]]></text>
-			</staticText>
+				<staticText>
+					<reportElement style="Rotulo" x="3" y="2" width="549" height="8" uuid="29bf5854-072e-489f-93ba-d3677dd9c38f"/>
+					<textElement/>
+					<text><![CDATA[MÉDICO RESPONSÁVEL — CRM]]></text>
+				</staticText>
+				<textField textAdjust="StretchHeight" isBlankWhenNull="true">
+					<reportElement style="Valor" x="3" y="10" width="549" height="11" uuid="f4ffd530-fab5-4ab1-b675-c7b7f1dcecf9">
+					</reportElement>
+					<textElement/>
+					<textFieldExpression><![CDATA[($F{medicoecrm} == null ? "" : String.valueOf($F{medicoecrm}).trim())]]></textFieldExpression>
+				</textField>
+			</frame>
 		</band>
 	</detail>
 </jasperReport>

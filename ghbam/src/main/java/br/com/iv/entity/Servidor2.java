@@ -124,6 +124,9 @@ public class Servidor2 extends PanacheEntityBase implements Serializable {
 	private Boolean palmoxpedir;
 	@Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
 	private Boolean prhponto;
+	// V250: comissao de protocolos em fluxograma (aprovar/editar). Efetivo so p/ medico, enfermagem ou multi.
+	@Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+	private Boolean pprotocoloaprovacao;
 	@Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
 	private Boolean pfluxopacientes;
 	@Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
@@ -412,6 +415,7 @@ public class Servidor2 extends PanacheEntityBase implements Serializable {
 		palmoxarifado = false;
 		palmoxpedir = false;
 		prhponto = false;
+		pprotocoloaprovacao = false;
 		pfluxopacientes = false;
 		phemoterapia = false;
 		psnd = false;
