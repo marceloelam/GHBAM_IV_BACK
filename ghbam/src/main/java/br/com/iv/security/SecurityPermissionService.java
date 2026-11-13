@@ -133,6 +133,27 @@ public class SecurityPermissionService {
         return fromServidor(servidor, "123456".equals(requestedPassword));
     }
 
+    /**
+     * Login recusado so pelo usuario AD bloqueado ('-'): cadastro ativo e senha correta. So nesse caso o
+     * login pode dizer o motivo; senha errada continua com a recusa generica (nao revela o cadastro).
+     */
+    public boolean senhaConfereMasSemAd(String matricula, String senha, String senhaMontada) {
+        Servidor servidor = servidorRepository.localizarMatricula(safe(matricula));
+        if (servidor == null || !Boolean.TRUE.equals(servidor.getAtivo())
+                || !UsuarioAdRegras.bloqueado(servidor.getUsuarioad())) {
+            return false;
+        }
+        String storedPassword = safe(servidor.getPwd());
+        String requestedPassword = safe(senha);
+        if (requestedPassword.isBlank() && !safe(senhaMontada).isBlank()) {
+            requestedPassword = resolvePasswordFromKeypad(storedPassword, senhaMontada);
+            if (!requestedPassword.isBlank() && isBcryptHash(storedPassword)) {
+                return true;
+            }
+        }
+        return passwordMatches(storedPassword, requestedPassword);
+    }
+
     // Reutilizado tambem fora do login (RbacRequestFilter, a cada requisicao
     // autenticada): como e derivado so do hash salvo, da pra saber se a senha
     // "de fabrica" ainda esta em vigor sem precisar da senha em texto que o
@@ -439,6 +460,54 @@ public class SecurityPermissionService {
         put(p, "prhponto", s2 != null && Boolean.TRUE.equals(s2.getPrhponto()));
         put(p, "pprotocoloaprovacao", s2 != null && Boolean.TRUE.equals(s2.getPprotocoloaprovacao()));
         put(p, "pfluxopacientes", s2 != null && Boolean.TRUE.equals(s2.getPfluxopacientes()));
+        put(p, "pdrives", s2 != null && Boolean.TRUE.equals(s2.getPdrives()));
+        put(p, "plistaagendamentos", s2 != null && Boolean.TRUE.equals(s2.getPlistaagendamentos()));
+        put(p, "plocalizaratendimento", s2 != null && Boolean.TRUE.equals(s2.getPlocalizaratendimento()));
+        put(p, "pprimeiroatendimento", s2 != null && Boolean.TRUE.equals(s2.getPprimeiroatendimento()));
+        put(p, "pvolumepainel", s2 != null && Boolean.TRUE.equals(s2.getPvolumepainel()));
+        put(p, "pvisitapacientes", s2 != null && Boolean.TRUE.equals(s2.getPvisitapacientes()));
+        put(p, "pmultiassistencia", s2 != null && Boolean.TRUE.equals(s2.getPmultiassistencia()));
+        put(p, "pmultifisioterapia", s2 != null && Boolean.TRUE.equals(s2.getPmultifisioterapia()));
+        put(p, "pmultifono", s2 != null && Boolean.TRUE.equals(s2.getPmultifono()));
+        put(p, "pmultinutricao", s2 != null && Boolean.TRUE.equals(s2.getPmultinutricao()));
+        put(p, "pmultipsicologia", s2 != null && Boolean.TRUE.equals(s2.getPmultipsicologia()));
+        put(p, "podontologia", s2 != null && Boolean.TRUE.equals(s2.getPodontologia()));
+        put(p, "padmissaorn", s2 != null && Boolean.TRUE.equals(s2.getPadmissaorn()));
+        put(p, "papac", s2 != null && Boolean.TRUE.equals(s2.getPapac()));
+        put(p, "pbpa", s2 != null && Boolean.TRUE.equals(s2.getPbpa()));
+        put(p, "pccihresumo", s2 != null && Boolean.TRUE.equals(s2.getPccihresumo()));
+        put(p, "pcdsspreventivo", s2 != null && Boolean.TRUE.equals(s2.getPcdsspreventivo()));
+        put(p, "pclassificarpaciente", s2 != null && Boolean.TRUE.equals(s2.getPclassificarpaciente()));
+        put(p, "pcoleta", s2 != null && Boolean.TRUE.equals(s2.getPcoleta()));
+        put(p, "pcorrigirresultados", s2 != null && Boolean.TRUE.equals(s2.getPcorrigirresultados()));
+        put(p, "pfarmaciaatendimento", s2 != null && Boolean.TRUE.equals(s2.getPfarmaciaatendimento()));
+        put(p, "pfaturamentosus", s2 != null && Boolean.TRUE.equals(s2.getPfaturamentosus()));
+        put(p, "pfaturas", s2 != null && Boolean.TRUE.equals(s2.getPfaturas()));
+        put(p, "pfichaanestesica", s2 != null && Boolean.TRUE.equals(s2.getPfichaanestesica()));
+        put(p, "pimprimiridentificacao", s2 != null && Boolean.TRUE.equals(s2.getPimprimiridentificacao()));
+        put(p, "pindicadorescirurgicos", s2 != null && Boolean.TRUE.equals(s2.getPindicadorescirurgicos()));
+        put(p, "pinternados", s2 != null && Boolean.TRUE.equals(s2.getPinternados()));
+        put(p, "pjornadapa", s2 != null && Boolean.TRUE.equals(s2.getPjornadapa()));
+        put(p, "plimitesdose", s2 != null && Boolean.TRUE.equals(s2.getPlimitesdose()));
+        put(p, "pmapacirurgico", s2 != null && Boolean.TRUE.equals(s2.getPmapacirurgico()));
+        put(p, "pmapaepidemiologico", s2 != null && Boolean.TRUE.equals(s2.getPmapaepidemiologico()));
+        put(p, "pmedicacaomaternidade", s2 != null && Boolean.TRUE.equals(s2.getPmedicacaomaternidade()));
+        put(p, "pmedicacaopediatria", s2 != null && Boolean.TRUE.equals(s2.getPmedicacaopediatria()));
+        put(p, "pmedicacaospa", s2 != null && Boolean.TRUE.equals(s2.getPmedicacaospa()));
+        put(p, "pmodelosprescricao", s2 != null && Boolean.TRUE.equals(s2.getPmodelosprescricao()));
+        put(p, "ppainelmunicipal", s2 != null && Boolean.TRUE.equals(s2.getPpainelmunicipal()));
+        put(p, "ppendenciaspa", s2 != null && Boolean.TRUE.equals(s2.getPpendenciaspa()));
+        put(p, "ppepatendimento", s2 != null && Boolean.TRUE.equals(s2.getPpepatendimento()));
+        put(p, "pplantaoenfermagem", s2 != null && Boolean.TRUE.equals(s2.getPplantaoenfermagem()));
+        put(p, "pprocessosinternacao", s2 != null && Boolean.TRUE.equals(s2.getPprocessosinternacao()));
+        put(p, "pproducaoassistencial", s2 != null && Boolean.TRUE.equals(s2.getPproducaoassistencial()));
+        put(p, "pprotocolosfluxograma", s2 != null && Boolean.TRUE.equals(s2.getPprotocolosfluxograma()));
+        put(p, "praas", s2 != null && Boolean.TRUE.equals(s2.getPraas()));
+        put(p, "prealizarexames", s2 != null && Boolean.TRUE.equals(s2.getPrealizarexames()));
+        put(p, "preclassificarpaciente", s2 != null && Boolean.TRUE.equals(s2.getPreclassificarpaciente()));
+        put(p, "presumodealta", s2 != null && Boolean.TRUE.equals(s2.getPresumodealta()));
+        put(p, "psumarioobito", s2 != null && Boolean.TRUE.equals(s2.getPsumarioobito()));
+        put(p, "ptiss", s2 != null && Boolean.TRUE.equals(s2.getPtiss()));
         put(p, "phemoterapia", s2 != null && Boolean.TRUE.equals(s2.getPhemoterapia()));
         put(p, "psnd", s2 != null && Boolean.TRUE.equals(s2.getPsnd()));
         put(p, "prnds", s2 != null && Boolean.TRUE.equals(s2.getPrnds()));

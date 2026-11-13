@@ -70,7 +70,8 @@ public class LogController {
 		if (m.isEmpty() || m.length() > 20) return Response.status(Response.Status.NOT_FOUND).build();
 		br.com.iv.entity.Servidor servidor = servidorRepository.localizarMatricula(m);
 		String foto = servidor == null ? null : servidor.getFoto();
-		if (foto == null || foto.isBlank()) return Response.status(Response.Status.NOT_FOUND).build();
+		// Sem foto não é erro: 204 (o front mostra as iniciais) em vez de 404 vermelho no console.
+		if (foto == null || foto.isBlank()) return Response.noContent().build();
 		String base64 = foto.trim();
 		int virgula = base64.indexOf(',');
 		if (virgula >= 0 && virgula < base64.length() - 1) base64 = base64.substring(virgula + 1);

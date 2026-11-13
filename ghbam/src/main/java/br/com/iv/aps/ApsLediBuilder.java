@@ -43,8 +43,11 @@ public final class ApsLediBuilder {
         };
         String kSemCpf = estilo == Estilo.VACINA ? "stNaoPossuiCpf" : "stCidadaoNaoPossuiCpf";
         String kJust = estilo == Estilo.VACINA ? "justificativaNaoPossuiCpf" : "justificativaCidadaoNaoPossuiCpf";
+        // dic-fai/fp/fv: o marcador e obrigatorio e "deve ser false se cpfCidadao for preenchido";
+        // true exige a justificativa, entao sem ela (so CNS) tambem vai false.
         if (cpf != null && !cpf.isBlank()) {
             m.put("cpfCidadao", cpf);
+            m.put(kSemCpf, false);
         } else {
             if (cns != null && !cns.isBlank()) {
                 m.put(kCns, cns);
@@ -52,6 +55,8 @@ public final class ApsLediBuilder {
             if (justificativa != null) {
                 m.put(kSemCpf, true);
                 m.put(kJust, justificativa);
+            } else {
+                m.put(kSemCpf, false);
             }
         }
         if (cidadao.get("data_nascimento") != null) {

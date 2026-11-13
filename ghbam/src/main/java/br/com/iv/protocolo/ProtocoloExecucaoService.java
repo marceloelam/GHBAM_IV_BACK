@@ -127,6 +127,23 @@ public class ProtocoloExecucaoService {
         return linhas > 0;
     }
 
+    /**
+     * Hora como esta gravada na coluna (timestamp sem fuso, hora local). Com jdbc.timezone=UTC o
+     * driver entrega esse valor como se fosse UTC; ler em UTC devolve a mesma hora do banco, sem
+     * depender do fuso da maquina.
+     */
+    private static Object horaGravada(Object valor) {
+        if (valor instanceof Timestamp t) {
+            return t.toInstant().atZone(java.time.ZoneOffset.UTC).toLocalDateTime().toString();
+        }
+        if (valor instanceof java.time.LocalDateTime ldt) {
+            // Hibernate ja converteu "UTC" para o fuso da JVM: desfaz para voltar a hora gravada.
+            return ldt.atZone(java.time.ZoneId.systemDefault()).withZoneSameInstant(java.time.ZoneOffset.UTC)
+                    .toLocalDateTime().toString();
+        }
+        return valor;
+    }
+
     /** Execucoes do paciente (ou do BAM) na unidade da sessao, mais recentes primeiro. */
     @SuppressWarnings("unchecked")
     public List<Map<String, Object>> listar(String idpaciente, String bam, String unidade) {
@@ -154,8 +171,8 @@ public class ProtocoloExecucaoService {
             m.put("desfecho", l[8]);
             m.put("justificativa", l[9]);
             m.put("resumo", l[10]);
-            m.put("iniciadoEm", l[11] instanceof Timestamp t ? t.toLocalDateTime().toString() : l[11]);
-            m.put("encerradoEm", l[12] instanceof Timestamp t ? t.toLocalDateTime().toString() : l[12]);
+            m.put("iniciadoEm", horaGravada(l[11]));
+            m.put("encerradoEm", horaGravada(l[12]));
             m.put("registro", l[13]);
             saida.add(m);
         }

@@ -72,11 +72,28 @@ public class ApsReferenciaService {
         if (t.length() < 2) {
             return List.of();
         }
+        String[] palavras = t.split("\\s+");
+        // Como no PEC: farmaco isolado que comeca com o termo primeiro, depois associacoes, depois o resto.
+        java.util.function.ToIntFunction<Map<String, Object>> rank = m -> {
+            String pa = semAcento(String.valueOf(m.get("Princípio Ativo")));
+            boolean comeca = pa.startsWith(palavras[0]);
+            boolean associacao = pa.contains("+");
+            return comeca ? (associacao ? 1 : 0) : (associacao ? 3 : 2);
+        };
         return catmat().stream().filter(m -> {
-            String s = java.text.Normalizer.normalize((m.get("Princípio Ativo") + " " + m.get("Código CATMAT")).toLowerCase(),
-                    java.text.Normalizer.Form.NFD).replaceAll("\\p{M}", "");
-            return s.contains(t);
-        }).limit(Math.max(1, Math.min(limite, 100))).toList();
+            String s = semAcento(m.get("Princípio Ativo") + " " + m.get("Concentração") + " " + m.get("Código CATMAT"));
+            for (String p : palavras) {
+                if (!s.contains(p)) {
+                    return false;
+                }
+            }
+            return true;
+        }).sorted(java.util.Comparator.comparingInt(rank))
+                .limit(Math.max(1, Math.min(limite, 100))).toList();
+    }
+
+    private static String semAcento(String s) {
+        return java.text.Normalizer.normalize(s.toLowerCase(), java.text.Normalizer.Form.NFD).replaceAll("\\p{M}", "");
     }
 
     @SuppressWarnings("unchecked")

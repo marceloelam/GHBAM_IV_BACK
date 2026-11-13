@@ -186,12 +186,133 @@ public class CoordenacaoSetorResource {
             logSistema(s, "TENTATIVA RECUSADA de retirar " + pessoa(matricula) + " da equipe do setor " + setor + " | motivo: " + recusa, null);
             return erro(Response.Status.FORBIDDEN, recusa);
         }
+        // Sai da equipe sem levar o setor junto: desliga os mesmos interruptores que o painel mostra (perfil do grupo e
+        // acessos do menu do setor que quem retira gerencia), cada um auditado com a justificativa da retirada.
+        List<String> desligados = desligarAcessosDoSetor(s, setor, matricula, justificativa);
+        limparItens(s.unidade(), setor, matricula, s.matricula());
         em.createNativeQuery("UPDATE setor_coordenacao SET removido_em = now(), removido_por = :autor WHERE id = :id AND removido_em IS NULL")
                 .setParameter("autor", s.matricula()).setParameter("id", alvo.id()).executeUpdate();
         securityPermissionService.invalidateUserCache(matricula);
         logSistema(s, "RETIROU " + pessoa(matricula) + " da equipe do setor " + setor + (s.administrador() ? "" : " (pela coordenação)")
-                + " | justificativa: " + justificativa + " | os acessos atuais da pessoa não foram alterados", null);
-        return Response.ok(Map.of("setor", setor, "matricula", matricula, "removido", true)).build();
+                + " | justificativa: " + justificativa + " | acessos do setor desligados: "
+                + (desligados.isEmpty() ? "nenhum estava ligado" : String.join(", ", desligados)), null);
+        return Response.ok(Map.of("setor", setor, "matricula", matricula, "removido", true, "desligados", desligados)).build();
+    }
+
+    /**
+     * Servidores da unidade da sessão que o coordenador pode chamar para a equipe, com os setores em que já estão.
+     * A lista geral (servidor2/unidade) é só da administração; aqui vão apenas matrícula e nome.
+     */
+    @GET
+    @Path("equipes/candidatos")
+    @Transactional
+    public Response candidatos() {
+        Sessao s = sessao();
+        if (s == null) return erro(Response.Status.UNAUTHORIZED, "Unidade ou profissional não identificados na sessão.");
+        List<Vinculo> vinculos = vinculos(s.unidade());
+        if (!s.administrador() && setoresCoordenados(vinculos, s).isEmpty()) {
+            return erro(Response.Status.FORBIDDEN, "Você não coordena nenhum setor nesta unidade.");
+        }
+        Map<String, List<String>> ondeEsta = new LinkedHashMap<>();
+        for (Vinculo v : vinculos) {
+            ondeEsta.computeIfAbsent(v.matricula().toUpperCase(), k -> new ArrayList<>())
+                    .add(v.setor() + " (" + (RegrasCoordenacaoSetor.COORDENADOR.equals(v.papel()) ? "Coordenador" : "Equipe") + ")");
+        }
+        List<Map<String, Object>> out = new ArrayList<>();
+        for (Servidor2 s2 : servidor2Repository.filtarPorUnidadeDoServidor2(s.unidade())) {
+            // "unidade like X%" também pega unidades com o mesmo prefixo: confere a sigla exata.
+            if (!texto(s2.getUnidade()).split(":")[0].trim().equalsIgnoreCase(s.unidade())) continue;
+            String matricula = texto(s2.getMatricula());
+            if (matricula.isBlank()) continue;
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("matricula", matricula);
+            m.put("nome", texto(s2.getNome()));
+            m.put("ondeEsta", ondeEsta.getOrDefault(matricula.toUpperCase(), List.of()));
+            out.add(m);
+        }
+        return Response.ok(out).build();
+    }
+
+    /** O coordenador inclui alguém na equipe do setor que coordena (sempre como membro; coordenador é pela administração). */
+    @POST
+    @Path("equipes/incluir")
+    @Transactional
+    public Response incluirNaEquipe(Map<String, Object> dto) {
+        Sessao s = sessao();
+        if (s == null) return erro(Response.Status.UNAUTHORIZED, "Unidade ou profissional não identificados na sessão.");
+        String setor = texto(dto == null ? null : dto.get("setor"));
+        String matricula = texto(dto == null ? null : dto.get("matricula"));
+        if (setor.isBlank() || matricula.isBlank() || matricula.length() > 15) return erro(Response.Status.BAD_REQUEST, "Informe o setor e o servidor.");
+        List<Vinculo> vinculos = vinculos(s.unidade());
+        String recusa = null;
+        if (!s.administrador() && !setoresCoordenados(vinculos, s).contains(setor)) recusa = "Você não coordena este setor.";
+        else if (matricula.equalsIgnoreCase(s.matricula())) recusa = "Você não pode incluir a si mesmo.";
+        // Quem já está em algum setor (inclusive como coordenador) não entra em outro: a inclusão zera os acessos.
+        else if (vinculos.stream().anyMatch(v -> v.matricula().equalsIgnoreCase(matricula))) {
+            recusa = "O servidor já faz parte de um setor. Ele precisa ser retirado de lá antes.";
+        } else if (servidor2Repository.localizarMatricula(matricula) == null) recusa = "Matrícula sem cadastro de acessos.";
+        else {
+            String impedimento = motivoPerdaVinculo(matricula, s.unidade(), RegrasCoordenacaoSetor.MEMBRO);
+            if (impedimento != null) recusa = "Não é possível incluir: " + impedimento + ".";
+        }
+        Servidor alvoServidor = recusa == null ? servidorRepository.localizarMatricula(matricula) : null;
+        Servidor2 alvoAcessos = recusa == null ? servidor2Repository.localizarMatricula(matricula) : null;
+        if (recusa == null && (alvoServidor == null
+                || Boolean.TRUE.equals(alvoServidor.getAdministracao()) || Boolean.TRUE.equals(alvoServidor.getSubadm())
+                || Boolean.TRUE.equals(alvoAcessos.getSuperusuario()))) {
+            recusa = "Servidor da administração: só a administração altera os acessos dele.";
+        }
+        if (recusa != null) {
+            logSistema(s, "TENTATIVA RECUSADA de incluir " + pessoa(matricula) + " na equipe do setor " + setor + " | motivo: " + recusa, null);
+            return erro(Response.Status.FORBIDDEN, recusa);
+        }
+        em.createNativeQuery("""
+                INSERT INTO setor_coordenacao (unidade, setor, matricula, papel, incluido_por)
+                VALUES (:u, :s, :m, :p, :autor)
+                """).setParameter("u", s.unidade()).setParameter("s", setor).setParameter("m", matricula)
+                .setParameter("p", RegrasCoordenacaoSetor.MEMBRO).setParameter("autor", s.matricula()).executeUpdate();
+        // Entra em branco: todos os acessos e perfis concedíveis são desligados (um registro de auditoria por chave)
+        // e o coordenador liga o que a pessoa vai usar. Categoria do cargo e administração não são tocados.
+        List<String> zerados;
+        try {
+            zerados = zerarAcessos(s, setor, matricula, alvoServidor, alvoAcessos);
+            em.flush();
+        } catch (RuntimeException e) {
+            // Desfaz a inclusão (a exceção derruba a transação) e mostra o motivo na tela, em vez de um 500 mudo.
+            Throwable causa = e;
+            while (causa.getCause() != null && causa.getCause() != causa) causa = causa.getCause();
+            LOG.errorf(e, "Coordenacao de setor: falha ao zerar acessos de %s no setor %s", matricula, setor);
+            throw new jakarta.ws.rs.WebApplicationException(Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity(Map.of("erro", "Não foi possível incluir na equipe: " + texto(causa.getMessage()))).build());
+        }
+        securityPermissionService.invalidateUserCache(matricula);
+        logSistema(s, "INCLUIU " + pessoa(matricula) + " na equipe do setor " + setor + (s.administrador() ? "" : " (pela coordenação)")
+                + " | acessos anteriores desligados (" + zerados.size() + "): "
+                + (zerados.isEmpty() ? "nenhum estava ligado" : String.join(", ", zerados)), null);
+        return Response.ok(Map.of("setor", setor, "matricula", matricula, "nome", texto(alvoAcessos.getNome()), "zerados", zerados)).build();
+    }
+
+    private static final String JUSTIFICATIVA_INCLUSAO = "Inclusão na equipe do setor: acessos anteriores desligados";
+
+    private List<String> zerarAcessos(Sessao s, String setor, String matricula, Servidor alvoServidor, Servidor2 alvoAcessos) {
+        List<String> perfis = RegrasCoordenacaoSetor.perfisConcediveis().stream().sorted()
+                .filter(p -> Boolean.TRUE.equals(RegrasCoordenacaoSetor.valorPerfil(alvoServidor, p))).toList();
+        List<String> acessos = RegrasCoordenacaoSetor.chavesServidor2().stream()
+                .filter(c -> Boolean.TRUE.equals(RegrasCoordenacaoSetor.valor(alvoAcessos, c))).toList();
+        // Colunas vindas das listas fixas/da entidade, nunca do navegador.
+        if (!perfis.isEmpty()) {
+            em.createNativeQuery("UPDATE servidor SET " + String.join(", ", perfis.stream().map(p -> p + " = false").toList())
+                    + " WHERE idservidor = :id").setParameter("id", alvoServidor.getIdservidor()).executeUpdate();
+        }
+        if (!acessos.isEmpty()) {
+            em.createNativeQuery("UPDATE servidor2 SET " + String.join(", ", acessos.stream().map(c -> c + " = false").toList())
+                    + " WHERE idservidor2 = :id").setParameter("id", alvoAcessos.getIdservidor2()).executeUpdate();
+        }
+        List<String> zerados = new ArrayList<>();
+        perfis.forEach(p -> zerados.add(RegrasCoordenacaoSetor.PREFIXO_PERFIL + p));
+        zerados.addAll(acessos);
+        for (String chave : zerados) registrarAuditoria(s, setor, matricula, chave, Boolean.TRUE, false, JUSTIFICATIVA_INCLUSAO);
+        return zerados;
     }
 
     /**
@@ -207,7 +328,8 @@ public class CoordenacaoSetorResource {
         if (s == null) return erro(Response.Status.UNAUTHORIZED, "Unidade ou profissional não identificados na sessão.");
         AuthenticatedUser usuario = securityPermissionService.resolve(requestContext);
         if (s.administrador() || usuario.hasPermission("ksuperusuario") || usuario.hasPermission("superusuario")) {
-            return Response.ok(Map.of("unidade", s.unidade(), "restritos", List.of(), "equipes", List.of())).build();
+            return Response.ok(Map.of("unidade", s.unidade(), "restritos", List.of(), "equipes", List.of(),
+                    "itensOcultos", itensOcultos(s.matricula()))).build();
         }
         List<Vinculo> vinculos = vinculos(s.unidade());
         Set<String> comCoordenador = new LinkedHashSet<>();
@@ -216,8 +338,221 @@ public class CoordenacaoSetorResource {
             if (RegrasCoordenacaoSetor.COORDENADOR.equals(v.papel())) comCoordenador.add(v.setor());
             if (v.matricula().equalsIgnoreCase(s.matricula())) minhas.add(v.setor());
         }
-        List<String> restritos = comCoordenador.stream().filter(setor -> !minhas.contains(setor)).sorted().toList();
-        return Response.ok(Map.of("unidade", s.unidade(), "restritos", restritos, "equipes", List.copyOf(minhas))).build();
+        // Decisão do Marcelo (11/11/2026): quem está fora da equipe segue só o que a administração definiu em
+        // /servidores; ter coordenador no setor não fecha o menu a ninguém. A coordenação vale só para os membros.
+        List<String> restritos = List.of();
+        // Membro (não coordenador) só vê, no grupo do setor, os itens que o coordenador liberou.
+        // Setor sem coordenador ativo: vale só o cadastro feito pela administração (sem filtro de itens).
+        Map<String, List<String>> itens = new LinkedHashMap<>();
+        for (Vinculo v : vinculos) {
+            if (v.matricula().equalsIgnoreCase(s.matricula()) && RegrasCoordenacaoSetor.MEMBRO.equals(v.papel())
+                    && comCoordenador.contains(v.setor())) {
+                itens.put(v.setor(), itensLiberados(s.unidade(), v.setor(), s.matricula()));
+            }
+        }
+        return Response.ok(Map.of("unidade", s.unidade(), "restritos", restritos, "equipes", List.copyOf(minhas),
+                "itensLiberados", itens, "itensOcultos", itensOcultos(s.matricula()))).build();
+    }
+
+    /** { grupo: [rotas] } que a administração escondeu deste servidor na tela de servidores. */
+    @SuppressWarnings("unchecked")
+    private Map<String, List<String>> itensOcultos(String matricula) {
+        Map<String, List<String>> out = new LinkedHashMap<>();
+        try {
+            List<Object[]> rows = em.createNativeQuery("""
+                    SELECT grupo, rota FROM servidor_menu_item_oculto
+                    WHERE matricula = :m AND removido_em IS NULL ORDER BY grupo, rota
+                    """).setParameter("m", matricula).getResultList();
+            for (Object[] r : rows) out.computeIfAbsent(texto(r[0]), k -> new ArrayList<>()).add(texto(r[1]));
+        } catch (RuntimeException e) {
+            // Tabela ainda não migrada: nada escondido.
+        }
+        return out;
+    }
+
+    /** Acesso ligado e visível no menu deste setor (não desligado só nele). Mesma regra de acessoPorMenu.js. */
+    private static boolean visivelNoSetor(Servidor2 s2, String chave, String setor, Map<String, List<String>> ocultos) {
+        if (s2 == null || !Boolean.TRUE.equals(RegrasCoordenacaoSetor.valor(s2, chave))) return false;
+        List<String> rotas = RegrasCoordenacaoSetor.rotasDoAcesso(chave).getOrDefault(setor, List.of());
+        return rotas.isEmpty() || !ocultos.getOrDefault(setor, List.of()).containsAll(rotas);
+    }
+
+    private void ocultarRotas(String matricula, String grupo, List<String> rotas, boolean ocultar, String autor,
+                              Map<String, List<String>> ocultos) {
+        List<String> atuais = ocultos.computeIfAbsent(grupo, g -> new ArrayList<>());
+        for (String rota : rotas) {
+            if (ocultar == atuais.contains(rota)) continue;
+            if (ocultar) {
+                em.createNativeQuery("INSERT INTO servidor_menu_item_oculto (matricula, grupo, rota, incluido_por) VALUES (:m, :g, :r, :autor)")
+                        .setParameter("m", matricula).setParameter("g", grupo).setParameter("r", rota).setParameter("autor", autor).executeUpdate();
+                atuais.add(rota);
+            } else {
+                em.createNativeQuery("""
+                        UPDATE servidor_menu_item_oculto SET removido_em = now(), removido_por = :autor
+                        WHERE matricula = :m AND grupo = :g AND rota = :r AND removido_em IS NULL
+                        """).setParameter("autor", autor).setParameter("m", matricula).setParameter("g", grupo)
+                        .setParameter("r", rota).executeUpdate();
+                atuais.remove(rota);
+            }
+        }
+    }
+
+    /**
+     * Liga/desliga o acesso só no menu do setor. Ligar: chave ligada e item visível no setor; se a chave estava
+     * desligada, os outros grupos ficam ocultos. Desligar: oculta no setor; sem grupo visível, desliga a chave.
+     * Devolve o valor anterior no setor, ou null se nada mudou.
+     */
+    private Boolean alterarNoSetor(String setor, String matricula, Servidor2 alvo, String chave, boolean valor, String autor) {
+        Map<String, List<String>> ocultos = new LinkedHashMap<>();
+        itensOcultos(matricula).forEach((g, l) -> ocultos.put(g, new ArrayList<>(l)));
+        boolean anterior = visivelNoSetor(alvo, chave, setor, ocultos);
+        if (anterior == valor) return null;
+        boolean chaveLigada = Boolean.TRUE.equals(RegrasCoordenacaoSetor.valor(alvo, chave));
+        Map<String, List<String>> rotas = RegrasCoordenacaoSetor.rotasDoAcesso(chave);
+        List<String> doSetor = rotas.getOrDefault(setor, List.of());
+        // A coluna vem da lista de campos da entidade (validada por quem chama), nunca do texto do navegador.
+        if (doSetor.isEmpty()) {
+            em.createNativeQuery("UPDATE servidor2 SET " + chave + " = :v WHERE idservidor2 = :id")
+                    .setParameter("v", valor).setParameter("id", alvo.getIdservidor2()).executeUpdate();
+        } else if (valor) {
+            if (!chaveLigada) {
+                em.createNativeQuery("UPDATE servidor2 SET " + chave + " = true WHERE idservidor2 = :id")
+                        .setParameter("id", alvo.getIdservidor2()).executeUpdate();
+                rotas.forEach((g, r) -> { if (!g.equals(setor)) ocultarRotas(matricula, g, r, true, autor, ocultos); });
+            }
+            ocultarRotas(matricula, setor, doSetor, false, autor, ocultos);
+        } else {
+            ocultarRotas(matricula, setor, doSetor, true, autor, ocultos);
+            boolean visivelEmOutro = rotas.entrySet().stream()
+                    .anyMatch(e -> !ocultos.getOrDefault(e.getKey(), List.of()).containsAll(e.getValue()));
+            if (!visivelEmOutro) {
+                em.createNativeQuery("UPDATE servidor2 SET " + chave + " = false WHERE idservidor2 = :id")
+                        .setParameter("id", alvo.getIdservidor2()).executeUpdate();
+                rotas.forEach((g, r) -> ocultarRotas(matricula, g, r, false, autor, ocultos));
+            }
+        }
+        securityPermissionService.invalidateUserCache(matricula);
+        return anterior;
+    }
+
+    /** Administração: itens do menu escondidos de um servidor. */
+    @GET
+    @Path("gestao/menu-itens/{matricula}")
+    @Transactional
+    public Response menuItensDoServidor(@PathParam("matricula") String matricula) {
+        Sessao s = sessao();
+        Response negado = exigirAdministracao(s);
+        if (negado != null) return negado;
+        if (texto(matricula).isBlank() || matricula.length() > 15) return erro(Response.Status.BAD_REQUEST, "Matrícula inválida.");
+        return Response.ok(Map.of("matricula", matricula, "ocultos", itensOcultos(texto(matricula)))).build();
+    }
+
+    /** Administração: esconde ou volta a mostrar um item do menu para um servidor. Corpo: grupo, rota, nome, visivel. */
+    @PUT
+    @Path("gestao/menu-itens/{matricula}")
+    @Transactional
+    public Response alterarMenuItemDoServidor(@PathParam("matricula") String matriculaBruta, Map<String, Object> dto) {
+        Sessao s = sessao();
+        Response negado = exigirAdministracao(s);
+        if (negado != null) return negado;
+        String matricula = texto(matriculaBruta);
+        String grupo = texto(dto == null ? null : dto.get("grupo"));
+        String rota = texto(dto == null ? null : dto.get("rota"));
+        Object bruto = dto == null ? null : dto.get("visivel");
+        if (matricula.isBlank() || matricula.length() > 15 || grupo.isBlank() || grupo.length() > 120
+                || !ROTA_VALIDA.matcher(rota).matches() || !(bruto instanceof Boolean)) {
+            return erro(Response.Status.BAD_REQUEST, "Informe servidor, grupo do menu, item e se fica visível.");
+        }
+        if (servidor2Repository.localizarMatricula(matricula) == null) return erro(Response.Status.NOT_FOUND, "Matrícula sem cadastro de acessos.");
+        boolean visivel = (Boolean) bruto;
+        boolean oculto = itensOcultos(matricula).getOrDefault(grupo, List.of()).contains(rota);
+        if (oculto != visivel) return Response.ok(Map.of("rota", rota, "visivel", visivel, "alterado", false)).build();
+        if (!visivel) {
+            em.createNativeQuery("""
+                    INSERT INTO servidor_menu_item_oculto (matricula, grupo, rota, incluido_por) VALUES (:m, :g, :r, :autor)
+                    """).setParameter("m", matricula).setParameter("g", grupo).setParameter("r", rota)
+                    .setParameter("autor", s.matricula()).executeUpdate();
+        } else {
+            em.createNativeQuery("""
+                    UPDATE servidor_menu_item_oculto SET removido_em = now(), removido_por = :autor
+                    WHERE matricula = :m AND grupo = :g AND rota = :r AND removido_em IS NULL
+                    """).setParameter("autor", s.matricula()).setParameter("m", matricula).setParameter("g", grupo)
+                    .setParameter("r", rota).executeUpdate();
+        }
+        securityPermissionService.invalidateUserCache(matricula);
+        String nome = texto(dto.get("nome"));
+        logSistema(s, (visivel ? "MOSTROU" : "ESCONDEU") + " o item '" + (nome.isBlank() ? rota : nome) + "' (" + rota + ") do menu "
+                + grupo + " para " + pessoa(matricula), null);
+        return Response.ok(Map.of("rota", rota, "visivel", visivel, "alterado", true)).build();
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<String> itensLiberados(String unidade, String setor, String matricula) {
+        try {
+            return ((List<Object>) em.createNativeQuery("""
+                    SELECT rota FROM setor_membro_item
+                    WHERE unidade = :u AND setor = :s AND matricula = :m AND removido_em IS NULL ORDER BY rota
+                    """).setParameter("u", unidade).setParameter("s", setor).setParameter("m", matricula)
+                    .getResultList()).stream().map(String::valueOf).toList();
+        } catch (RuntimeException e) {
+            // Tabela ainda não migrada: sem itens liberados (o membro vê o grupo em branco).
+            return List.of();
+        }
+    }
+
+    private void limparItens(String unidade, String setor, String matricula, String autor) {
+        em.createNativeQuery("""
+                UPDATE setor_membro_item SET removido_em = now(), removido_por = :autor
+                WHERE unidade = :u AND setor = :s AND matricula = :m AND removido_em IS NULL
+                """).setParameter("autor", autor).setParameter("u", unidade).setParameter("s", setor)
+                .setParameter("m", matricula).executeUpdate();
+    }
+
+    private static final java.util.regex.Pattern ROTA_VALIDA = java.util.regex.Pattern.compile("^/[A-Za-z0-9_\\-/]{1,199}$");
+
+    /** Libera ou retira um item do menu do setor para um membro. Corpo: setor, matricula, rota, valor. */
+    @PUT
+    @Path("equipes/item")
+    @Transactional
+    public Response alterarItem(Map<String, Object> dto) {
+        Sessao s = sessao();
+        if (s == null) return erro(Response.Status.UNAUTHORIZED, "Unidade ou profissional não identificados na sessão.");
+        String setor = texto(dto == null ? null : dto.get("setor"));
+        String matricula = texto(dto == null ? null : dto.get("matricula"));
+        String rota = texto(dto == null ? null : dto.get("rota"));
+        Object bruto = dto == null ? null : dto.get("valor");
+        if (setor.isBlank() || matricula.isBlank() || !ROTA_VALIDA.matcher(rota).matches() || !(bruto instanceof Boolean)) {
+            return erro(Response.Status.BAD_REQUEST, "Informe setor, servidor, item do menu e o novo valor.");
+        }
+        boolean valor = (Boolean) bruto;
+        List<Vinculo> vinculos = vinculos(s.unidade());
+        boolean coordena = setoresCoordenados(vinculos, s).contains(setor);
+        String papelAlvo = vinculos.stream()
+                .filter(v -> v.setor().equals(setor) && v.matricula().equalsIgnoreCase(matricula))
+                .map(Vinculo::papel).findFirst().orElse(null);
+        String recusa = RegrasCoordenacaoSetor.recusaVinculo(s.administrador(), coordena, papelAlvo, s.matricula(), matricula);
+        if (recusa != null) {
+            logSistema(s, "TENTATIVA RECUSADA de " + (valor ? "liberar" : "retirar") + " o item " + rota + " de "
+                    + pessoa(matricula) + " no setor " + setor + " | motivo: " + recusa, null);
+            return erro(Response.Status.FORBIDDEN, recusa);
+        }
+        boolean anterior = itensLiberados(s.unidade(), setor, matricula).contains(rota);
+        if (anterior == valor) return Response.ok(Map.of("rota", rota, "valor", valor, "alterado", false)).build();
+        if (valor) {
+            em.createNativeQuery("""
+                    INSERT INTO setor_membro_item (unidade, setor, matricula, rota, incluido_por) VALUES (:u, :s, :m, :r, :autor)
+                    """).setParameter("u", s.unidade()).setParameter("s", setor).setParameter("m", matricula)
+                    .setParameter("r", rota).setParameter("autor", s.matricula()).executeUpdate();
+        } else {
+            em.createNativeQuery("""
+                    UPDATE setor_membro_item SET removido_em = now(), removido_por = :autor
+                    WHERE unidade = :u AND setor = :s AND matricula = :m AND rota = :r AND removido_em IS NULL
+                    """).setParameter("autor", s.matricula()).setParameter("u", s.unidade()).setParameter("s", setor)
+                    .setParameter("m", matricula).setParameter("r", rota).executeUpdate();
+        }
+        String nomeItem = texto(dto.get("nome"));
+        auditar(s, setor, matricula, "item:" + rota, anterior, valor, nomeItem.isBlank() ? null : "Item do menu: " + nomeItem);
+        return Response.ok(Map.of("rota", rota, "valor", valor, "alterado", true)).build();
     }
 
     private static Set<String> setoresCoordenados(List<Vinculo> vinculos, Sessao s) {
@@ -230,9 +565,18 @@ public class CoordenacaoSetorResource {
         return out;
     }
 
+    /**
+     * Acessos que a coordenação liga e desliga: tudo, menos os reservados à administração. Decisão do Marcelo
+     * (11/11/2026): "tudo que tem no menu pode ser habilitado ou não" — o coordenador não precisa ter o acesso.
+     * O filtro por setor (só os itens do menu do grupo) é feito em acessosDoSetor.
+     */
+    /** Todas as colunas de acesso, menos superusuário: o filtro pelo menu do setor vem de acessosDoSetor. */
+    private static List<String> itensDoMenu() {
+        return RegrasCoordenacaoSetor.chavesServidor2().stream().filter(c -> !"superusuario".equals(c)).toList();
+    }
+
     private List<String> concediveis(Sessao s) {
-        Set<String> doAutor = s.administrador() ? Set.of() : RegrasCoordenacaoSetor.ligados(servidor2Repository.localizarMatricula(s.matricula()));
-        return RegrasCoordenacaoSetor.concediveis(RegrasCoordenacaoSetor.chavesServidor2(), doAutor, s.administrador());
+        return RegrasCoordenacaoSetor.concediveis(RegrasCoordenacaoSetor.chavesServidor2(), Set.of(), true);
     }
 
     /** Equipes que a sessao coordena (administracao: todas da unidade), com os acessos concediveis de cada membro. */
@@ -246,15 +590,14 @@ public class CoordenacaoSetorResource {
         Set<String> setores = setoresCoordenados(vinculos, s);
         if (!s.administrador() && setores.isEmpty()) return erro(Response.Status.FORBIDDEN, "Você não coordena nenhum setor nesta unidade.");
         List<String> chaves = concediveis(s);
-        Servidor autor = s.administrador() ? null : servidorRepository.localizarMatricula(s.matricula());
 
         List<Map<String, Object>> lista = new ArrayList<>();
         for (String setor : setores) {
             // Cada setor (grupo do menu) concede so os acessos e perfis que abrem aquele grupo.
-            List<String> chavesSetor = RegrasCoordenacaoSetor.acessosDoSetor(setor, chaves);
-            List<String> perfisSetor = RegrasCoordenacaoSetor.perfisDoSetor(setor).stream()
-                    .filter(p -> s.administrador() || Boolean.TRUE.equals(RegrasCoordenacaoSetor.valorPerfil(autor, p)))
-                    .toList();
+            // Mesma lista da tela de servidores: só os itens do menu do grupo, todos alteráveis pela coordenação.
+            List<String> chavesSetor = RegrasCoordenacaoSetor.acessosDoSetor(setor, new ArrayList<>(RegrasCoordenacaoSetor.chavesServidor2()));
+            // Perfil do grupo: a coordenação liga mesmo sem tê-lo (a regra do cargo continua valendo).
+            List<String> perfisSetor = RegrasCoordenacaoSetor.perfisDoSetor(setor);
             List<Map<String, Object>> coordenadores = new ArrayList<>();
             List<Map<String, Object>> membros = new ArrayList<>();
             for (Vinculo v : vinculos) {
@@ -278,9 +621,13 @@ public class CoordenacaoSetorResource {
                         String motivo = alvo == null ? "Servidor não encontrado." : RegrasCoordenacaoSetor.recusaPerfil(perfil, alvo.getCargo());
                         if (motivo != null && !ligado) bloqueios.put(chave, motivo);
                     }
-                    for (String chave : chavesSetor) valores.put(chave, Boolean.TRUE.equals(RegrasCoordenacaoSetor.valor(s2, chave)));
+                    Map<String, List<String>> ocultosMembro = itensOcultos(v.matricula());
+                    for (String chave : chavesSetor) {
+                        valores.put(chave, visivelNoSetor(s2, chave, setor, ocultosMembro));
+                    }
                     pessoa.put("valores", valores);
                     pessoa.put("bloqueios", bloqueios);
+                    pessoa.put("itens", itensLiberados(s.unidade(), setor, v.matricula()));
                 }
                 (RegrasCoordenacaoSetor.COORDENADOR.equals(v.papel()) ? coordenadores : membros).add(pessoa);
             }
@@ -329,8 +676,12 @@ public class CoordenacaoSetorResource {
             return alterarPerfil(s, setor, matricula, chave.substring(RegrasCoordenacaoSetor.PREFIXO_PERFIL.length()),
                     valor, justificativa, coordena, papelAlvo);
         }
-        List<String> chaves = concediveis(s);
-        String recusa = RegrasCoordenacaoSetor.recusa(s.administrador(), coordena, papelAlvo, s.matricula(), matricula, chave, chaves);
+        // Item do menu do setor: a coordenação liga e desliga, mesmo os reservados (decisão do Marcelo, 11/11/2026).
+        // A chave precisa ser coluna de servidor2 (vai para o UPDATE); superusuário nunca.
+        String recusa = RegrasCoordenacaoSetor.recusaVinculo(s.administrador(), coordena, papelAlvo, s.matricula(), matricula);
+        if (recusa == null && (!RegrasCoordenacaoSetor.chavesServidor2().contains(chave) || "superusuario".equals(chave))) {
+            recusa = "Acesso inválido.";
+        }
         if (recusa == null && RegrasCoordenacaoSetor.acessosDoSetor(setor, List.of(chave)).isEmpty()) {
             recusa = "Este acesso não pertence ao menu deste setor.";
         }
@@ -343,13 +694,11 @@ public class CoordenacaoSetorResource {
         }
         Servidor2 alvo = servidor2Repository.localizarMatricula(matricula);
         if (alvo == null) return erro(Response.Status.NOT_FOUND, "O servidor não tem cadastro de acessos.");
-        Boolean anterior = RegrasCoordenacaoSetor.valor(alvo, chave);
-        if (Boolean.valueOf(valor).equals(anterior)) {
+        // Só no menu deste setor (cada menu liga o seu).
+        Boolean anterior = alterarNoSetor(setor, matricula, alvo, chave, valor, s.matricula());
+        if (anterior == null) {
             return Response.ok(Map.of("matricula", matricula, "chave", chave, "valor", valor, "alterado", false)).build();
         }
-        // A coluna vem da lista de campos da entidade (validada em recusa), nunca do texto do navegador.
-        em.createNativeQuery("UPDATE servidor2 SET " + chave + " = :v WHERE idservidor2 = :id")
-                .setParameter("v", valor).setParameter("id", alvo.getIdservidor2()).executeUpdate();
         auditar(s, setor, matricula, chave, anterior, valor, justificativa);
         return Response.ok(Map.of("matricula", matricula, "chave", chave, "valor", valor, "alterado", true)).build();
     }
@@ -366,10 +715,6 @@ public class CoordenacaoSetorResource {
         if (recusa == null && alvo == null) recusa = "Servidor não encontrado.";
         // Desligar sempre pode (inclusive perfil antigo fora da regra do cargo); ligar respeita o cargo.
         if (recusa == null && valor) recusa = RegrasCoordenacaoSetor.recusaPerfil(perfil, alvo.getCargo());
-        if (recusa == null && !s.administrador()
-                && !Boolean.TRUE.equals(RegrasCoordenacaoSetor.valorPerfil(servidorRepository.localizarMatricula(s.matricula()), perfil))) {
-            recusa = "Você só pode conceder perfis que você mesmo possui.";
-        }
         if (recusa != null) {
             LOG.warnf("Coordenacao de setor recusou perfil. autor=%s alvo=%s setor=%s perfil=%s motivo=%s",
                     s.matricula(), matricula, setor, perfil, recusa);
@@ -385,10 +730,65 @@ public class CoordenacaoSetorResource {
         em.createNativeQuery("UPDATE servidor SET " + perfil + " = :v WHERE idservidor = :id")
                 .setParameter("v", valor).setParameter("id", alvo.getIdservidor()).executeUpdate();
         auditar(s, setor, matricula, chave, anterior, valor, justificativa);
-        return Response.ok(Map.of("matricula", matricula, "chave", chave, "valor", valor, "alterado", true)).build();
+        // Mesmo modelo da tela de servidores (Marcelo, 11/11/2026): desligar o perfil desliga os itens do menu do
+        // setor (só neste menu); ligar não liga nada.
+        List<String> desligados = new ArrayList<>();
+        Servidor2 acessos = valor ? null : servidor2Repository.localizarMatricula(matricula);
+        if (acessos != null) {
+            for (String item : RegrasCoordenacaoSetor.acessosDoSetor(setor, itensDoMenu())) {
+                if (alterarNoSetor(setor, matricula, acessos, item, false, s.matricula()) == null) continue;
+                auditar(s, setor, matricula, item, Boolean.TRUE, false, "Perfil " + perfil + " desligado: itens do menu " + setor);
+                desligados.add(item);
+            }
+        }
+        return Response.ok(Map.of("matricula", matricula, "chave", chave, "valor", valor, "alterado", true, "desligados", desligados)).build();
+    }
+
+    /**
+     * Desliga o perfil e os acessos do setor que estão ligados para o servidor, restrito ao que quem retira
+     * gerencia (mesma lista do painel da equipe). Desligar não tem regra de cargo. Devolve as chaves desligadas.
+     */
+    private List<String> desligarAcessosDoSetor(Sessao s, String setor, String matricula, String justificativa) {
+        List<String> desligados = new ArrayList<>();
+        Servidor alvoServidor = servidorRepository.localizarMatricula(matricula);
+        if (alvoServidor != null) {
+            for (String perfil : RegrasCoordenacaoSetor.perfisDoSetor(setor)) {
+                if (!Boolean.TRUE.equals(RegrasCoordenacaoSetor.valorPerfil(alvoServidor, perfil))) continue;
+                // A coluna vem de perfisDoSetor (lista fixa), nunca do navegador.
+                em.createNativeQuery("UPDATE servidor SET " + perfil + " = false WHERE idservidor = :id")
+                        .setParameter("id", alvoServidor.getIdservidor()).executeUpdate();
+                String chave = RegrasCoordenacaoSetor.PREFIXO_PERFIL + perfil;
+                auditar(s, setor, matricula, chave, Boolean.TRUE, false, justificativa);
+                desligados.add(chave);
+            }
+        }
+        Servidor2 alvo = servidor2Repository.localizarMatricula(matricula);
+        if (alvo != null) {
+            for (String chave : RegrasCoordenacaoSetor.acessosDoSetor(setor, itensDoMenu())) {
+                // Só no menu deste setor: o que está ligado em outro menu continua lá.
+                if (alterarNoSetor(setor, matricula, alvo, chave, false, s.matricula()) == null) continue;
+                auditar(s, setor, matricula, chave, Boolean.TRUE, false, justificativa);
+                desligados.add(chave);
+            }
+        }
+        return desligados;
     }
 
     private void auditar(Sessao s, String setor, String matricula, String chave, Boolean anterior, boolean valor, String justificativa) {
+        registrarAuditoria(s, setor, matricula, chave, anterior, valor, justificativa);
+        securityPermissionService.invalidateUserCache(matricula);
+        LOG.infof("Coordenacao de setor alterou acesso. autor=%s alvo=%s setor=%s chave=%s %s->%s",
+                s.matricula(), matricula, setor, chave, anterior, valor);
+        boolean perfil = chave.startsWith(RegrasCoordenacaoSetor.PREFIXO_PERFIL);
+        String item = perfil ? "o perfil '" + chave.substring(RegrasCoordenacaoSetor.PREFIXO_PERFIL.length()) + "'" : "o acesso '" + chave + "'";
+        logSistema(s, (valor ? "LIBEROU " : "RETIROU ") + item + (valor ? " para " : " de ") + pessoa(matricula)
+                + " no setor " + setor + " | antes: " + (Boolean.TRUE.equals(anterior) ? "ligado" : "desligado")
+                + ", agora: " + (valor ? "ligado" : "desligado")
+                + (justificativa == null || justificativa.isBlank() ? "" : " | justificativa: " + justificativa), null);
+    }
+
+    /** Linha na trilha setor_permissao_auditoria (sem log do sistema: quem chama em lote registra um só). */
+    private void registrarAuditoria(Sessao s, String setor, String matricula, String chave, Boolean anterior, boolean valor, String justificativa) {
         em.createNativeQuery("""
                 INSERT INTO setor_permissao_auditoria
                     (unidade, setor, matricula_autor, nome_autor, matricula_alvo, chave, valor_anterior, valor_novo, justificativa)
@@ -400,15 +800,6 @@ public class CoordenacaoSetorResource {
                 .setParameter("anterior", anterior).setParameter("novo", valor)
                 .setParameter("just", justificativa == null || justificativa.isBlank() ? null : justificativa)
                 .executeUpdate();
-        securityPermissionService.invalidateUserCache(matricula);
-        LOG.infof("Coordenacao de setor alterou acesso. autor=%s alvo=%s setor=%s chave=%s %s->%s",
-                s.matricula(), matricula, setor, chave, anterior, valor);
-        boolean perfil = chave.startsWith(RegrasCoordenacaoSetor.PREFIXO_PERFIL);
-        String item = perfil ? "o perfil '" + chave.substring(RegrasCoordenacaoSetor.PREFIXO_PERFIL.length()) + "'" : "o acesso '" + chave + "'";
-        logSistema(s, (valor ? "LIBEROU " : "RETIROU ") + item + (valor ? " para " : " de ") + pessoa(matricula)
-                + " no setor " + setor + " | antes: " + (Boolean.TRUE.equals(anterior) ? "ligado" : "desligado")
-                + ", agora: " + (valor ? "ligado" : "desligado")
-                + (justificativa == null || justificativa.isBlank() ? "" : " | justificativa: " + justificativa), null);
     }
 
     /** Ultimas alteracoes nos setores que a sessao coordena (administracao: todos da unidade). */
@@ -700,6 +1091,8 @@ public class CoordenacaoSetorResource {
             logSistema(s, "TENTATIVA RECUSADA de incluir " + pessoa(matricula) + " no setor " + setor + " | motivo: " + impedimento, null);
             return erro(Response.Status.BAD_REQUEST, "Não é possível incluir: " + impedimento + ".");
         }
+        // Já em alguma equipe da unidade: não zera de novo (apagaria o que o outro coordenador ligou).
+        boolean primeiraEquipe = vinculos(s.unidade()).stream().noneMatch(v -> v.matricula().equalsIgnoreCase(matricula));
         int trocados = em.createNativeQuery("""
                 UPDATE setor_coordenacao SET papel = :p
                 WHERE unidade = :u AND setor = :s AND matricula = :m AND removido_em IS NULL
@@ -712,11 +1105,25 @@ public class CoordenacaoSetorResource {
                     """).setParameter("u", s.unidade()).setParameter("s", setor).setParameter("m", matricula)
                     .setParameter("p", papel).setParameter("autor", s.matricula()).executeUpdate();
         }
+        // Membro novo entra em branco, como na inclusão pelo coordenador (antes esta porta mantinha os acessos antigos).
+        // Não zera: troca de papel, coordenador, e servidor da administração/superusuário.
+        List<String> zerados = List.of();
+        if (trocados == 0 && primeiraEquipe && RegrasCoordenacaoSetor.MEMBRO.equals(papel)) {
+            Servidor alvoServidor = servidorRepository.localizarMatricula(matricula);
+            boolean daAdministracao = alvoServidor == null
+                    || Boolean.TRUE.equals(alvoServidor.getAdministracao()) || Boolean.TRUE.equals(alvoServidor.getSubadm())
+                    || Boolean.TRUE.equals(s2.getSuperusuario());
+            if (!daAdministracao) {
+                zerados = zerarAcessos(s, setor, matricula, alvoServidor, s2);
+                em.flush();
+            }
+        }
         securityPermissionService.invalidateUserCache(matricula);
         LOG.infof("Coordenacao de setor: %s incluiu %s como %s em %s/%s", s.matricula(), matricula, papel, s.unidade(), setor);
         logSistema(s, (trocados > 0 ? "ALTEROU O PAPEL de " : "INCLUIU ") + pessoa(matricula) + " como "
-                + (RegrasCoordenacaoSetor.COORDENADOR.equals(papel) ? "COORDENADOR" : "EQUIPE") + " do setor " + setor, null);
-        return Response.ok(Map.of("setor", setor, "matricula", matricula, "nome", texto(s2.getNome()), "papel", papel)).build();
+                + (RegrasCoordenacaoSetor.COORDENADOR.equals(papel) ? "COORDENADOR" : "EQUIPE") + " do setor " + setor
+                + (zerados.isEmpty() ? "" : " | acessos anteriores desligados (" + zerados.size() + "): " + String.join(", ", zerados)), null);
+        return Response.ok(Map.of("setor", setor, "matricula", matricula, "nome", texto(s2.getNome()), "papel", papel, "zerados", zerados)).build();
     }
 
     @POST
@@ -734,6 +1141,7 @@ public class CoordenacaoSetorResource {
         em.createNativeQuery("UPDATE setor_coordenacao SET removido_em = now(), removido_por = :autor WHERE id = :id")
                 .setParameter("autor", s.matricula()).setParameter("id", id).executeUpdate();
         String matriculaRemovida = texto(vinculo.get(0)[0]);
+        limparItens(s.unidade(), texto(vinculo.get(0)[1]), matriculaRemovida, s.matricula());
         securityPermissionService.invalidateUserCache(matriculaRemovida);
         logSistema(s, "RETIROU " + pessoa(matriculaRemovida) + " do setor " + texto(vinculo.get(0)[1]) + " (era "
                 + (RegrasCoordenacaoSetor.COORDENADOR.equals(texto(vinculo.get(0)[2])) ? "COORDENADOR" : "EQUIPE")

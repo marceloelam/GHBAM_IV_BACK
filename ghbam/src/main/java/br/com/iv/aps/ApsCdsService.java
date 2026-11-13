@@ -4,6 +4,8 @@ import static br.com.iv.aps.ApsConfiguracaoService.num;
 import static br.com.iv.aps.ApsConfiguracaoService.str;
 import static br.com.iv.aps.ApsDb.p;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -75,6 +77,7 @@ public class ApsCdsService {
                 }
             }
         }
+        completarObrigatorios(tipo, dados, ApsCidadaoService.dataRegistro(body.get("data")));
         if (tipo == 8) {
             for (Map<String, Object> v : (List<Map<String, Object>>) dados.getOrDefault("visitasDomiciliares", List.of())) {
                 v.putIfAbsent("turno", ApsLediBuilder.turno(null));
@@ -95,6 +98,61 @@ public class ApsCdsService {
         Map<String, Object> limpo = ApsLediBuilder.limpar(dados);
         return fichas.registrar(new ApsFichaService.Registro(tipo, limpo, lot, ApsCidadaoService.dataRegistro(body.get("data")),
                 idCidadao, idDomicilio, null, str(body.get("origem")) == null ? "CDS" : str(body.get("origem")), null, compartilhada));
+    }
+
+    /**
+     * LEDI 8.7: turno e obrigatorio no child de FP (7) e FAD (10) e na raiz de FAE (11) e FCZM (13);
+     * a FP exige ainda data/hora inicial e final. O serializador nao acusa a falta (campos optional no
+     * .thrift) - sem isto a ficha so seria rejeitada pelo Centralizador, na transmissao.
+     */
+    @SuppressWarnings("unchecked")
+    static void completarObrigatorios(int tipo, Map<String, Object> dados, LocalDate data) {
+        LocalDateTime agora = LocalDateTime.now().withSecond(0).withNano(0);
+        LocalDateTime fim = data.equals(agora.toLocalDate()) ? agora : data.atTime(12, 0);
+        LocalDateTime inicio = fim.minusMinutes(10).toLocalDate().equals(data) ? fim.minusMinutes(10) : data.atStartOfDay();
+        int turno = ApsLediBuilder.turno(fim);
+        switch (tipo) {
+            case 7 -> {
+                for (Map<String, Object> c : (List<Map<String, Object>>) dados.getOrDefault("atendProcedimentos", List.of())) {
+                    c.putIfAbsent("turno", turno);
+                    c.putIfAbsent("dataHoraInicialAtendimento", inicio.toString());
+                    c.putIfAbsent("dataHoraFinalAtendimento", fim.toString());
+                }
+            }
+            case 10 -> {
+                for (Map<String, Object> c : (List<Map<String, Object>>) dados.getOrDefault("atendimentosDomiciliares", List.of())) {
+                    c.putIfAbsent("turno", turno);
+                    Integer tipoAtend = ApsCidadaoService.intOrNull(c.get("tipoAtendimento"));
+                    if (tipoAtend == null || tipoAtend < 7 || tipoAtend > 9) {
+                        throw new IllegalArgumentException("Informe o tipo de atendimento domiciliar (programado, nao programado ou pos-obito).");
+                    }
+                    if (tipoAtend == 9) {
+                        // dic-fad: pos-obito nao leva modalidade, condicoes avaliadas nem procedimentos.
+                        c.remove("atencaoDomiciliarModalidade");
+                        c.remove("condicoesAvaliadas");
+                        c.remove("procedimentos");
+                    } else if (ApsCidadaoService.intOrNull(c.get("atencaoDomiciliarModalidade")) == null) {
+                        throw new IllegalArgumentException("Informe a modalidade AD (AD1, AD2 ou AD3).");
+                    }
+                    if (c.get("condutaDesfecho") == null) {
+                        throw new IllegalArgumentException("Informe a conduta/desfecho do atendimento domiciliar.");
+                    }
+                    Object probs = c.get("problemasCondicoes");
+                    if (!(probs instanceof List<?> lp) || lp.isEmpty()) {
+                        throw new IllegalArgumentException("Registre ao menos um problema/condicao avaliado (CIAP2 ou CID10).");
+                    }
+                    for (Object o : lp) {
+                        // situacao so pode ir junto com uuidProblema/uuidEvolucaoProblema/coSequencialEvolucao.
+                        if (o instanceof Map<?, ?> pc && pc.get("uuidProblema") == null) {
+                            ((Map<String, Object>) pc).remove("situacao");
+                        }
+                    }
+                }
+            }
+            case 11, 13 -> dados.putIfAbsent("turno", turno);
+            default -> {
+            }
+        }
     }
 
     @SuppressWarnings("unchecked")

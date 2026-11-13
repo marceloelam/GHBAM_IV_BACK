@@ -170,6 +170,12 @@ public class ApsDomicilioService {
             if (cpfResp == null && cnsResp == null) {
                 throw new IllegalArgumentException("Cada familia precisa do CPF ou CNS do responsavel familiar.");
             }
+            if (cpfResp != null && !ApsValidacao.cpfValido(cpfResp)) {
+                throw new IllegalArgumentException("CPF do responsavel familiar invalido. Corrija o CPF ou informe o CNS.");
+            }
+            if (cpfResp == null && !ApsValidacao.cnsValido(cnsResp)) {
+                throw new IllegalArgumentException("CNS do responsavel familiar invalido.");
+            }
             Map<String, Object> fp = p("dom", id, "idResp", idResp, "cpf", cpfResp, "cns", cnsResp,
                     "nasc", isoDate(f.get("dataNascimentoResponsavel")), "pront", str(f.get("numeroProntuario")),
                     "membros", intOrNull(f.get("numeroMembros")), "renda", intOrNull(f.get("rendaFamiliar")),

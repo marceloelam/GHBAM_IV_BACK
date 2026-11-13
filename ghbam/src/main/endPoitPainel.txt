@@ -5,5 +5,5 @@ http://localhost:8080/localcenso/unidadenir/HMSFX  --- sem bloqueio da API
 http://localhost:8080/resumomedico/data/2025-06-30/unidade/HMSFX  --- sem bloqueio da API
 http://localhost:8080/novointernado/ativos/HMSFX  --- sem bloqueio da API
 http://localhost:8080/avaliacao/unidadeclass/HMSFX/data/2025-06-30  --- sem bloqueio da API
-http://10.200.200.120:8080/avaliacao/completo/HMSFX/data/2025-07-03  --- sem bloqueio da API --- Total de cada cor
+http://localhost:8080/avaliacao/completo/HMSFX/data/2025-07-03  --- sem bloqueio da API --- Total de cada cor
 http://localhost:8080/avaliacao/unidadever/HMSFX/data/2025-07-10 --- com bloqueio da API
