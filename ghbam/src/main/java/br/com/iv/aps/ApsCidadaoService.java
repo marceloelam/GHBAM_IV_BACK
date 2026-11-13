@@ -195,6 +195,16 @@ public class ApsCidadaoService {
         String cns = ApsValidacao.digitos((String) pac.get("cns"));
         Map<String, Object> dup = duplicado(cpf, cns, null);
         if (dup != null) {
+            // Mesmo CPF/CNS com outra data de nascimento = outra pessoa (erro de digitacao no hospital):
+            // nao junta em silencio, senao o atendimento cai no prontuario errado.
+            String nascPac = dataPaciente((String) pac.get("nascimento"));
+            Map<String, Object> d = db.one("SELECT CAST(data_nascimento AS varchar) AS nasc FROM aps_cidadao WHERE id = :id",
+                    p("id", dup.get("id")));
+            String nascDup = d == null ? null : (String) d.get("nasc");
+            if (nascPac != null && nascDup != null && !nascPac.equals(nascDup)) {
+                throw new IllegalArgumentException("O CPF/CNS deste paciente ja pertence a outro cidadao da APS ("
+                        + dup.get("nome") + ", nascido em " + nascDup + "). Corrija o CPF/CNS no cadastro do hospital antes de importar.");
+            }
             db.exec("UPDATE aps_cidadao SET id_paciente = :p WHERE id = :id AND id_paciente IS NULL",
                     p("p", idPaciente, "id", dup.get("id")));
             return obter(((Number) dup.get("id")).longValue());
@@ -204,8 +214,9 @@ public class ApsCidadaoService {
                 INSERT INTO aps_cidadao (id_paciente, cpf, cns, nome, data_nascimento, sexo, nome_mae, telefone, unidade, criado_por, atualizado_por)
                 VALUES (:idp, :cpf, :cns, :nome, CAST(:nasc AS date), :sexo, :mae, :tel, :unidade, :m, :m)
                 RETURNING id
-                """, p("idp", idPaciente, "cpf", cpf != null && cpf.length() == 11 ? cpf : null,
-                "cns", cns != null && cns.length() == 15 ? cns : null, "nome", pac.get("nome"), "nasc", nasc,
+                """, p("idp", idPaciente, "cpf", ApsValidacao.cpfValido(cpf) ? cpf : null,
+                // CPF/CNS invalido do hospital (ex.: 111.111.111-11) fica de fora: o Centralizador rejeitaria todas as fichas.
+                "cns", ApsValidacao.cnsValido(cns) ? cns : null, "nome", pac.get("nome"), "nasc", nasc,
                 "sexo", sexoLedi((String) pac.get("sexo")), "mae", pac.get("mae"), "tel", telefoneImportado((String) pac.get("telefone")),
                 "unidade", unidade, "m", matricula));
         return obter(id);
@@ -294,6 +305,12 @@ public class ApsCidadaoService {
         }
         String nascIso = isoDate(ident.get("dataNascimentoCidadao"));
         Long idPaciente = num(body.get("idPaciente"));
+        if (idPaciente == null && idCidadao != null) {
+            // Atualizacao sem idPaciente no corpo (API/app do ACS): reaproveita o vinculo existente
+            // em vez de cair em criarPacienteHospital e duplicar o paciente no hospital.
+            Map<String, Object> atual = db.one("SELECT id_paciente FROM aps_cidadao WHERE id = :id", p("id", idCidadao));
+            idPaciente = atual == null ? null : num(atual.get("id_paciente"));
+        }
         if (idPaciente == null) {
             idPaciente = vincularPaciente(cpf, cns);
         }

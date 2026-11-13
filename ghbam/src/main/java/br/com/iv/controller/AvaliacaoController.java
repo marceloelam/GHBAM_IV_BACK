@@ -71,6 +71,8 @@ public class AvaliacaoController {
 	public Response riscoCompletoPorUnidade(@PathParam("unidade") String unidade,
 			@PathParam("dataRequerida") String dataRequerida) {
 		try {
+			dataRequerida = dataRequerida == null ? "" : dataRequerida.trim();
+			java.time.LocalDate.parse(dataRequerida);
 			Map<String, Map<String, Long>> contagem = avaliacaoService.listarClassificacaoDeRisco(unidade,
 					dataRequerida);
 
@@ -123,8 +125,6 @@ public class AvaliacaoController {
 	public Response contagemDeAtendimentosAnoPorSetor(@PathParam("unidade") String unidade, @PathParam("data") String data) {
 		return Response.ok(avaliacaoService.contagemDeAtendimentosAnoPorSetor(unidade, data)).build();
 	}
-	
-	
 
 	@GET
 	@Path("/avaliado/{idavaliacao}/avaliacao/{num}")

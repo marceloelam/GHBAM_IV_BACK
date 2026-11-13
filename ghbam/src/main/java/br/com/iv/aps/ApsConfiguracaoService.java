@@ -151,16 +151,24 @@ public class ApsConfiguracaoService {
                 """, p("unidade", ApsFichaService.vazioParaNulo(unidade), "idEquipe", idEquipe));
     }
 
+    /** ACS e profissionais de ESF/eSB: lotacao sem equipe nao faz sentido. */
+    static final java.util.Set<String> CBO_EXIGE_EQUIPE = java.util.Set.of(
+            "515105", // agente comunitario de saude
+            "225142", // medico da estrategia de saude da familia
+            "223565", // enfermeiro da estrategia de saude da familia
+            "322245", // tecnico de enfermagem da estrategia de saude da familia
+            "223293", // cirurgiao-dentista da estrategia de saude da familia
+            "322425"); // auxiliar em saude bucal da estrategia de saude da familia
+
     @Transactional
     public Map<String, Object> salvarLotacao(Map<String, Object> body, String unidadeSessao) {
         String matricula = str(body.get("matricula"));
         String unidade = str(unidadeSessao);
         if (matricula != null && unidade != null) {
             exigirServidorDaUnidade(matricula, unidade);
-            if (num(body.get("id_equipe")) == null) {
-                throw new IllegalArgumentException("Selecione a equipe (INE) da lotacao.");
+            if (num(body.get("id_equipe")) != null) {
+                exigirEquipeDaUnidade(num(body.get("id_equipe")), unidade);
             }
-            exigirEquipeDaUnidade(num(body.get("id_equipe")), unidade);
             if (num(body.get("id")) != null) {
                 Map<String, Object> atual = db.one("SELECT unidade FROM aps_lotacao WHERE id = :id", p("id", num(body.get("id"))));
                 if (atual == null || !unidade.equalsIgnoreCase(String.valueOf(atual.get("unidade")).trim())) {
@@ -175,9 +183,54 @@ public class ApsConfiguracaoService {
         if (matricula == null || unidade == null || cbo == null || cbo.length() != 6) {
             throw new IllegalArgumentException("Informe matricula, unidade e CBO (6 digitos).");
         }
-        Map<String, Object> servidor = db.one("SELECT nome, cpf, cns FROM servidor WHERE matricula = :m LIMIT 1", p("m", matricula));
+        // Como no PEC/LEDI o INE e opcional, mas estes CBOs so existem dentro de equipe.
+        if (num(body.get("id_equipe")) == null && CBO_EXIGE_EQUIPE.contains(cbo)) {
+            throw new IllegalArgumentException("O CBO " + cbo + " exige equipe (INE) - selecione a equipe da lotacao.");
+        }
+        Map<String, Object> servidor = db.one("SELECT nome, cpf, cns, cbo FROM servidor WHERE matricula = :m LIMIT 1", p("m", matricula));
         if (servidor == null) {
             throw new IllegalArgumentException("Servidor com matricula " + matricula + " nao encontrado.");
+        }
+        // Lotacao nova so para quem tem CBO no cadastro; lotacoes antigas seguem editaveis.
+        if (num(body.get("id")) == null && ApsValidacao.digitos(str(servidor.get("cbo"))) == null) {
+            throw new IllegalArgumentException("Servidor sem CBO no cadastro - corrija o cadastro antes de criar a lotacao.");
+        }
+        // Como no PEC: a mesma lotacao (profissional + CBO + equipe) nao pode existir duas vezes ativa na unidade.
+        if (body.get("ativo") == null || Boolean.TRUE.equals(body.get("ativo"))) {
+            Map<String, Object> dup = db.one("""
+                    SELECT id FROM aps_lotacao
+                    WHERE matricula = :m AND cbo = :cbo AND ativo = TRUE AND UPPER(unidade) = UPPER(:u)
+                      AND id_equipe IS NOT DISTINCT FROM CAST(:idEquipe AS bigint)
+                      AND (CAST(:id AS bigint) IS NULL OR id <> CAST(:id AS bigint))
+                    LIMIT 1
+                    """, p("m", matricula, "cbo", cbo, "u", unidade, "idEquipe", num(body.get("id_equipe")), "id", num(body.get("id"))));
+            if (dup != null) {
+                throw new IllegalArgumentException("Ja existe lotacao ativa deste profissional com o CBO " + cbo
+                        + (num(body.get("id_equipe")) == null ? " sem equipe." : " nesta equipe."));
+            }
+        }
+        // Estagiario: registros saem em nome do supervisor, que precisa ter lotacao ativa (nao de estagio) na unidade.
+        String supervisor = str(body.get("matricula_supervisor"));
+        boolean ativa = body.get("ativo") == null || Boolean.TRUE.equals(body.get("ativo"));
+        if (Boolean.TRUE.equals(body.get("estagiario")) && !ativa) {
+            // Inativar sempre pode, mesmo que o supervisor ja tenha saido.
+        } else if (Boolean.TRUE.equals(body.get("estagiario"))) {
+            if (supervisor == null) {
+                throw new IllegalArgumentException("Informe a matricula do supervisor do estagiario.");
+            }
+            if (supervisor.equalsIgnoreCase(matricula)) {
+                throw new IllegalArgumentException("O estagiario nao pode ser o proprio supervisor.");
+            }
+            Map<String, Object> lotSup = db.one("""
+                    SELECT id FROM aps_lotacao
+                    WHERE matricula = :m AND ativo = TRUE AND estagiario = FALSE AND UPPER(unidade) = UPPER(:u)
+                    LIMIT 1
+                    """, p("m", supervisor, "u", unidade));
+            if (lotSup == null) {
+                throw new IllegalArgumentException("Supervisor " + supervisor + " sem lotacao APS ativa nesta unidade - lote o supervisor primeiro.");
+            }
+        } else {
+            supervisor = null;
         }
         String cns = ApsValidacao.digitos(str(body.get("cns")));
         if (cns == null) {
@@ -200,7 +253,7 @@ public class ApsConfiguracaoService {
         Map<String, Object> params = p("matricula", matricula, "nome", servidor.get("nome"), "cns", cns,
                 "cpf", ApsValidacao.digitos((String) servidor.get("cpf")), "cbo", cbo, "unidade", unidade, "cnes", cnes,
                 "idEquipe", idEquipe, "ine", ine, "estagiario", Boolean.TRUE.equals(body.get("estagiario")),
-                "supervisor", str(body.get("matricula_supervisor")),
+                "supervisor", supervisor,
                 "ativo", body.get("ativo") == null || Boolean.TRUE.equals(body.get("ativo")));
         Long id = num(body.get("id"));
         if (id == null) {

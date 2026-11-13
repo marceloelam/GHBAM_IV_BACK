@@ -120,6 +120,13 @@ public class GerarToken {
                 body.put("mensagem", "Bem-vindo Mestre administrador, dados do acesso administrativo atualizados, tente novamente por favor");
                 return Response.status(Response.Status.UNAUTHORIZED).entity(body).build();
             }
+            if (securityPermissionService.senhaConfereMasSemAd(username, request.senha, request.senhaMontada)) {
+                // 403: o Login mostra a mensagem real (401 fica generico de proposito).
+                contarLogin("sem_ad");
+                Map<String, Object> semAd = new LinkedHashMap<>();
+                semAd.put("mensagem", "Usuário sem AD cadastrado. Procure a administração para cadastrar seu usuário de rede (formato nome.sobrenome).");
+                return Response.status(Response.Status.FORBIDDEN).entity(semAd).build();
+            }
             Map<String, Object> body = new LinkedHashMap<>();
             contarLogin("falha");
             body.put("mensagem", "Matricula, senha ou usuario ativo nao conferem.");

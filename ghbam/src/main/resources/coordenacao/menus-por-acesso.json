@@ -1,14 +1,18 @@
 {
   "acessos": {
     "aguardandoatendimento": [
-      "Administrativo"
+      "Administrativo",
+      "Recepção"
     ],
     "anotacoesenfermagem": [
       "Enfermagem"
     ],
     "atendimentoperiodo": [
       "Administrativo",
-      "Enfermagem"
+      "Recepção",
+      "Enfermagem",
+      "Faturamento",
+      "Laboratório"
     ],
     "auditoriaclinica": [
       "Administrativo",
@@ -16,7 +20,9 @@
     ],
     "avaliacaopacienteia": [
       "Enfermagem",
-      "Nir"
+      "Nir",
+      "Faturamento",
+      "Médico"
     ],
     "avaliacaopacienteia_adm": [
       "Administrativo"
@@ -25,13 +31,15 @@
       "Enfermagem"
     ],
     "biexecutivo": [
-      "Nir"
+      "Nir",
+      "Faturamento"
     ],
     "biometria": [
       "Administrativo"
     ],
     "bulariomedico": [
-      "Enfermagem"
+      "Enfermagem",
+      "Médico"
     ],
     "caddrives": [
       "Administrativo"
@@ -58,10 +66,8 @@
       "Nir"
     ],
     "ccih": [
-      "Administrativo",
       "Enfermagem",
       "Nir",
-      "Vigilância",
       "Qualidade e Segurança"
     ],
     "chatprofissionais": [
@@ -99,6 +105,7 @@
     ],
     "comoestaopaciente": [
       "Administrativo",
+      "Recepção",
       "Enfermagem",
       "Multidisciplinar",
       "Nir",
@@ -121,22 +128,21 @@
     ],
     "enfermariaseleitos": [
       "Administrativo",
-      "Enfermagem"
+      "Enfermagem",
+      "Faturamento"
     ],
     "escalaenfermagem": [
       "Enfermagem"
     ],
     "evolucaomultidisciplinar": [
-      "Enfermagem"
+      "Enfermagem",
+      "Multidisciplinar"
     ],
     "exportardadoslgpd": [
       "Administrativo"
     ],
     "ged": [
-      "Administrativo",
-      "Enfermagem",
       "GED",
-      "Médico",
       "Nir"
     ],
     "gedconsulta": [
@@ -150,11 +156,15 @@
       "Administrativo"
     ],
     "historicocompleto": [
-      "Enfermagem"
+      "Enfermagem",
+      "Dentista",
+      "Faturamento",
+      "Multidisciplinar",
+      "Médico",
+      "Triagem"
     ],
     "historicocompleto_adm": [
-      "Administrativo",
-      "Enfermagem"
+      "Administrativo"
     ],
     "imprimirbam": [
       "Administrativo",
@@ -187,8 +197,7 @@
       "G-PEC"
     ],
     "integracaosus": [
-      "Administrativo",
-      "Apoio Assistencial"
+      "Administrativo"
     ],
     "internadosvisitaimp": [
       "Nir"
@@ -212,7 +221,9 @@
       "Administrativo"
     ],
     "minhasassinaturas": [
-      "Enfermagem"
+      "Enfermagem",
+      "Dentista",
+      "Médico"
     ],
     "modeloevolucaoenf": [
       "Enfermagem"
@@ -238,18 +249,23 @@
       "Nir"
     ],
     "nirrelatorio": [
-      "Nir"
+      "Nir",
+      "Faturamento"
     ],
     "nirrestaurarinternacao": [
       "Nir"
     ],
     "pacientesematendimento": [
       "Administrativo",
+      "Recepção",
       "Enfermagem"
     ],
     "pacs": [
       "Administrativo",
       "Enfermagem",
+      "Médico"
+    ],
+    "padmissaorn": [
       "Médico"
     ],
     "palmoxarifado": [
@@ -285,14 +301,48 @@
       "RH",
       "G-PEC"
     ],
-    "pcentrocirurgico": [
-      "Apoio Assistencial"
+    "papac": [
+      "Faturamento SUS"
+    ],
+    "pbpa": [
+      "Faturamento"
+    ],
+    "pccihresumo": [
+      "Faturamento"
+    ],
+    "pcdsspreventivo": [
+      "Médico"
+    ],
+    "pcirurgialistaespera": [
+      "Centro Cirurgico"
     ],
     "pcirurgiasalas": [
       "Centro Cirurgico"
     ],
+    "pclassificarpaciente": [
+      "Triagem"
+    ],
     "pcme": [
       "Apoio Assistencial"
+    ],
+    "pcoleta": [
+      "Laboratório"
+    ],
+    "pcorrigirresultados": [
+      "Laboratório"
+    ],
+    "pdrives": [
+      "Recepção",
+      "Enfermagem",
+      "Farmácia",
+      "Faturamento",
+      "Imagem",
+      "Laboratório",
+      "Médico",
+      "Multidisciplinar",
+      "Nir",
+      "RH",
+      "SPA"
     ],
     "pedidosexame": [
       "Enfermagem"
@@ -304,16 +354,145 @@
       "Administrativo"
     ],
     "pesquisanir": [
-      "Nir"
+      "Nir",
+      "Faturamento"
+    ],
+    "pfarmaciaatendimento": [
+      "Farmácia"
+    ],
+    "pfaturamentosus": [
+      "Faturamento SUS"
+    ],
+    "pfaturas": [
+      "Faturamento"
+    ],
+    "pfhirsumarioalta": [
+      "Administrativo"
+    ],
+    "pfichaanestesica": [
+      "Médico"
+    ],
+    "pfluxopacientes": [
+      "Recepção",
+      "Enfermagem",
+      "Médico",
+      "Nir",
+      "Triagem"
     ],
     "phemoterapia": [
       "Apoio Assistencial"
+    ],
+    "pimprimiridentificacao": [
+      "Enfermagem"
+    ],
+    "pindicadorescirurgicos": [
+      "Centro Cirurgico"
+    ],
+    "pinternados": [
+      "Médico"
+    ],
+    "pjornadapa": [
+      "Enfermagem",
+      "Faturamento",
+      "Médico",
+      "Nir",
+      "Triagem"
+    ],
+    "plimitesdose": [
+      "Qualidade e Segurança",
+      "Enfermagem"
+    ],
+    "plistaagendamentos": [
+      "Recepção"
+    ],
+    "plocalizaratendimento": [
+      "Recepção",
+      "Administrativo",
+      "Nir"
+    ],
+    "pmapacirurgico": [
+      "Centro Cirurgico"
+    ],
+    "pmapaepidemiologico": [
+      "Administrativo",
+      "Vigilância",
+      "Enfermagem",
+      "Médico"
+    ],
+    "pmedicacaomaternidade": [
+      "SPA"
+    ],
+    "pmedicacaopediatria": [
+      "SPA"
+    ],
+    "pmedicacaospa": [
+      "SPA"
+    ],
+    "pmodelosprescricao": [
+      "Médico"
+    ],
+    "pmultiassistencia": [
+      "Multidisciplinar"
+    ],
+    "pmultifisioterapia": [
+      "Multidisciplinar"
+    ],
+    "pmultifono": [
+      "Multidisciplinar"
+    ],
+    "pmultinutricao": [
+      "Multidisciplinar"
+    ],
+    "pmultipsicologia": [
+      "Multidisciplinar"
     ],
     "pnsp": [
       "Qualidade e Segurança"
     ],
     "pnspgestao": [
       "Qualidade e Segurança"
+    ],
+    "podontologia": [
+      "Dentista"
+    ],
+    "ppainelmunicipal": [
+      "Faturamento"
+    ],
+    "ppendenciaspa": [
+      "Faturamento"
+    ],
+    "ppepatendimento": [
+      "Enfermagem",
+      "Nir",
+      "Médico"
+    ],
+    "pplantaoenfermagem": [
+      "Enfermagem"
+    ],
+    "pprimeiroatendimento": [
+      "Recepção"
+    ],
+    "pprocessosinternacao": [
+      "Médico"
+    ],
+    "pproducaoassistencial": [
+      "Administrativo"
+    ],
+    "pprotocolosfluxograma": [
+      "Médico",
+      "Multidisciplinar"
+    ],
+    "praas": [
+      "Faturamento SUS"
+    ],
+    "prealizarexames": [
+      "Laboratório"
+    ],
+    "preclassificarpaciente": [
+      "Triagem"
+    ],
+    "presumodealta": [
+      "Médico"
     ],
     "prhponto": [
       "RH"
@@ -334,6 +513,18 @@
     "psnd": [
       "Apoio Assistencial"
     ],
+    "psumarioobito": [
+      "Enfermagem"
+    ],
+    "ptiss": [
+      "Faturamento"
+    ],
+    "pvisitapacientes": [
+      "Recepção"
+    ],
+    "pvolumepainel": [
+      "Recepção"
+    ],
     "ragprontuario": [
       "Administrativo",
       "Enfermagem",
@@ -341,9 +532,6 @@
       "Médico",
       "Nir",
       "Faturamento"
-    ],
-    "regrasdose": [
-      "Qualidade e Segurança"
     ],
     "restaurarpaciente": [
       "Nir"
@@ -357,6 +545,9 @@
       "Administrativo",
       "Enfermagem"
     ],
+    "resumopacientes": [
+      "Faturamento"
+    ],
     "saeenfermagem": [
       "Enfermagem"
     ],
@@ -365,7 +556,6 @@
     ],
     "sinan": [
       "Enfermagem",
-      "Médico",
       "Vigilância"
     ],
     "treinamentocertificacao": [
@@ -375,7 +565,6 @@
       "Administrativo"
     ],
     "vigilanciaepidemiologica": [
-      "Administrativo",
       "Vigilância"
     ]
   },
@@ -561,6 +750,1568 @@
     "Vigilância": {
       "perfis": [],
       "acessos": []
+    }
+  },
+  "modulos": {
+    "Recepção": [
+      "pprimeiroatendimento",
+      "aguardandoatendimento",
+      "pacientesematendimento",
+      "atendimentoperiodo",
+      "plistaagendamentos",
+      "plocalizaratendimento",
+      "pvisitapacientes",
+      "pvolumepainel",
+      "pdrives",
+      "imprimirbam",
+      "chatprofissionais",
+      "comoestaopaciente",
+      "palmoxpedir",
+      "pfluxopacientes"
+    ],
+    "Enfermagem": [
+      "pimprimiridentificacao",
+      "plimitesdose",
+      "pplantaoenfermagem",
+      "psumarioobito",
+      "evolucaomultidisciplinar",
+      "anotacoesenfermagem",
+      "saeenfermagem",
+      "balancohidrico",
+      "ciclomedicacao",
+      "controleassistencial",
+      "documentosassistenciais",
+      "escalaenfermagem",
+      "enfermariaseleitos",
+      "modeloevolucaoenf",
+      "modeloprescricaoenf",
+      "driveenfermagem",
+      "atendimentoperiodo",
+      "avaliacaopacienteia",
+      "bulariomedico",
+      "ccih",
+      "chatprofissionais",
+      "comoestaopaciente",
+      "gedconsulta",
+      "historicocompleto",
+      "imprimirbam",
+      "minhasassinaturas",
+      "pacientesematendimento",
+      "pacs",
+      "palmoxpedir",
+      "pdrives",
+      "pedidosexame",
+      "pfluxopacientes",
+      "pjornadapa",
+      "pmapaepidemiologico",
+      "ppepatendimento",
+      "prontuariocompleto",
+      "ragprontuario",
+      "resumoclinicoia",
+      "resumopaciente",
+      "sinan"
+    ],
+    "SPA": [
+      "pmedicacaomaternidade",
+      "pmedicacaopediatria",
+      "pmedicacaospa",
+      "painelenfermagem",
+      "painelspa",
+      "painelmaternidade",
+      "painelpediatria",
+      "chatprofissionais",
+      "imprimirbam",
+      "palmoxpedir",
+      "pdrives"
+    ],
+    "Nir": [
+      "nir",
+      "painelnir",
+      "pfluxopacientes",
+      "pesquisanir",
+      "localcenso",
+      "setorcenso",
+      "nirenfermariaseleitos",
+      "nirlaudointernacao",
+      "nirhistoricocompleto",
+      "nirrelatorio",
+      "nirrestaurarinternacao",
+      "restaurarpaciente",
+      "cautela",
+      "internadosvisitaimp",
+      "cadleitos",
+      "cadsetor",
+      "avaliacaopacienteia",
+      "biexecutivo",
+      "ccih",
+      "chatprofissionais",
+      "comoestaopaciente",
+      "ged",
+      "gedconsulta",
+      "imprimirbam",
+      "monitoramento",
+      "palmoxpedir",
+      "pdrives",
+      "pjornadapa",
+      "plocalizaratendimento",
+      "ppepatendimento",
+      "ragprontuario"
+    ],
+    "GED": [
+      "ged",
+      "gedconsulta",
+      "gedremover",
+      "chatprofissionais",
+      "imprimirbam",
+      "palmoxpedir"
+    ],
+    "Centro Cirurgico": [
+      "pindicadorescirurgicos",
+      "pmapacirurgico",
+      "pcentrocirurgico",
+      "pcirurgiaagendar",
+      "pcirurgiaexecutar",
+      "pcirurgiadescrever",
+      "pcirurgiaanestesia",
+      "pcirurgiasuspender",
+      "pcirurgiaopme",
+      "pcirurgiasalas",
+      "pcirurgialistaespera",
+      "chatprofissionais",
+      "imprimirbam",
+      "palmoxpedir"
+    ],
+    "Apoio Assistencial": [
+      "papoioassistencial",
+      "pcme",
+      "phemoterapia",
+      "psnd",
+      "prnds",
+      "chatprofissionais",
+      "imprimirbam",
+      "palmoxpedir"
+    ],
+    "Farmácia": [
+      "pfarmaciaatendimento",
+      "farmaciaprodutos",
+      "farmaciaestoque",
+      "farmaciadispensacao",
+      "farmaciapermutas",
+      "farmaciaoperacoes",
+      "farmaciaavaliacao",
+      "farmaciarelatorios",
+      "chatprofissionais",
+      "imprimirbam",
+      "palmoxpedir",
+      "pdrives"
+    ],
+    "Almoxarifado": [
+      "palmoxpedir",
+      "palmoxarifado",
+      "chatprofissionais",
+      "imprimirbam"
+    ],
+    "Qualidade e Segurança": [
+      "pmapaepidemiologico",
+      "vigilanciaepidemiologica",
+      "configuracaovigilanciaepidemiologica",
+      "sinan",
+      "ccih",
+      "pnsp",
+      "pnspgestao",
+      "pnspclassificar",
+      "pnspbloqueado",
+      "regrasdose",
+      "chatprofissionais",
+      "imprimirbam",
+      "palmoxpedir",
+      "plimitesdose"
+    ],
+    "Vigilância": [
+      "pmapaepidemiologico",
+      "vigilanciaepidemiologica",
+      "configuracaovigilanciaepidemiologica",
+      "sinan",
+      "ccih",
+      "pnsp",
+      "pnspgestao",
+      "pnspclassificar",
+      "pnspbloqueado",
+      "regrasdose",
+      "chatprofissionais",
+      "imprimirbam",
+      "palmoxpedir"
+    ],
+    "Consultório": [
+      "consultorioadmin",
+      "consultoriorecepcao",
+      "consultoriomedico",
+      "consultoriofinanceiro",
+      "chatprofissionais",
+      "imprimirbam",
+      "palmoxpedir"
+    ],
+    "Consultorio Admin": [
+      "consultorioadmin",
+      "consultoriorecepcao",
+      "consultoriomedico",
+      "consultoriofinanceiro",
+      "auditoriaclinica",
+      "chatprofissionais",
+      "imprimirbam",
+      "palmoxpedir"
+    ],
+    "Consultorio Recepcao": [
+      "consultorioadmin",
+      "consultoriorecepcao",
+      "consultoriomedico",
+      "consultoriofinanceiro",
+      "chatprofissionais",
+      "imprimirbam",
+      "palmoxpedir"
+    ],
+    "Consultorio Medico": [
+      "consultorioadmin",
+      "consultoriorecepcao",
+      "consultoriomedico",
+      "consultoriofinanceiro",
+      "chatprofissionais",
+      "imprimirbam",
+      "palmoxpedir"
+    ],
+    "Consultorio Financeiro": [
+      "consultorioadmin",
+      "consultoriorecepcao",
+      "consultoriomedico",
+      "consultoriofinanceiro",
+      "chatprofissionais",
+      "imprimirbam",
+      "palmoxpedir"
+    ],
+    "G-PEC": [
+      "aps",
+      "apsacs",
+      "apsvacina",
+      "apsgestao",
+      "gpecatendimentos",
+      "gpeccidadaos",
+      "gpecagenda",
+      "gpecvacinacao",
+      "gpecterritorio",
+      "gpecregistros",
+      "gpecacompanhamento",
+      "gpecrelatorios",
+      "gpectransmissao",
+      "gpecconfiguracao",
+      "gpecappacs",
+      "chatprofissionais",
+      "imprimirbam",
+      "palmoxpedir"
+    ],
+    "RH": [
+      "monitoramento",
+      "controleplantoes",
+      "prhponto",
+      "produtividaderh",
+      "treinamentocertificacao",
+      "chatprofissionais",
+      "imprimirbam",
+      "palmoxpedir",
+      "pdrives"
+    ],
+    "Triagem": [
+      "pclassificarpaciente",
+      "preclassificarpaciente",
+      "chatprofissionais",
+      "historicocompleto",
+      "imprimirbam",
+      "palmoxpedir",
+      "pfluxopacientes",
+      "pjornadapa"
+    ],
+    "Médico": [
+      "padmissaorn",
+      "pcdsspreventivo",
+      "pfichaanestesica",
+      "pinternados",
+      "pmodelosprescricao",
+      "ppepatendimento",
+      "pprocessosinternacao",
+      "pprotocolosfluxograma",
+      "presumodealta",
+      "avaliacaopacienteia",
+      "bulariomedico",
+      "chatprofissionais",
+      "gedconsulta",
+      "historicocompleto",
+      "imprimirbam",
+      "minhasassinaturas",
+      "pacs",
+      "palmoxpedir",
+      "pdrives",
+      "pfluxopacientes",
+      "pjornadapa",
+      "pmapaepidemiologico",
+      "ragprontuario",
+      "resumoclinicoia"
+    ],
+    "Multidisciplinar": [
+      "pmultiassistencia",
+      "pmultifisioterapia",
+      "pmultifono",
+      "pmultinutricao",
+      "pmultipsicologia",
+      "chatprofissionais",
+      "comoestaopaciente",
+      "evolucaomultidisciplinar",
+      "historicocompleto",
+      "imprimirbam",
+      "palmoxpedir",
+      "pdrives",
+      "pprotocolosfluxograma"
+    ],
+    "Laboratório": [
+      "pcoleta",
+      "pcorrigirresultados",
+      "prealizarexames",
+      "atendimentoperiodo",
+      "chatprofissionais",
+      "imprimirbam",
+      "palmoxpedir",
+      "pdrives"
+    ],
+    "Imagem": [
+      "chatprofissionais",
+      "imprimirbam",
+      "palmoxpedir",
+      "pdrives"
+    ],
+    "Faturamento": [
+      "papac",
+      "pbpa",
+      "pccihresumo",
+      "pfaturamentosus",
+      "pfaturas",
+      "ppendenciaspa",
+      "praas",
+      "ptiss",
+      "atendimentoperiodo",
+      "avaliacaopacienteia",
+      "biexecutivo",
+      "chatprofissionais",
+      "comoestaopaciente",
+      "enfermariaseleitos",
+      "historicocompleto",
+      "imprimirbam",
+      "nirrelatorio",
+      "palmoxpedir",
+      "pdrives",
+      "pesquisanir",
+      "pjornadapa",
+      "ppainelmunicipal",
+      "ragprontuario",
+      "resumopacientes"
+    ],
+    "Faturamento SUS": [
+      "papac",
+      "pbpa",
+      "pccihresumo",
+      "pfaturamentosus",
+      "pfaturas",
+      "ppendenciaspa",
+      "praas",
+      "ptiss",
+      "chatprofissionais",
+      "imprimirbam",
+      "palmoxpedir"
+    ],
+    "Dentista": [
+      "podontologia",
+      "chatprofissionais",
+      "historicocompleto",
+      "imprimirbam",
+      "minhasassinaturas",
+      "palmoxpedir",
+      "ragprontuario"
+    ]
+  },
+  "rotas": {
+    "aguardandoatendimento": {
+      "Administrativo": [
+        "/base2/ordemematendimentohoje"
+      ],
+      "Recepção": [
+        "/base2/ordemematendimentohoje"
+      ]
+    },
+    "anotacoesenfermagem": {
+      "Enfermagem": [
+        "/base2/anotacoes-enfermagem"
+      ]
+    },
+    "atendimentoperiodo": {
+      "Administrativo": [
+        "/base2/exibirperiodo"
+      ],
+      "Recepção": [
+        "/base2/exibirperiodo"
+      ],
+      "Enfermagem": [
+        "/base2/exibirperiodo"
+      ],
+      "Faturamento": [
+        "/base2/exibirperiodo"
+      ],
+      "Laboratório": [
+        "/base2/exibirperiodo"
+      ]
+    },
+    "auditoriaclinica": {
+      "Administrativo": [
+        "/base2/auditoria-clinica"
+      ],
+      "Consultorio Admin": [
+        "/base2/auditoria-clinica"
+      ]
+    },
+    "avaliacaopacienteia": {
+      "Enfermagem": [
+        "/base2/evoluir"
+      ],
+      "Nir": [
+        "/base2/evoluir"
+      ],
+      "Faturamento": [
+        "/base2/evoluir"
+      ],
+      "Médico": [
+        "/base2/evoluir"
+      ]
+    },
+    "avaliacaopacienteia_adm": {
+      "Administrativo": [
+        "/base2/evoluir"
+      ]
+    },
+    "balancohidrico": {
+      "Enfermagem": [
+        "/base2/balancohidricocompleto"
+      ]
+    },
+    "biexecutivo": {
+      "Nir": [
+        "/base2/bi-executivo",
+        "/base2/pa-bi",
+        "/base2/painel-municipal"
+      ],
+      "Faturamento": [
+        "/base2/bi-executivo"
+      ]
+    },
+    "biometria": {
+      "Administrativo": [
+        "/biofoto/webcam"
+      ]
+    },
+    "bulariomedico": {
+      "Enfermagem": [
+        "/codigomedico"
+      ],
+      "Médico": [
+        "/codigomedico"
+      ]
+    },
+    "caddrives": {
+      "Administrativo": [
+        "/base2/caddrives"
+      ]
+    },
+    "cadleitos": {
+      "Nir": [
+        "/base2/localcenso"
+      ]
+    },
+    "cadsalas": {
+      "Administrativo": [
+        "/base/salas"
+      ]
+    },
+    "cadsetor": {
+      "Nir": [
+        "/base2/setorcenso"
+      ]
+    },
+    "cadsetores": {
+      "Administrativo": [
+        "/base/setores"
+      ]
+    },
+    "cadunidades": {
+      "Administrativo": [
+        "/base/unidades",
+        "/base2/bi-executivo",
+        "/base2/central-ocorrencias",
+        "/base2/configuracao-conformidade-sla",
+        "/base2/conformidade-atendimento",
+        "/base2/conformidade-executivo",
+        "/base2/evolucao-sistema",
+        "/base2/jornada-pa",
+        "/base2/pa-bi",
+        "/base2/painel-municipal",
+        "/base2/pendencias-pa",
+        "/base2/procedimentos-valores",
+        "/base2/rxprocedimentos",
+        "/base2/saude-sistema"
+      ]
+    },
+    "cadusuarios": {
+      "Administrativo": [
+        "/base/servidores"
+      ]
+    },
+    "cautela": {
+      "Nir": [
+        "/base2/cautela"
+      ]
+    },
+    "ccih": {
+      "Enfermagem": [
+        "/base2/ccihresumo"
+      ],
+      "Nir": [
+        "/base2/ccihresumo"
+      ],
+      "Qualidade e Segurança": [
+        "/base2/indicadores-seguranca"
+      ]
+    },
+    "chatprofissionais": {
+      "Administrativo": [
+        "/chat"
+      ],
+      "Recepção": [
+        "/chat"
+      ],
+      "Triagem": [
+        "/chat"
+      ],
+      "Enfermagem": [
+        "/chat"
+      ],
+      "Médico": [
+        "/chat"
+      ],
+      "Multidisciplinar": [
+        "/chat"
+      ],
+      "Nir": [
+        "/chat"
+      ],
+      "Laboratório": [
+        "/chat"
+      ],
+      "Imagem": [
+        "/chat"
+      ],
+      "SPA": [
+        "/chat"
+      ],
+      "Faturamento": [
+        "/chat"
+      ],
+      "Farmácia": [
+        "/chat"
+      ],
+      "Consultório": [
+        "/chat"
+      ],
+      "Consultorio Recepcao": [
+        "/chat"
+      ],
+      "Consultorio Medico": [
+        "/chat"
+      ],
+      "Consultorio Financeiro": [
+        "/chat"
+      ],
+      "Consultorio Admin": [
+        "/chat"
+      ],
+      "GED": [
+        "/chat"
+      ],
+      "Dentista": [
+        "/chat"
+      ],
+      "Centro Cirurgico": [
+        "/chat"
+      ],
+      "Apoio Assistencial": [
+        "/chat"
+      ],
+      "Vigilância": [
+        "/chat"
+      ],
+      "Coordenação de setor": [
+        "/chat"
+      ],
+      "Almoxarifado": [
+        "/chat"
+      ],
+      "Qualidade e Segurança": [
+        "/chat"
+      ],
+      "Faturamento SUS": [
+        "/chat"
+      ],
+      "RH": [
+        "/chat"
+      ],
+      "G-PEC": [
+        "/chat"
+      ]
+    },
+    "ciclomedicacao": {
+      "Enfermagem": [
+        "/base2/ciclo-medicacao?modo=enfermagem"
+      ]
+    },
+    "comoestaopaciente": {
+      "Administrativo": [
+        "/base2/como-esta-paciente"
+      ],
+      "Recepção": [
+        "/base2/como-esta-paciente"
+      ],
+      "Enfermagem": [
+        "/base2/como-esta-paciente"
+      ],
+      "Multidisciplinar": [
+        "/base2/como-esta-paciente"
+      ],
+      "Nir": [
+        "/base2/como-esta-paciente"
+      ],
+      "Faturamento": [
+        "/base2/como-esta-paciente"
+      ]
+    },
+    "configuracaovigilanciaepidemiologica": {
+      "Vigilância": [
+        "/base2/configuracao-vigilancia-epidemiologica"
+      ]
+    },
+    "controleassistencial": {
+      "Enfermagem": [
+        "/base2/controle-assistencial"
+      ]
+    },
+    "controleplantoes": {
+      "RH": [
+        "/base2/rh/plantoes"
+      ]
+    },
+    "correcaobam": {
+      "Administrativo": [
+        "/base2/correcaodebam"
+      ]
+    },
+    "documentosassistenciais": {
+      "Enfermagem": [
+        "/base2/documentos-assistenciais"
+      ]
+    },
+    "enfermariaseleitos": {
+      "Administrativo": [
+        "/base2/enfermariaseleitos"
+      ],
+      "Enfermagem": [
+        "/base2/enfermariaseleitos"
+      ],
+      "Faturamento": [
+        "/base2/enfermariaseleitos"
+      ]
+    },
+    "escalaenfermagem": {
+      "Enfermagem": [
+        "/base2/escalaenftriagem"
+      ]
+    },
+    "evolucaomultidisciplinar": {
+      "Enfermagem": [
+        "/base2/internadosenf"
+      ],
+      "Multidisciplinar": [
+        "/base2/atendimentomultidisciplinar"
+      ]
+    },
+    "exportardadoslgpd": {
+      "Administrativo": [
+        "/base2/exportar-dados-lgpd"
+      ]
+    },
+    "ged": {
+      "GED": [
+        "/base2/ged-anexar-documentos"
+      ],
+      "Nir": [
+        "/base2/ged-anexar-documentos"
+      ]
+    },
+    "gedconsulta": {
+      "Administrativo": [
+        "/base2/ged-consulta-documentos"
+      ],
+      "Enfermagem": [
+        "/base2/ged-consulta-documentos"
+      ],
+      "GED": [
+        "/base2/ged-consulta-documentos"
+      ],
+      "Médico": [
+        "/base2/ged-consulta-documentos"
+      ],
+      "Nir": [
+        "/base2/ged-consulta-documentos"
+      ]
+    },
+    "gerenciarcertificados": {
+      "Administrativo": [
+        "/base2/rh/certificados"
+      ]
+    },
+    "historicocompleto": {
+      "Enfermagem": [
+        "/base2/historico-paciente"
+      ],
+      "Dentista": [
+        "/base2/historico-paciente"
+      ],
+      "Faturamento": [
+        "/base2/historico-paciente"
+      ],
+      "Multidisciplinar": [
+        "/base2/historico-paciente"
+      ],
+      "Médico": [
+        "/base2/historico-paciente"
+      ],
+      "Triagem": [
+        "/base2/historico-paciente"
+      ]
+    },
+    "historicocompleto_adm": {
+      "Administrativo": [
+        "/base2/historico-paciente",
+        "/base2/pep-atendimento"
+      ]
+    },
+    "imprimirbam": {
+      "Administrativo": [
+        "/base2/reimpressaodebam"
+      ],
+      "Recepção": [
+        "/base2/reimpressaodebam"
+      ],
+      "Triagem": [
+        "/base2/reimpressaodebam"
+      ],
+      "Enfermagem": [
+        "/base2/reimpressaodebam"
+      ],
+      "Médico": [
+        "/base2/reimpressaodebam"
+      ],
+      "Nir": [
+        "/base2/reimpressaodebam"
+      ],
+      "Consultório": [
+        "/base2/reimpressaodebam"
+      ],
+      "Consultorio Recepcao": [
+        "/base2/reimpressaodebam"
+      ],
+      "Consultorio Medico": [
+        "/base2/reimpressaodebam"
+      ],
+      "Consultorio Financeiro": [
+        "/base2/reimpressaodebam"
+      ],
+      "Consultorio Admin": [
+        "/base2/reimpressaodebam"
+      ],
+      "GED": [
+        "/base2/reimpressaodebam"
+      ],
+      "Dentista": [
+        "/base2/reimpressaodebam"
+      ],
+      "Multidisciplinar": [
+        "/base2/reimpressaodebam"
+      ],
+      "Laboratório": [
+        "/base2/reimpressaodebam"
+      ],
+      "Imagem": [
+        "/base2/reimpressaodebam"
+      ],
+      "SPA": [
+        "/base2/reimpressaodebam"
+      ],
+      "Centro Cirurgico": [
+        "/base2/reimpressaodebam"
+      ],
+      "Apoio Assistencial": [
+        "/base2/reimpressaodebam"
+      ],
+      "Vigilância": [
+        "/base2/reimpressaodebam"
+      ],
+      "Coordenação de setor": [
+        "/base2/reimpressaodebam"
+      ],
+      "Almoxarifado": [
+        "/base2/reimpressaodebam"
+      ],
+      "Qualidade e Segurança": [
+        "/base2/reimpressaodebam"
+      ],
+      "Faturamento": [
+        "/base2/reimpressaodebam"
+      ],
+      "Faturamento SUS": [
+        "/base2/reimpressaodebam"
+      ],
+      "Farmácia": [
+        "/base2/reimpressaodebam"
+      ],
+      "RH": [
+        "/base2/reimpressaodebam"
+      ],
+      "G-PEC": [
+        "/base2/reimpressaodebam"
+      ]
+    },
+    "integracaosus": {
+      "Administrativo": [
+        "/base2/integracao-sus"
+      ]
+    },
+    "internadosvisitaimp": {
+      "Nir": [
+        "/base2/internadosvisitaimp"
+      ]
+    },
+    "limparpainel": {
+      "Administrativo": [
+        "/base2/limpar"
+      ]
+    },
+    "listausuarios": {
+      "Administrativo": [
+        "/base/listadeservidores",
+        "/base/usuarios-online"
+      ]
+    },
+    "localcenso": {
+      "Nir": [
+        "/base2/localcenso"
+      ]
+    },
+    "logs": {
+      "Administrativo": [
+        "/base2/logs"
+      ]
+    },
+    "mapapacientes": {
+      "Administrativo": [
+        "/base2/mapeamento"
+      ]
+    },
+    "migracaodados": {
+      "Administrativo": [
+        "/base2/migracao-dados"
+      ]
+    },
+    "minhasassinaturas": {
+      "Enfermagem": [
+        "/base2/pendencias-assinatura"
+      ],
+      "Dentista": [
+        "/base2/pendencias-assinatura"
+      ],
+      "Médico": [
+        "/base2/pendencias-assinatura"
+      ]
+    },
+    "modeloevolucaoenf": {
+      "Enfermagem": [
+        "/base2/criarModelosEvolucaoEnf"
+      ]
+    },
+    "modeloprescricaoenf": {
+      "Enfermagem": [
+        "/base2/criarModelosPrescricaoEnf"
+      ]
+    },
+    "monitoramento": {
+      "Administrativo": [
+        "/base2/monitoramento"
+      ],
+      "Nir": [
+        "/base2/monitoramento"
+      ],
+      "RH": [
+        "/base2/monitoramento"
+      ]
+    },
+    "nir": {
+      "Nir": [
+        "/base2/nir"
+      ]
+    },
+    "nirenfermariaseleitos": {
+      "Nir": [
+        "/base2/enfermariaseleitos"
+      ]
+    },
+    "nirhistoricocompleto": {
+      "Nir": [
+        "/base2/historico-paciente"
+      ]
+    },
+    "nirlaudointernacao": {
+      "Nir": [
+        "/base2/laudointernacao"
+      ]
+    },
+    "nirrelatorio": {
+      "Nir": [
+        "/base2/nirrelatorio"
+      ],
+      "Faturamento": [
+        "/base2/nirrelatorio"
+      ]
+    },
+    "nirrestaurarinternacao": {
+      "Nir": [
+        "/base2/nirrestaurarinternacao"
+      ]
+    },
+    "pacientesematendimento": {
+      "Administrativo": [
+        "/base2/ematendimento"
+      ],
+      "Recepção": [
+        "/base2/ematendimento"
+      ],
+      "Enfermagem": [
+        "/base2/ematendimento"
+      ]
+    },
+    "pacs": {
+      "Administrativo": [
+        "/base2/pacs"
+      ],
+      "Enfermagem": [
+        "/base2/pacs"
+      ],
+      "Médico": [
+        "/base2/pacs"
+      ]
+    },
+    "padmissaorn": {
+      "Médico": [
+        "/base2/rnlaudointernacao"
+      ]
+    },
+    "palmoxarifado": {
+      "Almoxarifado": [
+        "/base2/almoxarifado"
+      ]
+    },
+    "palmoxpedir": {
+      "Administrativo": [
+        "/base2/almoxarifado/pedido"
+      ],
+      "Recepção": [
+        "/base2/almoxarifado/pedido"
+      ],
+      "Triagem": [
+        "/base2/almoxarifado/pedido"
+      ],
+      "Enfermagem": [
+        "/base2/almoxarifado/pedido"
+      ],
+      "Médico": [
+        "/base2/almoxarifado/pedido"
+      ],
+      "Multidisciplinar": [
+        "/base2/almoxarifado/pedido"
+      ],
+      "Nir": [
+        "/base2/almoxarifado/pedido"
+      ],
+      "Laboratório": [
+        "/base2/almoxarifado/pedido"
+      ],
+      "Imagem": [
+        "/base2/almoxarifado/pedido"
+      ],
+      "SPA": [
+        "/base2/almoxarifado/pedido"
+      ],
+      "Almoxarifado": [
+        "/base2/almoxarifado/pedido"
+      ],
+      "Faturamento": [
+        "/base2/almoxarifado/pedido"
+      ],
+      "Farmácia": [
+        "/base2/almoxarifado/pedido"
+      ],
+      "Consultório": [
+        "/base2/almoxarifado/pedido"
+      ],
+      "Consultorio Recepcao": [
+        "/base2/almoxarifado/pedido"
+      ],
+      "Consultorio Medico": [
+        "/base2/almoxarifado/pedido"
+      ],
+      "Consultorio Financeiro": [
+        "/base2/almoxarifado/pedido"
+      ],
+      "Consultorio Admin": [
+        "/base2/almoxarifado/pedido"
+      ],
+      "GED": [
+        "/base2/almoxarifado/pedido"
+      ],
+      "Dentista": [
+        "/base2/almoxarifado/pedido"
+      ],
+      "Centro Cirurgico": [
+        "/base2/almoxarifado/pedido"
+      ],
+      "Apoio Assistencial": [
+        "/base2/almoxarifado/pedido"
+      ],
+      "Vigilância": [
+        "/base2/almoxarifado/pedido"
+      ],
+      "Coordenação de setor": [
+        "/base2/almoxarifado/pedido"
+      ],
+      "Qualidade e Segurança": [
+        "/base2/almoxarifado/pedido"
+      ],
+      "Faturamento SUS": [
+        "/base2/almoxarifado/pedido"
+      ],
+      "RH": [
+        "/base2/almoxarifado/pedido"
+      ],
+      "G-PEC": [
+        "/base2/almoxarifado/pedido"
+      ]
+    },
+    "papac": {
+      "Faturamento SUS": [
+        "/base2/faturamento-sus/apac"
+      ]
+    },
+    "pbpa": {
+      "Faturamento": [
+        "/base2/bpa"
+      ]
+    },
+    "pccihresumo": {
+      "Faturamento": [
+        "/base2/ccihresumo"
+      ]
+    },
+    "pcdsspreventivo": {
+      "Médico": [
+        "/base2/cdss-preventivo"
+      ]
+    },
+    "pcirurgialistaespera": {
+      "Centro Cirurgico": [
+        "/base2/lista-espera-cirurgica"
+      ]
+    },
+    "pcirurgiasalas": {
+      "Centro Cirurgico": [
+        "/base2/salas-cirurgicas"
+      ]
+    },
+    "pclassificarpaciente": {
+      "Triagem": [
+        "/base2/triarPaciente"
+      ]
+    },
+    "pcme": {
+      "Apoio Assistencial": [
+        "/base2/cme-esterilizacao"
+      ]
+    },
+    "pcoleta": {
+      "Laboratório": [
+        "/base2/coleta"
+      ]
+    },
+    "pcorrigirresultados": {
+      "Laboratório": [
+        "/base2/examesreal"
+      ]
+    },
+    "pdrives": {
+      "Recepção": [
+        "/base2/drives/recepcao"
+      ],
+      "Enfermagem": [
+        "/base2/drives/enfermagem"
+      ],
+      "Farmácia": [
+        "/base2/drives/farmacia"
+      ],
+      "Faturamento": [
+        "/base2/drives/faturamento"
+      ],
+      "Imagem": [
+        "/base2/drives/imagem"
+      ],
+      "Laboratório": [
+        "/base2/drives/laboratorio"
+      ],
+      "Médico": [
+        "/base2/drives/medico"
+      ],
+      "Multidisciplinar": [
+        "/base2/drives/multidisciplinar"
+      ],
+      "Nir": [
+        "/base2/drives/nir"
+      ],
+      "RH": [
+        "/base2/drives/recursos-humanos"
+      ],
+      "SPA": [
+        "/base2/drives/spa"
+      ]
+    },
+    "pedidosexame": {
+      "Enfermagem": [
+        "/base2/enfermagema"
+      ]
+    },
+    "pendenciaassinatura": {
+      "Administrativo": [
+        "/base2/pendencias-assinatura"
+      ]
+    },
+    "personalizacaovisual": {
+      "Administrativo": [
+        "/base2/personalizacao-visual"
+      ]
+    },
+    "pesquisanir": {
+      "Nir": [
+        "/base2/pesquisanir"
+      ],
+      "Faturamento": [
+        "/base2/pesquisanir"
+      ]
+    },
+    "pfarmaciaatendimento": {
+      "Farmácia": [
+        "/base/pharmacia/atendimento"
+      ]
+    },
+    "pfaturamentosus": {
+      "Faturamento SUS": [
+        "/base2/faturamento-sus"
+      ]
+    },
+    "pfaturas": {
+      "Faturamento": [
+        "/base2/faturamento"
+      ]
+    },
+    "pfhirsumarioalta": {
+      "Administrativo": [
+        "/base2/fhir-sumario-alta"
+      ]
+    },
+    "pfichaanestesica": {
+      "Médico": [
+        "/base2/ficha-anestesica"
+      ]
+    },
+    "pfluxopacientes": {
+      "Recepção": [
+        "/base2/fluxo-pacientes"
+      ],
+      "Enfermagem": [
+        "/base2/fluxo-pacientes"
+      ],
+      "Médico": [
+        "/base2/fluxo-pacientes"
+      ],
+      "Nir": [
+        "/base2/fluxo-pacientes"
+      ],
+      "Triagem": [
+        "/base2/fluxo-pacientes"
+      ]
+    },
+    "phemoterapia": {
+      "Apoio Assistencial": [
+        "/base2/hemoterapia"
+      ]
+    },
+    "pimprimiridentificacao": {
+      "Enfermagem": [
+        "/base2/enfermagem/imprimir-identificacao"
+      ]
+    },
+    "pindicadorescirurgicos": {
+      "Centro Cirurgico": [
+        "/base2/indicadores-cirurgicos"
+      ]
+    },
+    "pinternados": {
+      "Médico": [
+        "/base2/internados"
+      ]
+    },
+    "pjornadapa": {
+      "Enfermagem": [
+        "/base2/jornada-pa"
+      ],
+      "Faturamento": [
+        "/base2/jornada-pa"
+      ],
+      "Médico": [
+        "/base2/jornada-pa"
+      ],
+      "Nir": [
+        "/base2/jornada-pa"
+      ],
+      "Triagem": [
+        "/base2/jornada-pa"
+      ]
+    },
+    "plimitesdose": {
+      "Qualidade e Segurança": [
+        "/base2/limites-dose"
+      ],
+      "Enfermagem": [
+        "/base2/limites-dose"
+      ]
+    },
+    "plistaagendamentos": {
+      "Recepção": [
+        "/base2/agendamento/lista"
+      ]
+    },
+    "plocalizaratendimento": {
+      "Recepção": [
+        "/base2/encontrar-especialidade"
+      ],
+      "Administrativo": [
+        "/base2/encontrar-especialidade"
+      ],
+      "Nir": [
+        "/base2/encontrar-especialidade"
+      ]
+    },
+    "pmapacirurgico": {
+      "Centro Cirurgico": [
+        "/base2/mapa-cirurgico"
+      ]
+    },
+    "pmapaepidemiologico": {
+      "Administrativo": [
+        "/base2/mapa-epidemiologico"
+      ],
+      "Vigilância": [
+        "/base2/mapa-epidemiologico"
+      ],
+      "Enfermagem": [
+        "/base2/mapa-epidemiologico"
+      ],
+      "Médico": [
+        "/base2/mapa-epidemiologico"
+      ]
+    },
+    "pmedicacaomaternidade": {
+      "SPA": [
+        "/base2/medicacao2"
+      ]
+    },
+    "pmedicacaopediatria": {
+      "SPA": [
+        "/base2/medicacao3"
+      ]
+    },
+    "pmedicacaospa": {
+      "SPA": [
+        "/base2/medicacao"
+      ]
+    },
+    "pmodelosprescricao": {
+      "Médico": [
+        "/base2/criarModelosPrescricao"
+      ]
+    },
+    "pmultiassistencia": {
+      "Multidisciplinar": [
+        "/base2/internadosenf"
+      ]
+    },
+    "pmultifisioterapia": {
+      "Multidisciplinar": [
+        "/base2/internadosenf"
+      ]
+    },
+    "pmultifono": {
+      "Multidisciplinar": [
+        "/base2/internadosenf"
+      ]
+    },
+    "pmultinutricao": {
+      "Multidisciplinar": [
+        "/base2/internadosenf"
+      ]
+    },
+    "pmultipsicologia": {
+      "Multidisciplinar": [
+        "/base2/internadosenf"
+      ]
+    },
+    "pnsp": {
+      "Qualidade e Segurança": [
+        "/base2/indicadores-seguranca",
+        "/base2/nsp"
+      ]
+    },
+    "pnspgestao": {
+      "Qualidade e Segurança": [
+        "/base2/indicadores-seguranca",
+        "/base2/nsp"
+      ]
+    },
+    "podontologia": {
+      "Dentista": [
+        "/base2/odontologia"
+      ]
+    },
+    "ppainelmunicipal": {
+      "Faturamento": [
+        "/base2/painel-municipal"
+      ]
+    },
+    "ppendenciaspa": {
+      "Faturamento": [
+        "/base2/pendencias-pa"
+      ]
+    },
+    "ppepatendimento": {
+      "Enfermagem": [
+        "/base2/pep-atendimento"
+      ],
+      "Nir": [
+        "/base2/pep-atendimento"
+      ],
+      "Médico": [
+        "/base2/pep-atendimento"
+      ]
+    },
+    "pplantaoenfermagem": {
+      "Enfermagem": [
+        "/base2/plantao-enfermagem"
+      ]
+    },
+    "pprimeiroatendimento": {
+      "Recepção": [
+        "/base2/recepcao"
+      ]
+    },
+    "pprocessosinternacao": {
+      "Médico": [
+        "/base2/laudointernacao"
+      ]
+    },
+    "pproducaoassistencial": {
+      "Administrativo": [
+        "/base2/producao-assistencial"
+      ]
+    },
+    "pprotocolosfluxograma": {
+      "Médico": [
+        "/base2/protocolos-fluxograma"
+      ],
+      "Multidisciplinar": [
+        "/base2/protocolos-fluxograma"
+      ]
+    },
+    "praas": {
+      "Faturamento SUS": [
+        "/base2/faturamento-sus/raas"
+      ]
+    },
+    "prealizarexames": {
+      "Laboratório": [
+        "/base2/laboratorio"
+      ]
+    },
+    "preclassificarpaciente": {
+      "Triagem": [
+        "/base2/reclassificar-paciente"
+      ]
+    },
+    "presumodealta": {
+      "Médico": [
+        "/base2/resumodealta"
+      ]
+    },
+    "prhponto": {
+      "RH": [
+        "/base2/rh/ponto"
+      ]
+    },
+    "prnds": {
+      "Apoio Assistencial": [
+        "/base2/rnds"
+      ]
+    },
+    "producaomedica": {
+      "Administrativo": [
+        "/base2/producao-medica"
+      ]
+    },
+    "produtividaderh": {
+      "RH": [
+        "/base2/rh/produtividade"
+      ]
+    },
+    "prontuariocompleto": {
+      "Administrativo": [
+        "/base2/pep-atendimento",
+        "/base2/prontuario-completo"
+      ],
+      "Enfermagem": [
+        "/base2/prontuario-completo"
+      ]
+    },
+    "psnd": {
+      "Apoio Assistencial": [
+        "/base2/snd-dietetica"
+      ]
+    },
+    "psumarioobito": {
+      "Enfermagem": [
+        "/base2/enfermagem/sumario-obito"
+      ]
+    },
+    "ptiss": {
+      "Faturamento": [
+        "/base2/faturamento/tiss"
+      ]
+    },
+    "pvisitapacientes": {
+      "Recepção": [
+        "/base2/internadosvisita"
+      ]
+    },
+    "pvolumepainel": {
+      "Recepção": [
+        "/base2/volume-painel"
+      ]
+    },
+    "ragprontuario": {
+      "Administrativo": [
+        "/rag-prontuario"
+      ],
+      "Enfermagem": [
+        "/rag-prontuario"
+      ],
+      "Dentista": [
+        "/rag-prontuario"
+      ],
+      "Médico": [
+        "/rag-prontuario"
+      ],
+      "Nir": [
+        "/rag-prontuario"
+      ],
+      "Faturamento": [
+        "/rag-prontuario"
+      ]
+    },
+    "restaurarpaciente": {
+      "Nir": [
+        "/base2/nirrestaurarinternacao"
+      ]
+    },
+    "resumoclinicoia": {
+      "Administrativo": [
+        "/resumo-clinico-ia"
+      ],
+      "Enfermagem": [
+        "/resumo-clinico-ia"
+      ],
+      "Médico": [
+        "/resumo-clinico-ia"
+      ]
+    },
+    "resumopaciente": {
+      "Administrativo": [
+        "/base2/listadepacientes"
+      ],
+      "Enfermagem": [
+        "/base2/listadepacientes"
+      ]
+    },
+    "resumopacientes": {
+      "Faturamento": [
+        "/base2/listadepacientes"
+      ]
+    },
+    "saeenfermagem": {
+      "Enfermagem": [
+        "/base2/sae-enfermagem"
+      ]
+    },
+    "setorcenso": {
+      "Nir": [
+        "/base2/setorcenso"
+      ]
+    },
+    "sinan": {
+      "Enfermagem": [
+        "/base2/sinan"
+      ],
+      "Vigilância": [
+        "/base2/sinan"
+      ]
+    },
+    "treinamentocertificacao": {
+      "RH": [
+        "/base2/rh/treinamentos"
+      ]
+    },
+    "verificarassinatura": {
+      "Administrativo": [
+        "/base2/verificar-assinatura"
+      ]
+    },
+    "vigilanciaepidemiologica": {
+      "Vigilância": [
+        "/base2/vigilancia-epidemiologica"
+      ]
     }
   }
 }

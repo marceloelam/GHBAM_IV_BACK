@@ -84,6 +84,8 @@ public class RbacRequestFilter implements ContainerRequestFilter {
             "videos-ajuda",
             // Setores com coordenador cuja equipe nao inclui o usuario (fecha o menu do setor).
             "coordenacao-setor/meus-setores",
+            // Modulos contratados da unidade: o menu de todos le para esconder o que nao foi contratado.
+            "unidade-modulos",
             "sala/unidade",
             "setores/unidade",
             "setores/unidadetriar",

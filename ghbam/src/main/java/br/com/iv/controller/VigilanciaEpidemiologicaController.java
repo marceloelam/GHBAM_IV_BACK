@@ -152,7 +152,46 @@ public class VigilanciaEpidemiologicaController {
         if (nomeDoenca == null) return mapaInterno(inicio, fim, unidade, origem, doenca, true);
         @SuppressWarnings("unchecked")
         Map<String, Object> dados = (Map<String, Object>) completo.getEntity();
+        // Doenca com poucos casos fica fora da legenda do mapa completo; pedida pelo nome, usa a consulta propria
+        // (minimo da regra), como na visao do municipio. Mesma varredura pesada: so uma por vez no municipio.
+        boolean naLegenda = ((List<?>) dados.getOrDefault("doencas", List.of())).stream()
+                .anyMatch(d -> d instanceof Map<?, ?> m && nomeDoenca.equals(texto(m.get("nome"))));
+        if (!naLegenda) return mapaDaDoencaForaDaLegenda(inicio, fim, unidade, origem, doenca);
         return Response.ok(filtrarPorDoenca(dados, nomeDoenca)).build();
+    }
+
+    private Response mapaDaDoencaForaDaLegenda(String inicio, String fim, String unidade, String origem, String doenca) {
+        boolean municipal = unidadeEfetiva(unidade).isBlank();
+        // Mesmo prazo do mapa completo (limparCaches tambem zera esta chave): repetir a mesma doenca nao volta ao banco.
+        String chave = String.join("|", "DOENCA", unidadeEfetiva(unidade), texto(inicio), texto(fim),
+                texto(origem).toUpperCase(Locale.ROOT), texto(doenca));
+        Object[] cache = MAPA_CACHE.get(chave);
+        if (cache != null && System.currentTimeMillis() - (Long) cache[0] < MAPA_CACHE_MS) {
+            return Response.ok(cache[1]).build();
+        }
+        try {
+            if (municipal && !VARREDURA_MUNICIPAL.tryAcquire(90, java.util.concurrent.TimeUnit.SECONDS)) {
+                return Response.status(Response.Status.SERVICE_UNAVAILABLE)
+                        .entity(Map.of("erro", "Outra analise do municipio esta em andamento. Tente novamente em instantes.")).build();
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return Response.status(Response.Status.SERVICE_UNAVAILABLE).entity(Map.of("erro", "Consulta interrompida.")).build();
+        }
+        try {
+            cache = MAPA_CACHE.get(chave); // outra requisicao pode ter terminado enquanto esperava a vez
+            if (cache != null && System.currentTimeMillis() - (Long) cache[0] < MAPA_CACHE_MS) {
+                return Response.ok(cache[1]).build();
+            }
+            Response resposta = mapaInterno(inicio, fim, unidade, origem, doenca, true);
+            if (resposta.getStatus() == 200) {
+                if (MAPA_CACHE.size() > 500) MAPA_CACHE.clear();
+                MAPA_CACHE.put(chave, new Object[] { System.currentTimeMillis(), resposta.getEntity() });
+            }
+            return resposta;
+        } finally {
+            if (municipal) VARREDURA_MUNICIPAL.release();
+        }
     }
 
     private Response mapaCompleto(String chaveCache, String inicio, String fim, String unidade, String origem) {
@@ -167,12 +206,26 @@ public class VigilanciaEpidemiologicaController {
                 if (cache != null && System.currentTimeMillis() - (Long) cache[0] < MAPA_CACHE_MS) {
                     return Response.ok(cache[1]).build();
                 }
-                Response resposta = mapaInterno(inicio, fim, unidade, origem, "", true);
+                // Varredura do municipio inteiro e pesada: so uma por vez, para nao competir com o atendimento.
+                boolean municipal = unidadeEfetiva(unidade).isBlank();
+                if (municipal && !VARREDURA_MUNICIPAL.tryAcquire(90, java.util.concurrent.TimeUnit.SECONDS)) {
+                    return Response.status(Response.Status.SERVICE_UNAVAILABLE)
+                            .entity(Map.of("erro", "Outra analise do municipio esta em andamento. Tente novamente em instantes.")).build();
+                }
+                Response resposta;
+                try {
+                    resposta = mapaInterno(inicio, fim, unidade, origem, "", true);
+                } finally {
+                    if (municipal) VARREDURA_MUNICIPAL.release();
+                }
                 if (resposta.getStatus() == 200) {
                     if (MAPA_CACHE.size() > 500) MAPA_CACHE.clear();
                     MAPA_CACHE.put(chaveCache, new Object[] { System.currentTimeMillis(), resposta.getEntity() });
                 }
                 return resposta;
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return Response.status(Response.Status.SERVICE_UNAVAILABLE).entity(Map.of("erro", "Consulta interrompida.")).build();
             } finally {
                 MAPA_TRAVAS.remove(chaveCache);
             }
@@ -222,12 +275,48 @@ public class VigilanciaEpidemiologicaController {
      * pontos sao montados aqui. Antes era uma consulta geral e mais uma de 5 janelas por doenca da legenda,
      * o que passava do tempo de transacao. Mantem os mesmos limites e campos de mapaInterno.
      */
+    /**
+     * Regras com nomes diferentes da mesma doenca ("SRAG" e "Sindrome Respiratoria Aguda Grave") viram uma so no
+     * mapa do municipio: o caso de qualquer uma delas passa a contar na primeira, uma vez por paciente, e as demais
+     * ficam sem casos (somem da legenda). Mesma regra de nome do painel (chaveDoenca).
+     */
+    private void fundirRegrasDaMesmaDoenca(List<Object[]> rows, List<Map<String, Object>> regras) {
+        int[] alvo = new int[regras.size()];
+        Map<String, Integer> primeira = new LinkedHashMap<>();
+        boolean haDuplicada = false;
+        for (int i = 0; i < regras.size(); i++) {
+            String nome = texto(regras.get(i).get("nome"));
+            String chave = chaveDoenca(nome.isBlank() ? texto(regras.get(i).get("termos")) : nome);
+            Integer ja = primeira.get(chave);
+            if (ja == null) {
+                primeira.put(chave, i);
+                alvo[i] = i;
+            } else {
+                alvo[i] = ja;
+                haDuplicada = true;
+            }
+        }
+        if (!haDuplicada) return;
+        for (Object[] row : rows) {
+            for (int coluna = 13; coluna <= 15 && coluna < row.length; coluna++) {
+                String csv = texto(row[coluna]);
+                if (csv.isBlank()) continue;
+                java.util.LinkedHashSet<String> novos = new java.util.LinkedHashSet<>();
+                for (String indice : csv.split(",")) {
+                    if (!indice.isBlank()) novos.add(String.valueOf(alvo[Integer.parseInt(indice.trim())]));
+                }
+                row[coluna] = String.join(",", novos);
+            }
+        }
+    }
+
     private Response mapaTodasDoencas(LocalDate dataInicio, LocalDate dataFim, String unidade, String origem, List<Map<String, Object>> regras) {
         long diasPeriodo = java.time.temporal.ChronoUnit.DAYS.between(dataInicio, dataFim) + 1;
         List<Object[]> rows = varrer(regras, dataInicio.minusDays(diasPeriodo * 4), dataFim, unidade, origem);
         // A decisao da vigilancia vale aqui tambem: descartado sai do mapa, dos totais e da media anterior.
         List<Map<String, String>> classificacoes = classificacoesPorIndice(regras);
         ClassificacaoCasoEpidemiologico.aplicar(rows, classificacoes);
+        if (escopoMunicipal()) fundirRegrasDaMesmaDoenca(rows, regras);
         GeocodificacaoPacienteService.PadraoUnidade padraoUnidade = GeocodificacaoPacienteService.padraoDaUnidade(unidade);
         List<Map<String, RegiaoDoenca>> regioesPorRegra = new ArrayList<>();
         regras.forEach(regra -> regioesPorRegra.add(new LinkedHashMap<>()));
@@ -280,7 +369,10 @@ public class VigilanciaEpidemiologicaController {
             long negadas = contagemGhbam[i][1] + contagemGpec[i][1];
             long fora = contagemGhbam[i][2] + contagemGpec[i][2];
             // Caso confirmado sempre aparece, mesmo abaixo do minimo da doenca ou da regiao.
-            boolean naLegenda = casos >= limites.minimo() || regioesPorRegra.get(i).values().stream().anyMatch(regiao -> !regiao.confirmados.isEmpty());
+            // Visao do municipio: toda doenca da classificacao com caso entra na legenda e no mapa, inclusive as
+            // regioes pequenas (quem tem essa visao ja lista os pacientes). Nas demais visoes valem os minimos.
+            boolean municipal = escopoMunicipal();
+            boolean naLegenda = casos >= (municipal ? 1 : limites.minimo()) || regioesPorRegra.get(i).values().stream().anyMatch(regiao -> !regiao.confirmados.isEmpty());
             if (negadas > 0 && (naLegenda || limites.cadastrada())) {
                 Map<String, Object> mencao = new LinkedHashMap<>();
                 mencao.put("nome", nome);
@@ -302,7 +394,7 @@ public class VigilanciaEpidemiologicaController {
             for (RegiaoDoenca regiao : regioesPorRegra.get(i).values()) {
                 long peso = regiao.atuais.size();
                 if (peso <= 0) continue;
-                if (peso < limites.minimoRegiao() && regiao.confirmados.isEmpty()) {
+                if (peso < (municipal ? 1 : limites.minimoRegiao()) && regiao.confirmados.isEmpty()) {
                     pequenasDaDoenca += peso;
                     continue;
                 }
@@ -465,8 +557,9 @@ public class VigilanciaEpidemiologicaController {
             }
             // Cada unidade ve so o seu mapa: com JWT vale a unidade da sessao, nunca a
             // da query (unidade vazia faria as consultas devolverem todas as unidades).
+            // Excecao: escopo=MUNICIPIO, so para quem tem permissao de vigilancia (escopoMunicipal).
             unidade = unidadeEfetiva(unidade);
-            if (unidade.isBlank()) {
+            if (unidade.isBlank() && !escopoMunicipal()) {
                 return Response.status(Response.Status.BAD_REQUEST)
                         .entity(Map.of("erro", "Unidade de trabalho nao identificada. Saia e entre novamente selecionando a unidade no login."))
                         .build();
@@ -662,7 +755,10 @@ public class VigilanciaEpidemiologicaController {
                 double[] celula = entrada.getValue();
                 long peso = (long) celula[2];
                 if (peso <= 0) continue;
-                if (peso < limites.minimoRegiao()) {
+                // Quem tem a visao do municipio ja pode listar os pacientes; com uma doenca escolhida o mapa mostra
+                // tambem as regioes pequenas, senao doenca rara (poucos casos) ficaria sem nenhum ponto.
+                int minimoRegiao = escopoMunicipal() ? 1 : limites.minimoRegiao();
+                if (peso < minimoRegiao) {
                     casosRegioesPequenas += peso;
                     continue;
                 }
@@ -721,7 +817,9 @@ public class VigilanciaEpidemiologicaController {
                 long casos = "GHBAM".equalsIgnoreCase(texto(origem)) ? casosGhbam
                         : "GPEC".equalsIgnoreCase(texto(origem)) ? casosGpec : casosGhbam + casosGpec;
                 LimitesRegra limitesLegenda = limitesDe(regra);
-                boolean naLegenda = casos >= limitesLegenda.minimo();
+                // Visao do municipio: todas as doencas da classificacao com caso entram na legenda e no mapa
+                // (as regioes pequenas tambem; ver minimoRegiao). Nas demais visoes vale o minimo da regra.
+                boolean naLegenda = casos >= (escopoMunicipal() ? 1 : limitesLegenda.minimo());
                 if (naLegenda) {
                     Map<String, Object> opcao = new LinkedHashMap<>();
                     opcao.put("id", regra.get("id"));
@@ -824,7 +922,7 @@ public class VigilanciaEpidemiologicaController {
                         .entity(Map.of("erro", "Informe um intervalo de ate 93 dias.")).build();
             }
             unidade = unidadeEfetiva(unidade);
-            if (unidade.isBlank()) {
+            if (unidade.isBlank() && !escopoMunicipal()) {
                 return Response.status(Response.Status.BAD_REQUEST)
                         .entity(Map.of("erro", "Unidade de trabalho nao identificada. Saia e entre novamente selecionando a unidade no login."))
                         .build();
@@ -841,7 +939,7 @@ public class VigilanciaEpidemiologicaController {
                         FROM bam b
                         JOIN tratamento t ON t.idtratamento = b.tratamento_idtratamento
                         WHERE CAST(b.data AS date) BETWEEN :inicioBase AND :fim
-                          AND b.unidade = :unidade
+                          AND (:unidade = '' OR b.unidade = :unidade)
                           AND COALESCE(TRIM(t.diagnostico_provisorio), '') <> ''
                           AND NOT (b.idbam = ANY(CAST(:descartados AS int[])))
                           AND COALESCE(NULLIF(UPPER(:origem), ''), 'TODOS') IN ('TODOS', 'GHBAM')
@@ -856,7 +954,7 @@ public class VigilanciaEpidemiologicaController {
                         JOIN aps_problema pr ON pr.id_atendimento = a.id AND pr.tipo = 'PROBLEMA'
                         WHERE a.data_referencia BETWEEN :inicioBase AND :fim
                           AND a.status <> 'CANCELADO'
-                          AND UPPER(a.unidade) = UPPER(:unidade)
+                          AND (:unidade = '' OR UPPER(a.unidade) = UPPER(:unidade))
                           AND COALESCE(NULLIF(UPPER(:origem), ''), 'TODOS') IN ('TODOS', 'GPEC')
                     )
                     SELECT fonte, chave, MODE() WITHIN GROUP (ORDER BY descricao) AS descricao,
@@ -945,7 +1043,7 @@ public class VigilanciaEpidemiologicaController {
             LocalDate dataFim = LocalDate.parse(texto(fim));
             String unidade = unidadeEfetiva(unidadeInformada);
             if (dataFim.isBefore(dataInicio) || dataInicio.plusDays(92).isBefore(dataFim)
-                    || unidade.isBlank() || (latitude == null) != (longitude == null)) {
+                    || (unidade.isBlank() && !escopoMunicipal()) || (latitude == null) != (longitude == null)) {
                 return Response.status(Response.Status.BAD_REQUEST)
                         .entity(Map.of("erro", "Informe período de até 93 dias, unidade e região completa.")).build();
             }
@@ -1000,9 +1098,10 @@ public class VigilanciaEpidemiologicaController {
                 caso.put("doencas", new ArrayList<>((java.util.Set<?>) caso.get("doencas")));
                 casos.add(caso);
             }
+            preencherUnidadeDosCasos(casos);
             // Rastreabilidade do acesso a dado identificado; o log nao leva dado do paciente.
             var usuario = securityPermissionService.resolve(requestContext);
-            LOG.infof("Casos do mapa consultados: unidade=%s, matricula=%s, pacientes=%d", unidade,
+            LOG.infof("Casos do mapa consultados: unidade=%s, matricula=%s, pacientes=%d", unidade.isBlank() ? "MUNICIPIO" : unidade,
                     usuario == null ? "" : usuario.matricula(), casos.size());
             return Response.ok(Map.of("casos", casos)).build();
         } catch (java.time.format.DateTimeParseException e) {
@@ -1016,6 +1115,35 @@ public class VigilanciaEpidemiologicaController {
     }
 
     /** Atendimentos que citam termos das regras, ja com o texto normalizado na ultima coluna. O regex fica no Java: no banco custava dezenas de segundos. */
+    /** Unidade de cada atendimento listado (a varredura nao a traz): uma consulta por fonte, so dos ids da lista. */
+    @SuppressWarnings("unchecked")
+    private void preencherUnidadeDosCasos(List<Map<String, Object>> casos) {
+        List<Long> ghbam = new ArrayList<>();
+        List<Long> gpec = new ArrayList<>();
+        for (Map<String, Object> caso : casos) {
+            try {
+                long id = Long.parseLong(texto(caso.get("atendimento")));
+                ("GPEC".equals(caso.get("fonte")) ? gpec : ghbam).add(id);
+            } catch (NumberFormatException ignorado) {
+                // sem id numerico: segue sem unidade
+            }
+        }
+        Map<String, String> unidadeGhbam = new java.util.HashMap<>();
+        Map<String, String> unidadeGpec = new java.util.HashMap<>();
+        if (!ghbam.isEmpty()) {
+            for (Object[] r : (List<Object[]>) em.createNativeQuery("SELECT CAST(idbam AS varchar), unidade FROM bam WHERE idbam IN (:ids)")
+                    .setParameter("ids", ghbam).getResultList()) unidadeGhbam.put(texto(r[0]), texto(r[1]));
+        }
+        if (!gpec.isEmpty()) {
+            for (Object[] r : (List<Object[]>) em.createNativeQuery("SELECT CAST(id AS varchar), unidade FROM aps_atendimento WHERE id IN (:ids)")
+                    .setParameter("ids", gpec).getResultList()) unidadeGpec.put(texto(r[0]), texto(r[1]));
+        }
+        for (Map<String, Object> caso : casos) {
+            Map<String, String> fonte = "GPEC".equals(caso.get("fonte")) ? unidadeGpec : unidadeGhbam;
+            caso.put("unidade", fonte.getOrDefault(texto(caso.get("atendimento")), ""));
+        }
+    }
+
     static String sqlVarredura() {
         return """
                     SELECT * FROM (
@@ -1369,9 +1497,280 @@ public class VigilanciaEpidemiologicaController {
 
     /** Com JWT vale a unidade da sessao, nunca a informada; sem JWT (dev legado), a informada. */
     private String unidadeEfetiva(String informada) {
-        String sessao = securityPermissionService.unidadeDaSessao(requestContext);
+        if (escopoMunicipal()) return "";
+        String sessao;
+        try {
+            sessao = securityPermissionService.unidadeDaSessao(requestContext);
+        } catch (RuntimeException foraDeRequisicao) {
+            // Chamada pelo job do alerta automatico: sem requisicao HTTP, vale a unidade informada.
+            sessao = "";
+        }
         String valor = sessao.isBlank() ? texto(informada) : sessao;
         return valor.split(":")[0].trim();
+    }
+
+    /** Para o job do alerta automatico: respeita a unidade que desligou o alerta de vigilancia. */
+    @jakarta.transaction.Transactional
+    public boolean alertaAtivoParaJob(String unidade) {
+        garantirEstrutura();
+        return alertaCabecalhoAtivo(unidade);
+    }
+
+    // ---- Visao do municipio (todas as unidades): so vigilancia, CCIH e administracao ----
+
+    private static final List<String> PERFIS_MUNICIPIO = List.of("pvigilanciaepidemiologica", "pccih", "kadm");
+    private static final Map<String, Object[]> MUNICIPIO_CACHE = new java.util.concurrent.ConcurrentHashMap<>();
+    /** Limita a uma varredura do municipio inteiro por vez (mapa municipal ou painel). */
+    private static final java.util.concurrent.Semaphore VARREDURA_MUNICIPAL = new java.util.concurrent.Semaphore(1);
+
+    /** So o job agendado (sem requisicao HTTP) liga isto; evita expor o painel sem permissao a quem chama a API. */
+    private static final ThreadLocal<Boolean> CHAMADA_DO_JOB = new ThreadLocal<>();
+
+    /** Painel do municipio para o alerta automatico: mesma conta, sem checar usuario (nao ha sessao no job). */
+    @Transactional
+    public Response painelMunicipioParaJob(LocalDate inicio, LocalDate fim) {
+        CHAMADA_DO_JOB.set(Boolean.TRUE);
+        try {
+            return painelMunicipio(inicio.toString(), fim.toString());
+        } finally {
+            CHAMADA_DO_JOB.remove();
+        }
+    }
+
+    private boolean podeVerMunicipio() {
+        try {
+            var usuario = securityPermissionService.resolve(requestContext);
+            return usuario != null && usuario.hasAnyPermission(PERFIS_MUNICIPIO);
+        } catch (RuntimeException foraDeRequisicao) {
+            return false;
+        }
+    }
+
+    /** escopo=MUNICIPIO na query libera "todas as unidades" nos endpoints de mapa; sem a permissao, vale a unidade da sessao. */
+    private boolean escopoMunicipal() {
+        try {
+            String escopo = requestContext.getUriInfo().getQueryParameters().getFirst("escopo");
+            return "MUNICIPIO".equalsIgnoreCase(escopo) && podeVerMunicipio();
+        } catch (RuntimeException foraDeRequisicao) {
+            return false;
+        }
+    }
+
+    /**
+     * Painel do municipio: casos por unidade, crescimento diario por doenca e variacao contra o periodo anterior
+     * de mesmo tamanho. Usa a mesma varredura e as mesmas definicoes de caso do mapa (catalogo padrao).
+     * So agregados; paciente so aparece em regiao/casos, que fica registrado em log.
+     */
+    @GET @Path("municipio/painel")
+    @Transactional
+    public Response painelMunicipio(@QueryParam("inicio") String inicio, @QueryParam("fim") String fim) {
+        // Uma varredura do municipio por vez: nao disputa o banco com o atendimento nem empilha consultas.
+        try {
+            if (!VARREDURA_MUNICIPAL.tryAcquire(90, java.util.concurrent.TimeUnit.SECONDS)) {
+                return Response.status(Response.Status.SERVICE_UNAVAILABLE)
+                        .entity(Map.of("erro", "Outra analise do municipio esta em andamento. Tente novamente em instantes.")).build();
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return Response.status(Response.Status.SERVICE_UNAVAILABLE).entity(Map.of("erro", "Consulta interrompida.")).build();
+        }
+        try {
+            return calcularPainelMunicipio(inicio, fim);
+        } finally {
+            VARREDURA_MUNICIPAL.release();
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private Response calcularPainelMunicipio(String inicio, String fim) {
+        try {
+            if (!Boolean.TRUE.equals(CHAMADA_DO_JOB.get()) && !podeVerMunicipio()) {
+                return Response.status(Response.Status.FORBIDDEN)
+                        .entity(Map.of("erro", "Sem permissao para a visao do municipio.")).build();
+            }
+            LocalDate dataFim = texto(fim).isBlank() ? LocalDate.now() : LocalDate.parse(texto(fim));
+            LocalDate dataInicio = texto(inicio).isBlank() ? dataFim.minusDays(13) : LocalDate.parse(texto(inicio));
+            if (dataFim.isBefore(dataInicio) || dataInicio.plusDays(45).isBefore(dataFim)) {
+                return Response.status(Response.Status.BAD_REQUEST)
+                        .entity(Map.of("erro", "Informe um intervalo de ate 46 dias.")).build();
+            }
+            long dias = java.time.temporal.ChronoUnit.DAYS.between(dataInicio, dataFim) + 1;
+            LocalDate inicioAnterior = dataInicio.minusDays(dias);
+            String chave = dataInicio + "|" + dataFim;
+            Object[] cache = MUNICIPIO_CACHE.get(chave);
+            if (cache != null && System.currentTimeMillis() - (Long) cache[0] < ALERTA_CACHE_MS) {
+                return Response.ok(cache[1]).build();
+            }
+            garantirEstrutura();
+            List<Map<String, Object>> regras = regrasDaConsulta("", "");
+            // Regras que sao a mesma doenca com nomes diferentes (ex.: "SRAG" e "Sindrome Respiratoria Aguda Grave")
+            // viram uma so; o paciente continua contado uma vez porque os conjuntos se fundem.
+            List<String> nomes = new ArrayList<>();
+            Map<String, String> nomePorChave = new LinkedHashMap<>();
+            Map<String, String> termosPorNome = new LinkedHashMap<>(); // para a tela filtrar o mapa e a lista pela doenca clicada
+            for (Map<String, Object> regra : regras) {
+                String nome = texto(regra.get("nome"));
+                String bruto = nome.isBlank() ? texto(regra.get("termos")) : nome;
+                String nomeUnico = nomePorChave.computeIfAbsent(chaveDoenca(bruto), k -> bruto);
+                nomes.add(nomeUnico);
+                termosPorNome.putIfAbsent(nomeUnico, texto(regra.get("termos")));
+            }
+            Map<String, String> unidades = new java.util.TreeMap<>();
+            for (Object o : em.createNativeQuery("""
+                    SELECT unidade FROM (
+                        SELECT b.unidade FROM bam b WHERE CAST(b.data AS date) BETWEEN :i AND :f
+                        UNION
+                        SELECT a.unidade FROM aps_atendimento a WHERE a.data_referencia BETWEEN :i AND :f AND a.status <> 'CANCELADO'
+                    ) u WHERE COALESCE(TRIM(unidade), '') <> ''
+                    """).setParameter("i", inicioAnterior).setParameter("f", dataFim).getResultList()) {
+                unidades.putIfAbsent(texto(o).toUpperCase(Locale.ROOT), texto(o));
+            }
+
+            java.util.Set<String> pacientesAtual = new java.util.HashSet<>();
+            java.util.Set<String> pacientesAnterior = new java.util.HashSet<>();
+            Map<LocalDate, Map<String, java.util.Set<String>>> diario = new java.util.TreeMap<>();
+            Map<LocalDate, java.util.Set<String>> diarioTotal = new java.util.TreeMap<>();
+            List<Map<String, Object>> porUnidade = new ArrayList<>();
+            Map<String, java.util.Set<String>> munAtual = new LinkedHashMap<>();
+            Map<String, java.util.Set<String>> munAnterior = new LinkedHashMap<>();
+            Map<String, List<String>> unidadesDaDoenca = new LinkedHashMap<>();
+            for (String unidade : unidades.values()) {
+                java.util.Set<String> pacAtual = new java.util.HashSet<>();
+                java.util.Set<String> pacAnterior = new java.util.HashSet<>();
+                Map<String, java.util.Set<String>> doencaAtual = new LinkedHashMap<>();
+                Map<String, java.util.Set<String>> doencaAnterior = new LinkedHashMap<>();
+                for (Object[] linha : varrer(regras, inicioAnterior, dataFim, unidade, "TODOS")) {
+                    String indices = texto(linha[13]);
+                    if (indices.isBlank()) continue;
+                    LocalDate dia = LocalDate.parse(texto(linha[4]).substring(0, 10));
+                    String paciente = texto(linha[1]);
+                    boolean atual = !dia.isBefore(dataInicio);
+                    if (atual) { pacAtual.add(paciente); pacientesAtual.add(paciente); diarioTotal.computeIfAbsent(dia, d -> new java.util.HashSet<>()).add(paciente); }
+                    else { pacAnterior.add(paciente); pacientesAnterior.add(paciente); }
+                    for (String indice : indices.split(",")) {
+                        String doenca = nomes.get(Integer.parseInt(indice.trim()));
+                        (atual ? doencaAtual : doencaAnterior).computeIfAbsent(doenca, d -> new java.util.HashSet<>()).add(paciente);
+                        (atual ? munAtual : munAnterior).computeIfAbsent(doenca, d -> new java.util.HashSet<>()).add(paciente);
+                        if (atual) diario.computeIfAbsent(dia, d -> new LinkedHashMap<>()).computeIfAbsent(doenca, d -> new java.util.HashSet<>()).add(paciente);
+                    }
+                }
+                if (pacAtual.isEmpty() && pacAnterior.isEmpty()) continue;
+                List<Map<String, Object>> doencas = new ArrayList<>();
+                for (String doenca : doencaAtual.keySet()) {
+                    long casos = doencaAtual.get(doenca).size();
+                    long anterior = doencaAnterior.getOrDefault(doenca, java.util.Set.of()).size();
+                    Map<String, Object> d = new LinkedHashMap<>();
+                    d.put("nome", doenca); d.put("casos", casos); d.put("anterior", anterior); d.put("variacaoPct", variacaoPct(casos, anterior));
+                    doencas.add(d);
+                    unidadesDaDoenca.computeIfAbsent(doenca, x -> new ArrayList<>()).add(unidade);
+                }
+                doencas.sort((a, b) -> Long.compare((Long) b.get("casos"), (Long) a.get("casos")));
+                Map<String, Object> u = new LinkedHashMap<>();
+                u.put("unidade", unidade); u.put("casos", (long) pacAtual.size()); u.put("anterior", (long) pacAnterior.size());
+                u.put("variacaoPct", variacaoPct(pacAtual.size(), pacAnterior.size())); u.put("doencas", doencas);
+                porUnidade.add(u);
+            }
+            porUnidade.sort((a, b) -> Long.compare((Long) b.get("casos"), (Long) a.get("casos")));
+
+            Map<String, Long> totalPorDoenca = new LinkedHashMap<>();
+            diario.values().forEach(m -> m.forEach((doenca, pacs) -> totalPorDoenca.merge(doenca, (long) pacs.size(), Long::sum)));
+            List<Map<String, Object>> serie = new ArrayList<>();
+            for (LocalDate dia = dataInicio; !dia.isAfter(dataFim); dia = dia.plusDays(1)) {
+                Map<String, Object> ponto = new LinkedHashMap<>();
+                ponto.put("data", dia.toString());
+                ponto.put("total", (long) diarioTotal.getOrDefault(dia, java.util.Set.of()).size());
+                Map<String, Long> doencasDia = new LinkedHashMap<>();
+                diario.getOrDefault(dia, Map.of()).forEach((doenca, pacs) -> doencasDia.put(doenca, (long) pacs.size()));
+                ponto.put("doencas", doencasDia);
+                serie.add(ponto);
+            }
+            Map<String, Object> resposta = new LinkedHashMap<>();
+            resposta.put("inicio", dataInicio.toString()); resposta.put("fim", dataFim.toString());
+            resposta.put("inicioAnterior", inicioAnterior.toString());
+            resposta.put("casos", (long) pacientesAtual.size()); resposta.put("anterior", (long) pacientesAnterior.size());
+            resposta.put("variacaoPct", variacaoPct(pacientesAtual.size(), pacientesAnterior.size()));
+            resposta.put("unidades", porUnidade);
+            List<Map<String, Object>> escalas = new ArrayList<>();
+            for (Map.Entry<String, java.util.Set<String>> e : munAtual.entrySet()) {
+                Map<String, Object> escalaDaDoenca = escalaMunicipal(e.getKey(), e.getValue().size(),
+                        munAnterior.getOrDefault(e.getKey(), java.util.Set.of()).size(),
+                        unidadesDaDoenca.getOrDefault(e.getKey(), List.of()));
+                escalaDaDoenca.put("termos", termosPorNome.getOrDefault(e.getKey(), ""));
+                escalas.add(escalaDaDoenca);
+            }
+            escalas.sort((a, b) -> {
+                int porNivel = Integer.compare((Integer) b.get("ordem"), (Integer) a.get("ordem"));
+                return porNivel != 0 ? porNivel : Long.compare((Long) b.get("casos"), (Long) a.get("casos"));
+            });
+            resposta.put("escalaDoencas", escalas);
+            resposta.put("escalaGeral", escalas.isEmpty() ? "NENHUMA" : escalas.get(0).get("escala"));
+            resposta.put("serie", serie);
+            resposta.put("doencas", totalPorDoenca.entrySet().stream()
+                    .sorted((a, b) -> Long.compare(b.getValue(), a.getValue())).map(Map.Entry::getKey).toList());
+            resposta.put("aviso", "Casos pela definição do catálogo padrão (paciente contado uma vez); não confirma doença nem surto.");
+            if (MUNICIPIO_CACHE.size() > 50) MUNICIPIO_CACHE.clear();
+            MUNICIPIO_CACHE.put(chave, new Object[] { System.currentTimeMillis(), resposta });
+            return Response.ok(resposta).build();
+        } catch (java.time.format.DateTimeParseException e) {
+            return Response.status(Response.Status.BAD_REQUEST).entity(Map.of("erro", "Data invalida. Use aaaa-mm-dd.")).build();
+        } catch (Exception e) {
+            LOG.error("Falha no painel do municipio", e);
+            return Response.status(Response.Status.SERVICE_UNAVAILABLE)
+                    .entity(Map.of("erro", "Nao foi possivel montar o painel do municipio.")).build();
+        }
+    }
+
+    // Criterios iniciais da escala no municipio: sao sinais para a vigilancia analisar, nunca declaracao.
+    // A calibrar com a vigilancia (mesma ideia do minimo de 20 casos que ja vale para a legenda do mapa).
+    private static final int MUN_MINIMO_SURTO = 5;
+    private static final int MUN_MINIMO_EPIDEMIA = MINIMO_INVESTIGACAO;
+    private static final double MUN_FATOR_CRESCIMENTO = 2d;
+    private static final int MUN_UNIDADES_EPIDEMIA = 3;
+
+    /**
+     * Escala de uma doenca no municipio. Surto = crescimento forte com casos concentrados; possivel epidemia =
+     * crescimento forte, volume alto e espalhado por varias unidades. Sem historico, vale so o volume.
+     */
+    static Map<String, Object> escalaMunicipal(String doenca, long casos, long anterior, List<String> unidades) {
+        double razao = anterior == 0 ? Double.POSITIVE_INFINITY : (double) casos / anterior;
+        boolean crescendo = razao >= MUN_FATOR_CRESCIMENTO;
+        String escala = "NENHUMA";
+        String motivo = "Sem sinal no periodo.";
+        if (casos >= MUN_MINIMO_EPIDEMIA && crescendo && unidades.size() >= MUN_UNIDADES_EPIDEMIA) {
+            escala = "POSSIVEL_EPIDEMIA";
+            motivo = casos + " casos (periodo anterior: " + anterior + ") em " + unidades.size() + " unidades: crescimento com disseminacao.";
+        } else if (casos >= MUN_MINIMO_SURTO && crescendo) {
+            escala = "POSSIVEL_SURTO";
+            motivo = casos + " casos (periodo anterior: " + anterior + ") em " + unidades.size() + " unidade(s): crescimento acima de "
+                    + (int) MUN_FATOR_CRESCIMENTO + "x.";
+        } else if (casos >= MUN_MINIMO_SURTO && razao >= 1.5) {
+            escala = "ELEVACAO";
+            motivo = casos + " casos, acima do periodo anterior (" + anterior + ").";
+        }
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("doenca", doenca);
+        m.put("escala", escala);
+        m.put("ordem", List.of("NENHUMA", "ELEVACAO", "POSSIVEL_SURTO", "POSSIVEL_EPIDEMIA").indexOf(escala));
+        m.put("casos", casos);
+        m.put("anterior", anterior);
+        m.put("variacaoPct", variacaoPct(casos, anterior));
+        m.put("unidadesAfetadas", unidades.size());
+        m.put("unidades", unidades);
+        m.put("motivo", motivo);
+        return m;
+    }
+
+    /** Chave de comparacao do nome da doenca: sem acento, sem parenteses, e a sigla SRAG igual ao nome por extenso. */
+    static String chaveDoenca(String nome) {
+        String s = Normalizer.normalize(nome == null ? "" : nome, Normalizer.Form.NFD)
+                .replaceAll("\\p{M}+", "").toLowerCase(Locale.ROOT)
+                .replaceAll("\\([^)]*\\)", " ").replaceAll("\\s+", " ").trim();
+        return s.equals("srag") ? "sindrome respiratoria aguda grave" : s;
+    }
+
+    /** Variacao percentual contra o periodo anterior; sem base de comparacao devolve null (a tela mostra "novo"). */
+    private static Long variacaoPct(long atual, long anterior) {
+        return anterior == 0 ? null : Math.round((atual - anterior) * 100d / anterior);
     }
 
     /** Alerta do cabecalho ligado por padrao; a unidade pode desligar (chave = sigla da sessao). */
@@ -1972,9 +2371,91 @@ public class VigilanciaEpidemiologicaController {
                         atualizado_por VARCHAR(120) NOT NULL DEFAULT '', atualizado_em TIMESTAMP NOT NULL DEFAULT now()
                     )
                     """).executeUpdate();
+            // Chave do alerta automatico (valor unico do municipio): coluna propria na mesma tabela, sem tabela nova.
+            em.createNativeQuery("ALTER TABLE vigilancia_epidemiologica_unidade ADD COLUMN IF NOT EXISTS alerta_automatico BOOLEAN").executeUpdate();
             estruturaPronta = true;
         }
     }
+
+    @org.eclipse.microprofile.config.inject.ConfigProperty(name = "ghbam.vigilancia.alerta-automatico.enabled", defaultValue = "false")
+    boolean alertaAutomaticoPadrao;
+
+    private static final List<String> PERFIS_CONFIGURAR_ALERTA = List.of("pconfiguracaovigilanciaepidemiologica", "pccih", "kadm");
+
+    /** Alerta automatico de UMA unidade: o valor gravado por ela vale; sem registro, vale o padrao da configuracao do servidor. */
+    @Transactional
+    public boolean alertaAutomaticoAtivo(String unidade, boolean padrao) {
+        garantirEstrutura();
+        List<?> rows = em.createNativeQuery("SELECT alerta_automatico FROM vigilancia_epidemiologica_unidade WHERE unidade=:u")
+                .setParameter("u", texto(unidade)).getResultList();
+        return rows.isEmpty() || rows.get(0) == null ? padrao : Boolean.TRUE.equals(rows.get(0));
+    }
+
+    /** Cada unidade liga/desliga so o seu: a chave e sempre a unidade da sessao (JWT), nunca a do corpo ou da query. */
+    @GET @Path("configuracao/alerta-automatico")
+    @Transactional
+    public Response configuracaoAlertaAutomatico() {
+        String chave = unidadeEfetiva("");
+        if (chave.isBlank()) {
+            return Response.status(Response.Status.BAD_REQUEST).entity(Map.of("erro", "Unidade de trabalho nao identificada.")).build();
+        }
+        garantirEstrutura();
+        List<?> rows = em.createNativeQuery("SELECT alerta_automatico, atualizado_por, atualizado_em FROM vigilancia_epidemiologica_unidade WHERE unidade=:u")
+                .setParameter("u", chave).getResultList();
+        Map<String, Object> resposta = new LinkedHashMap<>();
+        boolean gravado = !rows.isEmpty() && ((Object[]) rows.get(0))[0] != null;
+        resposta.put("unidade", chave);
+        resposta.put("ativo", alertaAutomaticoAtivo(chave, alertaAutomaticoPadrao));
+        resposta.put("definidoNaPagina", gravado);
+        resposta.put("podeAlterar", temPerfil(PERFIS_CONFIGURAR_ALERTA));
+        if (gravado) {
+            Object[] r = (Object[]) rows.get(0);
+            resposta.put("atualizadoPor", texto(r[1]));
+            resposta.put("atualizadoEm", texto(r[2]));
+        }
+        return Response.ok(resposta).build();
+    }
+
+    @PUT @Path("configuracao/alerta-automatico")
+    @Transactional
+    public Response salvarAlertaAutomatico(Map<String, Object> dto) {
+        if (!temPerfil(PERFIS_CONFIGURAR_ALERTA)) {
+            return Response.status(Response.Status.FORBIDDEN).entity(Map.of("erro", "Sem permissao para configurar o alerta automatico.")).build();
+        }
+        if (dto == null || dto.get("ativo") == null) {
+            return Response.status(Response.Status.BAD_REQUEST).entity(Map.of("erro", "Informe se o alerta automatico fica ativo.")).build();
+        }
+        String chave = unidadeEfetiva("");
+        if (chave.isBlank()) {
+            return Response.status(Response.Status.BAD_REQUEST).entity(Map.of("erro", "Unidade de trabalho nao identificada.")).build();
+        }
+        garantirEstrutura();
+        boolean ativo = booleano(dto.get("ativo"), false);
+        var usuario = securityPermissionService.resolve(requestContext);
+        String quem = usuario == null ? "" : usuario.matricula(); // do login, nunca do corpo da requisicao
+        em.createNativeQuery("""
+                INSERT INTO vigilancia_epidemiologica_unidade (unidade, alerta_cabecalho, alerta_automatico, atualizado_por, atualizado_em)
+                VALUES (:u, TRUE, :a, :p, now())
+                ON CONFLICT (unidade) DO UPDATE SET alerta_automatico=EXCLUDED.alerta_automatico,
+                    atualizado_por=EXCLUDED.atualizado_por, atualizado_em=now()
+                """).setParameter("u", chave).setParameter("a", ativo).setParameter("p", quem).executeUpdate();
+        LOG.infof("Alerta epidemiologico automatico %s na unidade %s por matricula=%s", ativo ? "ligado" : "desligado", chave, quem);
+        Map<String, Object> resposta = new LinkedHashMap<>();
+        resposta.put("unidade", chave);
+        resposta.put("ativo", ativo);
+        resposta.put("definidoNaPagina", true);
+        return Response.ok(resposta).build();
+    }
+
+    private boolean temPerfil(List<String> perfis) {
+        try {
+            var usuario = securityPermissionService.resolve(requestContext);
+            return usuario != null && usuario.hasAnyPermission(perfis);
+        } catch (RuntimeException foraDeRequisicao) {
+            return false;
+        }
+    }
+
     private Map<String, Object> ocorrenciaEpidemiologica(String unidade, Map<String, Object> regra, Map<String, Object> item, long atual, double media) {
         Map<String, Object> dto = new LinkedHashMap<>();
         dto.put("unidade", texto(unidade)); dto.put("tipo", "epidemiologia"); dto.put("gravidade", "ALTO".equals(item.get("nivel")) ? "alta" : "media");

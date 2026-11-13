@@ -234,7 +234,8 @@ public class ApsTransmissaoService {
         Map<String, Object> m = new LinkedHashMap<>();
         if (!configurado()) {
             m.put("ok", false);
-            m.put("mensagem", "Centralizador nao configurado: preencha em Configuracao > Integracoes.");
+            m.put("naoConfigurado", true);
+            m.put("mensagem", "Teste não realizado: o Centralizador ainda não foi configurado. Preencha em Configuração → Integrações.");
             return m;
         }
         try {

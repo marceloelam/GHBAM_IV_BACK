@@ -670,6 +670,15 @@ public class HistoricoPacienteController {
     private Object normalizarValor(Object value) {
         if (value == null) return null;
         if (value instanceof Number || value instanceof Boolean) return value;
+        // Colunas timestamp sem fuso guardam a hora local. Com jdbc.timezone=UTC o valor chega deslocado
+        // para o fuso da JVM (3 h a menos, e o dia anterior de madrugada); devolve a hora gravada.
+        if (value instanceof java.sql.Timestamp t) {
+            return t.toInstant().atZone(java.time.ZoneOffset.UTC).toLocalDateTime().toString();
+        }
+        if (value instanceof java.time.LocalDateTime ldt) {
+            return ldt.atZone(java.time.ZoneId.systemDefault()).withZoneSameInstant(java.time.ZoneOffset.UTC)
+                    .toLocalDateTime().toString();
+        }
         return String.valueOf(value);
     }
 

@@ -129,6 +129,103 @@ public class Servidor2 extends PanacheEntityBase implements Serializable {
 	private Boolean pprotocoloaprovacao;
 	@Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
 	private Boolean pfluxopacientes;
+	// Itens do menu Recepção que passaram a ter acesso próprio (V254).
+	@Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+	private Boolean pdrives;
+	@Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+	private Boolean plistaagendamentos;
+	@Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+	private Boolean plocalizaratendimento;
+	@Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+	private Boolean pprimeiroatendimento;
+	@Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+	private Boolean pvolumepainel;
+	@Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+	private Boolean pvisitapacientes;
+	@Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+	private Boolean pmultiassistencia;
+	@Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+	private Boolean pmultifisioterapia;
+	@Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+	private Boolean pmultifono;
+	@Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+	private Boolean pmultinutricao;
+	@Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+	private Boolean pmultipsicologia;
+	@Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+	private Boolean podontologia;
+	@Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+	private Boolean padmissaorn;
+	@Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+	private Boolean papac;
+	@Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+	private Boolean pbpa;
+	@Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+	private Boolean pccihresumo;
+	@Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+	private Boolean pcdsspreventivo;
+	@Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+	private Boolean pclassificarpaciente;
+	@Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+	private Boolean pcoleta;
+	@Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+	private Boolean pcorrigirresultados;
+	@Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+	private Boolean pfarmaciaatendimento;
+	@Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+	private Boolean pfaturamentosus;
+	@Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+	private Boolean pfaturas;
+	@Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+	private Boolean pfichaanestesica;
+	@Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+	private Boolean pimprimiridentificacao;
+	@Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+	private Boolean pindicadorescirurgicos;
+	@Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+	private Boolean pinternados;
+	@Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+	private Boolean pjornadapa;
+	@Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+	private Boolean plimitesdose;
+	@Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+	private Boolean pmapacirurgico;
+	@Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+	private Boolean pmapaepidemiologico;
+	@Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+	private Boolean pmedicacaomaternidade;
+	@Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+	private Boolean pmedicacaopediatria;
+	@Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+	private Boolean pmedicacaospa;
+	@Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+	private Boolean pmodelosprescricao;
+	@Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+	private Boolean ppainelmunicipal;
+	@Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+	private Boolean ppendenciaspa;
+	@Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+	private Boolean ppepatendimento;
+	@Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+	private Boolean pplantaoenfermagem;
+	@Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+	private Boolean pprocessosinternacao;
+	@Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+	private Boolean pproducaoassistencial;
+	@Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+	private Boolean pprotocolosfluxograma;
+	@Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+	private Boolean praas;
+	@Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+	private Boolean prealizarexames;
+	@Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+	private Boolean preclassificarpaciente;
+	@Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+	private Boolean presumodealta;
+	@Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+	private Boolean psumarioobito;
+	@Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+	private Boolean ptiss;
 	@Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
 	private Boolean phemoterapia;
 	@Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
@@ -417,6 +514,54 @@ public class Servidor2 extends PanacheEntityBase implements Serializable {
 		prhponto = false;
 		pprotocoloaprovacao = false;
 		pfluxopacientes = false;
+		pdrives = false;
+		plistaagendamentos = false;
+		plocalizaratendimento = false;
+		pprimeiroatendimento = false;
+		pvolumepainel = false;
+		pvisitapacientes = false;
+		pmultiassistencia = false;
+		pmultifisioterapia = false;
+		pmultifono = false;
+		pmultinutricao = false;
+		pmultipsicologia = false;
+		podontologia = false;
+		padmissaorn = false;
+		papac = false;
+		pbpa = false;
+		pccihresumo = false;
+		pcdsspreventivo = false;
+		pclassificarpaciente = false;
+		pcoleta = false;
+		pcorrigirresultados = false;
+		pfarmaciaatendimento = false;
+		pfaturamentosus = false;
+		pfaturas = false;
+		pfichaanestesica = false;
+		pimprimiridentificacao = false;
+		pindicadorescirurgicos = false;
+		pinternados = false;
+		pjornadapa = false;
+		plimitesdose = false;
+		pmapacirurgico = false;
+		pmapaepidemiologico = false;
+		pmedicacaomaternidade = false;
+		pmedicacaopediatria = false;
+		pmedicacaospa = false;
+		pmodelosprescricao = false;
+		ppainelmunicipal = false;
+		ppendenciaspa = false;
+		ppepatendimento = false;
+		pplantaoenfermagem = false;
+		pprocessosinternacao = false;
+		pproducaoassistencial = false;
+		pprotocolosfluxograma = false;
+		praas = false;
+		prealizarexames = false;
+		preclassificarpaciente = false;
+		presumodealta = false;
+		psumarioobito = false;
+		ptiss = false;
 		phemoterapia = false;
 		psnd = false;
 		prnds = false;

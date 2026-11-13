@@ -28,9 +28,8 @@ public class ProtocoloAprovacaoService {
     /** Opcao do cadastro de servidores (/servidores), coluna servidor2.pprotocoloaprovacao (V250). */
     static final String PERMISSAO_COMISSAO = "pprotocoloaprovacao";
 
-    /** So profissional assistencial pode compor a comissao: medico, enfermagem ou multidisciplinar. */
-    static final List<String> PERFIS_CLINICOS = List.of("kmedico", "kenfermagem", "kfisioterapia", "kassistencia",
-            "knutricao", "kfonoaudiologia", "kpsicologia");
+    /** So medico ou administracao pode compor a comissao (decisao de 10/11/2026). */
+    static final List<String> PERFIS_CLINICOS = List.of("kmedico", "kadm");
 
     /**
      * So a comissao aprova/edita: opcao "Comissão de protocolos" ligada E perfil clinico.
@@ -46,13 +45,11 @@ public class ProtocoloAprovacaoService {
 
     private static final org.jboss.logging.Logger LOG = org.jboss.logging.Logger.getLogger(ProtocoloAprovacaoService.class);
 
-    /** Servidor tem perfil assistencial (medico, enfermagem ou multidisciplinar) no cadastro? */
+    /** Servidor tem perfil de medico ou administracao no cadastro? */
     @SuppressWarnings("unchecked")
     boolean perfilClinico(String matricula) {
         List<Object[]> l = em.createNativeQuery(
-                "SELECT COALESCE(medico,false), COALESCE(enfermagem,false), COALESCE(fisioterapia,false), "
-                        + "COALESCE(assistencia,false), COALESCE(nutricao,false), COALESCE(fonoaudiologia,false), "
-                        + "COALESCE(psicologia,false) FROM servidor WHERE matricula = :m LIMIT 1")
+                "SELECT COALESCE(medico,false), COALESCE(administracao,false) FROM servidor WHERE matricula = :m LIMIT 1")
                 .setParameter("m", matricula)
                 .getResultList();
         if (l.isEmpty()) return false;
@@ -76,7 +73,7 @@ public class ProtocoloAprovacaoService {
         String m = ProtocoloExecucaoService.limitar(matricula, 80);
         if (m == null) throw new IllegalArgumentException("Informe a matrícula.");
         if (membro && !perfilClinico(m)) {
-            throw new IllegalArgumentException("Só médico, enfermagem ou equipe multidisciplinar pode compor a comissão de protocolos.");
+            throw new IllegalArgumentException("Só médico ou administração pode compor a comissão de protocolos.");
         }
         int n = em.createNativeQuery("UPDATE servidor2 SET pprotocoloaprovacao = :v WHERE matricula = :m")
                 .setParameter("v", membro)

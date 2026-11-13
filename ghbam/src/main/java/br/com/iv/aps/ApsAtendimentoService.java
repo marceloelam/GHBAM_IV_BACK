@@ -371,8 +371,9 @@ public class ApsAtendimentoService {
             if (cid10 != null) {
                 item.put("cid10", cid10.replace(".", "").toUpperCase());
             }
-            Integer situacao = intOrNull(pr.get("situacao"));
-            item.put("situacao", situacao == null ? 0 : situacao);
+            // LEDI (dic-fai/fao ProblemaCondicao): situacao so pode ir junto com uuidProblema,
+            // uuidEvolucaoProblema e coSequencialEvolucao - nao rastreamos evolucao por problema, entao
+            // a situacao fica so na lista local (aps_problema), salva mais abaixo.
             if (pr.get("dataInicio") != null) {
                 item.put("dataInicioProblema", isoDate(pr.get("dataInicio")));
             }

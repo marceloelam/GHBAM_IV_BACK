@@ -42,7 +42,8 @@ public class RoutePermissionCatalog {
             entry("admin/pool-status", "kadm"),
             entry("log/data", "kadm", "plogs", "pauditoriaclinica"),
             entry("log/pesquisa", "kadm", "plogs", "pauditoriaclinica"),
-            entry("log/foto", "kadm", "plogs", "pauditoriaclinica"),
+            // Coordenador de setor vê a foto da equipe (busca e cartões da Coordenação de setor).
+            entry("log/foto", "kadm", "plogs", "pauditoriaclinica", "pcoordenadorsetor"),
             entry("log", "kadm", "plogs"),
             entry("producao-medica", "pproducaomedica", "kadm"),
             entry("producao-assistencial", "kadm"),
@@ -117,6 +118,8 @@ public class RoutePermissionCatalog {
             entry("notificacoes-sinan", "psinan", "pvigilanciaepidemiologica", "pccih", "kadm"),
             entry("evolucao-sistema", "kadm"),
             entry("tema-visual", "ppersonalizacaovisual"),
+            // Alterar modulos contratados (PUT); a leitura e liberada a qualquer usuario logado no RbacRequestFilter.
+            entry("unidade-modulos", "pcadunidades", "kadm"),
             entry("pacs", "ppacs", "kadm"),
 
             // Centro Cirurgico. As chaves mais longas resolvem primeiro, entao as
