@@ -60,6 +60,7 @@ public class ApsCdsService {
             if (c == null) {
                 throw new IllegalArgumentException("Cidadao nao encontrado.");
             }
+            exigirDocumentoValido(c);
             preencherCidadao(tipo, dados, c);
         }
         if (idDomicilio != null && tipo == 8) {
@@ -152,6 +153,28 @@ public class ApsCdsService {
             case 11, 13 -> dados.putIfAbsent("turno", turno);
             default -> {
             }
+        }
+    }
+
+    /**
+     * CPF/CNS do cadastro vao para a ficha como estao; com digito errado o Centralizador rejeita a ficha
+     * inteira dias depois (HTTP 400 "cpfCidadao CPF invalido"). Barrar aqui, onde o profissional ainda
+     * pode corrigir o cadastro.
+     */
+    static void exigirDocumentoValido(Map<String, Object> c) {
+        String nome = c.get("nome") == null ? "o cidadao" : String.valueOf(c.get("nome"));
+        String cpf = c.get("cpf") == null ? null : ApsValidacao.digitos(String.valueOf(c.get("cpf")));
+        if (cpf != null && !cpf.isEmpty()) {
+            if (!ApsValidacao.cpfValido(cpf)) {
+                throw new IllegalArgumentException("CPF " + cpf + " de " + nome
+                        + " e invalido (digito verificador). Corrija o cadastro do cidadao antes de registrar.");
+            }
+            return;
+        }
+        String cns = c.get("cns") == null ? null : String.valueOf(c.get("cns")).replaceAll("\\D", "");
+        if (cns != null && !cns.isEmpty() && !ApsValidacao.cnsValido(cns)) {
+            throw new IllegalArgumentException("CNS " + cns + " de " + nome
+                    + " e invalido. Corrija o cadastro do cidadao antes de registrar.");
         }
     }
 
