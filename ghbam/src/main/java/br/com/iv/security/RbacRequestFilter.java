@@ -340,8 +340,10 @@ public class RbacRequestFilter implements ContainerRequestFilter {
                         || normalizedPath.startsWith("anotacaoenfermagem/bam/"));
         // Decisao Marcelo 17/11/2026 (negados reais na producao): enfermagem LE a prescricao do BAM
         // e o medico LE o atendimento multidisciplinar. So GET; gravar continua com as listas do catalogo.
+        // + execucoes de protocolo: o Historico completo do paciente le essa lista.
         boolean leituraPrescricaoPelaEnfermagem = "GET".equalsIgnoreCase(method)
-                && normalizedPath.startsWith("prescricao/bam2/");
+                && (normalizedPath.startsWith("prescricao/bam2/")
+                        || "protocolos-fluxograma/execucoes".equals(normalizedPath));
         boolean leituraMultidisciplinarPeloMedico = "GET".equalsIgnoreCase(method)
                 && (normalizedPath.startsWith("atendimentomultidisciplinar/bam/")
                         || normalizedPath.startsWith("atendimentomultidisciplinar/paciente/"));
