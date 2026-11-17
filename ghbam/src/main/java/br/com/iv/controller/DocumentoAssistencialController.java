@@ -10,6 +10,7 @@ public class DocumentoAssistencialController {
  // Listagem geral (todos os pacientes) com filtros de unidade, status, tipo e periodo.
  // Usada pela tela de acompanhamento de rascunhos/cancelados em Documentos Assistenciais.
  @GET
+ @br.com.iv.security.UnidadePadraoSessao // sem unidade usa a da sessao
  public List<DocumentoAssistencial> listarGeral(
    @QueryParam("unidade") String unidade,
    @QueryParam("status") String status,

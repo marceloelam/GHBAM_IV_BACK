@@ -31,7 +31,8 @@ public class PharmaciaCategoriaResource {
         if (unidadeParam != null && !unidadeParam.isEmpty()) {
             return service.findByUnidadeSigla(unidadeParam);
         }
-        return service.listAll();
+        // Sem filtro devolvia categorias de TODAS as unidades: agora so as da sessao.
+        return service.findByUnidadeSigla(scope.unidadeAtual(requestContext));
     }
 
     @GET

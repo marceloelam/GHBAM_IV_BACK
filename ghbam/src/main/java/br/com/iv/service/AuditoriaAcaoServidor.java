@@ -44,6 +44,30 @@ public class AuditoriaAcaoServidor {
         }
     }
 
+    /**
+     * Alteracao do cadastro do paciente (recepcao de qualquer unidade pode editar). Grava so os NOMES dos
+     * campos alterados, nunca os valores (LGPD), e a unidade da sessao de quem alterou.
+     */
+    public void registrarCadastroPaciente(int idpaciente, java.util.List<String> campos, String unidade) {
+        if (idpaciente <= 0 || campos == null || campos.isEmpty()) return;
+        try {
+            LogDto dto = new LogDto();
+            dto.setData(LocalDate.now());
+            dto.setHora(LocalTime.now().format(HORA));
+            dto.setEvento(limitar(String.join(" ",
+                    "AUDITORIA_LGPD", "tipo=CADASTRO", "acao=ALTERAR_CADASTRO_PACIENTE", "modulo=RECEPCAO",
+                    "recurso=pacientes", "resultado=SUCESSO", "origem=SERVIDOR", "idpaciente=" + idpaciente,
+                    "unidade_alteracao=" + (unidade == null || unidade.isBlank() ? "-" : unidade.trim()),
+                    "campos=" + String.join(",", campos)), 600));
+            dto.setUnidade(unidade == null ? null : limitar(unidade, 20));
+            dto.setPacienteTipo(AuditPacienteResolver.TIPO_ID_PACIENTE);
+            dto.setPacienteValor(String.valueOf(idpaciente));
+            logService.salvarLogAsync(dto);
+        } catch (RuntimeException e) {
+            // Falha de log nao pode desfazer a alteracao do cadastro.
+        }
+    }
+
     private static String limitar(String valor, int max) {
         String v = valor == null ? "" : valor.replaceAll("[\\r\\n]+", " ").trim();
         return v.length() > max ? v.substring(0, max) : v;

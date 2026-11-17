@@ -25,12 +25,28 @@ public class ProntuarioClinicoItemService implements Serializable {
     @Inject
     ProntuarioClinicoItemRepository repository;
 
+    // Cadastro unico de pacientes: com "TODAS" as unidades, alergias e demais itens do prontuario vem
+    // tambem dos outros municipios (o campo unidade de cada item mostra a origem). Somente leitura.
+    @Inject
+    br.com.iv.plataforma.municipio.MunicipioRoteamento municipios;
+
+    private static boolean todas(String unidade) {
+        return unidade == null || unidade.isBlank() || "TODAS".equalsIgnoreCase(unidade);
+    }
+
     public List<ProntuarioClinicoItem> listar(int idpaciente, String unidade) {
+        if (municipios != null && todas(unidade)) {
+            return municipios.juntarDeTodos(() -> repository.listarPorPaciente(idpaciente, unidade));
+        }
         return repository.listarPorPaciente(idpaciente, unidade);
     }
 
     public List<ProntuarioClinicoItem> listarPorTipo(int idpaciente, String tipo, String unidade) {
-        return repository.listarPorPacienteTipo(idpaciente, normalizeTipo(tipo), unidade);
+        String t = normalizeTipo(tipo);
+        if (municipios != null && todas(unidade)) {
+            return municipios.juntarDeTodos(() -> repository.listarPorPacienteTipo(idpaciente, t, unidade));
+        }
+        return repository.listarPorPacienteTipo(idpaciente, t, unidade);
     }
 
     // Alergia vale para o paciente, em qualquer unidade. Devolve so o texto, sem os demais dados do item.

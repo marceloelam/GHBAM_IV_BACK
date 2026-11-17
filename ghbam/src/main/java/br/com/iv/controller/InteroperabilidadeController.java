@@ -109,6 +109,21 @@ public class InteroperabilidadeController {
         }
     }
 
+    @jakarta.inject.Inject
+    br.com.iv.service.FhirTesteRndsService fhirTesteRndsService;
+
+    /** Teste de conexao com a RNDS de homologacao usando paciente ficticio (nao grava, nao usa a fila). */
+    @POST
+    @Path("/fhir/teste-rnds/unidade/{unidade}")
+    public Response testarRnds(@PathParam("unidade") String unidade,
+            @jakarta.ws.rs.QueryParam("simular") boolean simular) {
+        try {
+            return Response.ok(fhirTesteRndsService.testar(unidade, simular)).build();
+        } catch (IllegalArgumentException e) {
+            return Response.status(Response.Status.BAD_REQUEST).entity(java.util.Map.of("erro", e.getMessage())).build();
+        }
+    }
+
     private AuthenticatedUser user(ContainerRequestContext context) {
         Object value = context.getProperty("ghbam.user");
         return value instanceof AuthenticatedUser authenticatedUser ? authenticatedUser : AuthenticatedUser.empty();

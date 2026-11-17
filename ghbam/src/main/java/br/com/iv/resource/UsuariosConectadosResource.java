@@ -63,6 +63,9 @@ public class UsuariosConectadosResource {
     @Inject
     ConfiguracaoUnidadeService configuracaoUnidadeService;
 
+    @Inject
+    br.com.iv.plataforma.municipio.MunicipioRoteamento municipios;
+
     @POST
     @Path("/heartbeat")
     @Consumes(MediaType.APPLICATION_JSON)
@@ -188,6 +191,24 @@ public class UsuariosConectadosResource {
     @Path("/disponibilidade-medica")
     @Produces(MediaType.APPLICATION_JSON)
     public Response listarDisponibilidadeMedica() {
+        // Cada municipio tem seu banco (separacao por municipio): junta as unidades de todos, para a
+        // recepcao encaminhar o paciente para outro municipio. Sem separacao ativa, consulta so este banco.
+        Map<String, UnidadeDisponivel> porSigla = new java.util.LinkedHashMap<>();
+        for (UnidadeDisponivel unidade : municipios.juntarDeTodos(this::unidadesDesteBanco)) {
+            UnidadeDisponivel anterior = porSigla.get(unidade.sigla());
+            // A mesma sigla pode existir em dois bancos (copia da ativacao): vale a que tem mais medicos.
+            if (anterior == null || unidade.medicos().size() > anterior.medicos().size()) {
+                porSigla.put(unidade.sigla(), unidade);
+            }
+        }
+        List<String> especialidades = municipios.juntarDeTodos(this::especialidadesDesteBanco).stream()
+                .distinct()
+                .sorted(String.CASE_INSENSITIVE_ORDER)
+                .toList();
+        return Response.ok(new DisponibilidadeMedica(new ArrayList<>(porSigla.values()), especialidades)).build();
+    }
+
+    private List<UnidadeDisponivel> unidadesDesteBanco() {
         List<UnidadeDisponivel> unidades = new ArrayList<>();
         for (var unidade : configuracaoUnidadeService.listarTodosHospitais()) {
             String sigla = texto(unidade.getSigla());
@@ -220,31 +241,32 @@ public class UsuariosConectadosResource {
 
             medicos.sort((a, b) -> normalizar(a.nome()).compareTo(normalizar(b.nome())));
 
-            if (!medicos.isEmpty()) {
-                unidades.add(new UnidadeDisponivel(
-                        sigla,
-                        texto(unidade.getHospital()),
-                        texto(unidade.getCep()),
-                        texto(unidade.getBairroPadrao()),
-                        texto(unidade.getMunicipioPadrao()),
-                        texto(unidade.getComplemetos()),
-                        montarEndereco(unidade),
-                        unidade.getLatitude(),
-                        unidade.getLongitude(),
-                        medicos));
-            }
+            // Unidade sem medico qualificado (especialidade + foto) tambem e devolvida,
+            // para a recepcao ver que ela existe e ter o endereco para encaminhar.
+            unidades.add(new UnidadeDisponivel(
+                    sigla,
+                    texto(unidade.getHospital()),
+                    texto(unidade.getCep()),
+                    texto(unidade.getBairroPadrao()),
+                    texto(unidade.getMunicipioPadrao()),
+                    texto(unidade.getComplemetos()),
+                    montarEndereco(unidade),
+                    unidade.getLatitude(),
+                    unidade.getLongitude(),
+                    medicos));
         }
-        List<String> especialidades = servidorRepository.findAllServidores().stream()
+        return unidades;
+    }
+
+    private List<String> especialidadesDesteBanco() {
+        return servidorRepository.findAllServidores().stream()
                 .filter(servidor -> Boolean.TRUE.equals(servidor.getAtivo()))
                 .filter(servidor -> cargoMedico(servidor.getCargo()))
                 .filter(servidor -> !texto(servidor.getEspecialidade()).isBlank())
                 .filter(servidor -> !texto(servidor.getFoto()).isBlank())
                 .map(servidor -> texto(servidor.getEspecialidade()))
                 .distinct()
-                .sorted(String.CASE_INSENSITIVE_ORDER)
                 .toList();
-
-        return Response.ok(new DisponibilidadeMedica(unidades, especialidades)).build();
     }
 
     private MedicoDisponivel medicoComDadosPublicaveis(UsuarioConectado usuario) {
