@@ -28,7 +28,12 @@ public class ResumoClinicoProcessoService {
         Processo processo = new Processo(processoId, usuario.matricula());
         processos.put(processoId, processo);
 
-        executor.runAsync(() -> executar(processo, requisicao, usuario, ip));
+        // Sem contexto da requisicao na thread: le/grava no banco do municipio de quem pediu
+        // (mesmo padrao do ImagemIaService; sem isso cairia no banco padrao).
+        br.com.iv.plataforma.municipio.MunicipioRoteamento municipios = io.quarkus.arc.Arc.container()
+                .instance(br.com.iv.plataforma.municipio.MunicipioRoteamento.class).get();
+        String municipio = municipios.atual();
+        executor.runAsync(() -> municipios.executarEm(municipio, () -> executar(processo, requisicao, usuario, ip)));
         return new IniciarResumoClinicoResponse(processoId);
     }
 
