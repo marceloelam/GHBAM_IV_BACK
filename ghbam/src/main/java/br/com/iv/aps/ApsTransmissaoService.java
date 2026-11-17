@@ -134,6 +134,11 @@ public class ApsTransmissaoService {
     }
 
     @Scheduled(every = "15m", delayed = "3m", concurrentExecution = Scheduled.ConcurrentExecution.SKIP)
+    void envioAutomaticoAgendado() {
+        // Em cada municipio (sem requisicao o banco seria sempre o padrao).
+        br.com.iv.plataforma.municipio.MunicipioRoteamento.emCadaMunicipio(ApsTransmissaoService.class, "envioAutomatico", b -> b.envioAutomatico());
+    }
+
     void envioAutomatico() {
         try {
             Map<String, Object> par = contexto.parametros();

@@ -297,6 +297,11 @@ public class FhirDispatchService {
     }
 
     @Scheduled(every = "1m", concurrentExecution = Scheduled.ConcurrentExecution.SKIP)
+    void reprocessarPendenciasAgendado() {
+        // Em cada municipio (sem requisicao o banco seria sempre o padrao).
+        br.com.iv.plataforma.municipio.MunicipioRoteamento.emCadaMunicipio(FhirDispatchService.class, "reprocessarPendencias", b -> b.reprocessarPendencias());
+    }
+
     @Transactional
     void reprocessarPendencias() {
         List<FhirEnvioFila> filas = FhirEnvioFila.find(

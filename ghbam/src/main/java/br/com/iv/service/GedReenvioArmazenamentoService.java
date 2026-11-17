@@ -53,6 +53,11 @@ public class GedReenvioArmazenamentoService {
     }
 
     @Scheduled(every = "10m", delayed = "2m", concurrentExecution = Scheduled.ConcurrentExecution.SKIP)
+    void reenviarPendentesAgendado() {
+        // Em cada municipio (sem requisicao o banco seria sempre o padrao).
+        br.com.iv.plataforma.municipio.MunicipioRoteamento.emCadaMunicipio(GedReenvioArmazenamentoService.class, "reenviarPendentes", b -> b.reenviarPendentes());
+    }
+
     void reenviarPendentes() {
         if (!armazenamento.habilitado() || dias <= 0) return;
         LocalDateTime desde = LocalDateTime.now().minusDays(dias);

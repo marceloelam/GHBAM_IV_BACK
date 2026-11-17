@@ -36,6 +36,11 @@ public class VigilanciaAlertaAutomaticoJob {
 
     @Scheduled(cron = "{ghbam.vigilancia.alerta-automatico.cron:0 0 */3 * * ?}",
             concurrentExecution = Scheduled.ConcurrentExecution.SKIP)
+    void varrerAgendado() {
+        // Em cada municipio (sem requisicao o banco seria sempre o padrao).
+        br.com.iv.plataforma.municipio.MunicipioRoteamento.emCadaMunicipio(VigilanciaAlertaAutomaticoJob.class, "varrer", b -> b.varrer());
+    }
+
     void varrer() {
         LocalDate fim = LocalDate.now();
         LocalDate inicio = fim.minusDays(6);
