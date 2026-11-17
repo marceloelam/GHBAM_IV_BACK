@@ -169,7 +169,7 @@ public class PacientesRepository implements PanacheRepository<Pacientes> {
 		}
 
 		int minimoTokens = Math.min(tokens.size(), 2);
-		String sql = "SELECT p.* FROM pacientes p WHERE (" + score + ") >= " + minimoTokens
+		String sql = "SELECT p.* FROM pacientes p WHERE p.unificado_em IS NULL AND (" + score + ") >= " + minimoTokens
 				+ " ORDER BY (" + score + ") DESC, p.nome"
 				+ " LIMIT :limite";
 
@@ -221,7 +221,7 @@ public class PacientesRepository implements PanacheRepository<Pacientes> {
 			where.append("(").append(todosTokens).append(")");
 		}
 
-		String sql = "SELECT p.* FROM pacientes p WHERE " + where
+		String sql = "SELECT p.* FROM pacientes p WHERE p.unificado_em IS NULL AND (" + where + ")"
 				+ " ORDER BY CASE WHEN replace(" + nomeNormalizadoSql + ", ' ', '') like :compactoOrdem THEN 0 ELSE 1 END, p.nome"
 				+ " LIMIT :limite";
 
@@ -256,7 +256,9 @@ public class PacientesRepository implements PanacheRepository<Pacientes> {
 
 		String sql = "SELECT p.* FROM pacientes p "
 				+ "WHERE regexp_replace(coalesce(p.cpf, ''), '[^0-9]', '', 'g') = :digitos "
-				+ "ORDER BY p.idpaciente LIMIT 1";
+				// Cadastro ativo primeiro: o aviso de duplicidade nao pode mandar a
+				// recepcao para um cadastro ja unificado em outro (V232).
+				+ "ORDER BY (p.unificado_em IS NOT NULL), p.idpaciente LIMIT 1";
 
 		return (Pacientes) entityManager.createNativeQuery(sql, Pacientes.class)
 				.setParameter("digitos", digitos)
@@ -273,7 +275,7 @@ public class PacientesRepository implements PanacheRepository<Pacientes> {
 
 		String sql = "SELECT p.* FROM pacientes p "
 				+ "WHERE regexp_replace(coalesce(p.cns, ''), '[^0-9]', '', 'g') = :digitos "
-				+ "ORDER BY p.idpaciente LIMIT 1";
+				+ "ORDER BY (p.unificado_em IS NOT NULL), p.idpaciente LIMIT 1";
 
 		return (Pacientes) entityManager.createNativeQuery(sql, Pacientes.class)
 				.setParameter("digitos", digitos)
@@ -360,18 +362,24 @@ public class PacientesRepository implements PanacheRepository<Pacientes> {
 		return find("replace(nome, ' ', '') like ?1 AND prontuario = '0'", n_nome + "%").page(Page.ofSize(10)).list();
 	}
 
+	// SQL direto (como filtarPorPaciente) para esconder cadastro ja unificado sem
+	// mapear unificado_em na entidade.
+	@SuppressWarnings("unchecked")
 	public List<Pacientes> filtarPorPacienteEMae(String query, String query2) {
 		String n_nome = query.replaceAll("\\s", "");
 		String n_mae = query2.replaceAll("\\s", "");
-		// return find("nome like ?1 and mae like ?2", query + "%", query2 +
-		// "%").list();
-		return find("replace(nome, ' ', '') like ?1 and replace(mae, ' ', '') like ?2", n_nome + "%", n_mae + "%")
-				.page(Page.ofSize(18)).list();
+		return getEntityManager().createNativeQuery(
+				"SELECT * FROM pacientes WHERE replace(nome, ' ', '') LIKE :nome AND replace(mae, ' ', '') LIKE :mae"
+						+ " AND unificado_em IS NULL LIMIT 18", Pacientes.class)
+				.setParameter("nome", n_nome + "%").setParameter("mae", n_mae + "%").getResultList();
 	}
 
+	@SuppressWarnings("unchecked")
 	public List<Pacientes> filtrarPorMae(String query) {
 		String n_mae = query.replaceAll("\\s", "");
-		return find("replace(mae, ' ', '') like ?1", n_mae + "%").page(Page.ofSize(18)).list();
+		return getEntityManager().createNativeQuery(
+				"SELECT * FROM pacientes WHERE replace(mae, ' ', '') LIKE :mae AND unificado_em IS NULL LIMIT 18", Pacientes.class)
+				.setParameter("mae", n_mae + "%").getResultList();
 	}
 
 	public List<Pacientes> xlistarPacientesNome(String query) {
@@ -382,8 +390,11 @@ public class PacientesRepository implements PanacheRepository<Pacientes> {
 		return find("replace(nome, ' ', '') like ?1", n_nome + "%").page(Page.ofSize(18)).list();
 	}
 
+	@SuppressWarnings("unchecked")
 	public List<Pacientes> filtarPorCPF(String query) {
-		return find("cpf = ?1", query).list();
+		return getEntityManager().createNativeQuery(
+				"SELECT * FROM pacientes WHERE cpf = :cpf AND unificado_em IS NULL", Pacientes.class)
+				.setParameter("cpf", query).getResultList();
 	}
 
 	public List<Pacientes> filtarPorControle(String query) {

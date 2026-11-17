@@ -78,6 +78,36 @@ public class BamService implements Serializable {
 	
 	
 	
+	/** null = ainda nao conferido; false = banco sem a V232 (trava desligada). */
+	private static volatile Boolean colunaUnificadoEmExiste;
+
+	/**
+	 * Cadastro ja unificado em outro (V232) nao recebe BAM novo: o atendimento
+	 * ficaria de novo separado do historico. Se o banco nao tem a coluna, nao trava
+	 * (consultar coluna inexistente abortaria a transacao e pararia a recepcao).
+	 */
+	private void recusarCadastroUnificado(int idpaciente) {
+		var em = br.com.iv.entity.Pacientes.getEntityManager();
+		if (colunaUnificadoEmExiste == null) {
+			Number n = (Number) em.createNativeQuery("SELECT count(*) FROM information_schema.columns "
+					+ "WHERE table_name = 'pacientes' AND column_name = 'unificado_em'").getSingleResult();
+			colunaUnificadoEmExiste = n != null && n.longValue() > 0;
+		}
+		if (!colunaUnificadoEmExiste) {
+			return;
+		}
+		@SuppressWarnings("unchecked")
+		java.util.List<Object> destino = em.createNativeQuery(
+				"SELECT unificado_em FROM pacientes WHERE idpaciente = :id AND unificado_em IS NOT NULL")
+				.setParameter("id", idpaciente).getResultList();
+		if (!destino.isEmpty()) {
+			throw new jakarta.ws.rs.WebApplicationException(
+					"Este cadastro foi unificado no paciente " + destino.get(0)
+							+ ". Abra o atendimento no cadastro que ficou.",
+					jakarta.ws.rs.core.Response.Status.CONFLICT);
+		}
+	}
+
 	// Salvar bam
 	@Transactional
 	public Bam salvarBam(BamDto dto) {
@@ -101,6 +131,7 @@ public class BamService implements Serializable {
 		}
 		if (dto.getPaciente() != null) {
 			if (dto.getPaciente().getIdpaciente() > 0) {
+				recusarCadastroUnificado(dto.getPaciente().getIdpaciente());
 				bam.setPaciente(br.com.iv.entity.Pacientes.findById(dto.getPaciente().getIdpaciente()));
 			} else {
 				if (dto.getPaciente().getNascimento() == null || dto.getPaciente().getNascimento().isBlank()) {
