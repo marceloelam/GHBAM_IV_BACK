@@ -24,6 +24,11 @@ public class FhirEnvioRetryJob {
     FhirDispatchService dispatchService;
 
     @Scheduled(every = "{ghbam.fhir.dispatch.retry.cron:1m}", concurrentExecution = Scheduled.ConcurrentExecution.SKIP)
+    void reprocessarPendentesAgendado() {
+        // Em cada municipio (sem requisicao o banco seria sempre o padrao).
+        br.com.iv.plataforma.municipio.MunicipioRoteamento.emCadaMunicipio(FhirEnvioRetryJob.class, "reprocessarPendentes", b -> b.reprocessarPendentes());
+    }
+
     @Transactional
     void reprocessarPendentes() {
         List<FhirEnvioFila> elegiveis = FhirEnvioFila.list(

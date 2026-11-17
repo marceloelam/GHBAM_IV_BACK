@@ -313,6 +313,39 @@ public class MunicipioRoteamento {
         return out;
     }
 
+    /**
+     * Job agendado (@Scheduled) em CADA municipio: sem requisicao o banco seria sempre o padrao.
+     * Um municipio por vez, cada um em thread propria (sessao Hibernate nasce no banco certo), sem
+     * limite de tempo (job longo de faturamento). A chamada passa pelo proxy do bean, entao
+     * @Transactional do metodo continua valendo. Falha num municipio so registra e segue.
+     * Com a separacao desligada roda direto, como antes.
+     */
+    public static <B> void emCadaMunicipio(Class<B> bean, String job, java.util.function.Consumer<B> chamada) {
+        MunicipioRoteamento r = Arc.container().instance(MunicipioRoteamento.class).get();
+        if (!r.ativa()) {
+            chamada.accept(Arc.container().instance(bean).get());
+            return;
+        }
+        ClassLoader cl = Thread.currentThread().getContextClassLoader();
+        for (String cod : r.municipios()) {
+            Thread t = new Thread(() -> {
+                Thread.currentThread().setContextClassLoader(cl);
+                try {
+                    r.executarEm(cod, () -> chamada.accept(Arc.container().instance(bean).get()));
+                } catch (Throwable e) {
+                    LOG.warn("[MUNICIPIO] job " + job + " falhou no municipio " + cod + ": " + e.getMessage());
+                }
+            }, "job-" + job + "-" + cod);
+            t.start();
+            try {
+                t.join();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return;
+            }
+        }
+    }
+
     /** Claim "municipio" de um JWT (sem validar assinatura: use so depois de autenticar o token). */
     public String municipioDoToken(String jwt) {
         try {

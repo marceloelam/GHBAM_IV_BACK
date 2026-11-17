@@ -47,11 +47,11 @@ Com `multitenant=DATABASE`, código que roda **fora de uma requisição** usa o 
 - [x] Tarefas assíncronas disparadas por requisição guardam o município antes: `ImagemIaService`,
       `IdentificacaoFacialService`, `ChatPresenceEndpoint`, `ResumoClinicoProcessoService` (`executarEm`).
 - [x] Geocodificação do paciente: fica no padrão de propósito (cadastro único de pacientes mora no banco principal).
-- [ ] **Jobs `@Scheduled` rodam só no banco padrão.** Antes do 2º município, cada job de dados precisa rodar em
+- [x] **Jobs `@Scheduled` em cada município (feito 17/11, `MunicipioRoteamento.emCadaMunicipio`; provado no .7: sessão vencida inserida no banco do município foi desativada pelo `SessaoAtivaCleanupJob`).** Antes do 2º município, cada job de dados precisa rodar em
       cada município, sem perder a transação (corpo `@Transactional` chamado pelo proxy do bean dentro de
       `executarEmNovaThread`): `ApsTransmissaoService.envioAutomatico`, `FaturamentoAutomacaoJob` (2 jobs),
       `FhirEnvioRetryJob`, `FhirDispatchService.reprocessarPendencias`, `SessaoAtivaCleanupJob`,
       `VigilanciaAlertaAutomaticoJob`, `GedReenvioArmazenamentoService`. Não precisam: `DbConnectionReaper` (infra),
       `UsuariosOnlineCleanupJob` (memória), `LimpezaUsuariosInativosScheduler` (vazio).
-      Não foi feito em 17/11 de propósito: são jobs ativos na produção e o ganho só existe com o 2º contrato.
+      Com a separação desligada (produção real) cada job roda direto, como antes.
 - [ ] Produção: `quarkus.hibernate-orm.multitenant=DATABASE` no BUILD + banco `ghbam_modelo_municipio` preparado lá.
