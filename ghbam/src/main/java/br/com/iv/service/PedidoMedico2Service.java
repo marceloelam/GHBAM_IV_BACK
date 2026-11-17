@@ -331,7 +331,58 @@ public class PedidoMedico2Service implements Serializable {
 	}
 
 	@Transactional
-	public void remove(int id, PedidoMedico2Dto dto) {
+	/** Retirada recusada por regra de autoria/prazo (vira 403 no controller). */
+	public static class RetiradaNegadaException extends RuntimeException {
+		private static final long serialVersionUID = 1L;
+
+		public RetiradaNegadaException(String mensagem) {
+			super(mensagem);
+		}
+	}
+
+	/** Prazo para o medico solicitante retirar o pedido, contado de dt+hr do pedido. */
+	static final java.time.Duration PRAZO_RETIRADA = java.time.Duration.ofHours(6);
+	private static final java.time.format.DateTimeFormatter FORMATO_DT_HR =
+			java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+
+	/**
+	 * Null quando o profissional logado pode retirar o pedido; senao o motivo.
+	 * So o medico que solicitou (CRM ou nome do token iguais aos do pedido) e so ate 6 h depois do pedido.
+	 */
+	static String motivoRecusaRetirada(String crmPedido, String medicoPedido, String dt, String hr,
+			String crmUsuario, String nomeUsuario, java.time.LocalDateTime agora) {
+		// CRM ou nome: em 2026, 11 de 204 medicos tinham o CRM do pedido escrito diferente do cadastro.
+		String crmP = normalizarCrm(crmPedido);
+		String nomeP = normalizarTexto(medicoPedido);
+		boolean mesmo = (!crmP.isBlank() && crmP.equals(normalizarCrm(crmUsuario)))
+				|| (!nomeP.isBlank() && nomeP.equals(normalizarTexto(nomeUsuario)));
+		if (!mesmo) {
+			return "Somente o medico que solicitou pode retirar este pedido.";
+		}
+		java.time.LocalDateTime pedidoEm;
+		try {
+			pedidoEm = java.time.LocalDateTime.parse((dt == null ? "" : dt.trim()) + " " + (hr == null ? "" : hr.trim()),
+					FORMATO_DT_HR);
+		} catch (java.time.format.DateTimeParseException e) {
+			return "Data do pedido invalida: nao e possivel confirmar o prazo de 6 horas para retirar.";
+		}
+		if (agora.isAfter(pedidoEm.plus(PRAZO_RETIRADA))) {
+			return "O prazo de 6 horas para retirar este pedido terminou.";
+		}
+		return null;
+	}
+
+	private static String normalizarCrm(String valor) {
+		return valor == null ? "" : valor.replaceAll("[^0-9A-Za-z]", "").toUpperCase(Locale.ROOT);
+	}
+
+	private static String normalizarTexto(String valor) {
+		if (valor == null) return "";
+		String semAcento = Normalizer.normalize(valor, Normalizer.Form.NFD).replaceAll("\\p{M}", "");
+		return semAcento.trim().replaceAll("\\s+", " ").toUpperCase(Locale.ROOT);
+	}
+
+	public void remove(int id, PedidoMedico2Dto dto, br.com.iv.security.AuthenticatedUser usuario) {
 		Optional<PedidoMedico2> pedidomedico2OP = PedidoMedico2.findByIdOptional(id);
 		if (pedidomedico2OP.isEmpty()) {
 			throw new IllegalArgumentException("Pedido medico nao localizado.");
@@ -340,6 +391,17 @@ public class PedidoMedico2Service implements Serializable {
 		PedidoMedico2 pedidoMedico2 = pedidomedico2OP.get();
 		if (pedidoMedico2.isEfetuado()) {
 			throw new IllegalStateException("Pedido medico ja realizado nao pode ser excluido.");
+		}
+
+		// Autoria vem do token, nunca do corpo (o corpo e' do navegador e pode trazer outro medico).
+		if (usuario == null) {
+			throw new RetiradaNegadaException("Sessao nao identificada: faca login novamente para retirar o pedido.");
+		}
+		String motivo = motivoRecusaRetirada(pedidoMedico2.getCrm(), pedidoMedico2.getMedico(), pedidoMedico2.getDt(),
+				pedidoMedico2.getHr(), usuario.crm(), usuario.nome(),
+				java.time.LocalDateTime.now(java.time.ZoneId.of("America/Sao_Paulo")));
+		if (motivo != null) {
+			throw new RetiradaNegadaException(motivo);
 		}
 
 		boolean assinado = assinaturaClinicaService.bloqueadoPorDocumento(AssinaturaClinicaService.PEDIDO_MEDICO, id);
