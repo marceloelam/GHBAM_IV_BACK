@@ -338,6 +338,13 @@ public class RbacRequestFilter implements ContainerRequestFilter {
         boolean leituraHistoricoEnfermagem = "GET".equalsIgnoreCase(method)
                 && (normalizedPath.startsWith("evolucaopacienteenf/bam/")
                         || normalizedPath.startsWith("anotacaoenfermagem/bam/"));
+        // Decisao Marcelo 17/11/2026 (negados reais na producao): enfermagem LE a prescricao do BAM
+        // e o medico LE o atendimento multidisciplinar. So GET; gravar continua com as listas do catalogo.
+        boolean leituraPrescricaoPelaEnfermagem = "GET".equalsIgnoreCase(method)
+                && normalizedPath.startsWith("prescricao/bam2/");
+        boolean leituraMultidisciplinarPeloMedico = "GET".equalsIgnoreCase(method)
+                && (normalizedPath.startsWith("atendimentomultidisciplinar/bam/")
+                        || normalizedPath.startsWith("atendimentomultidisciplinar/paciente/"));
         boolean criacaoInicialRecepcao = "POST".equalsIgnoreCase(method)
                 && ("avaliacao".equals(normalizedPath) || "prontuario".equals(normalizedPath));
         boolean recuperacaoIdCriadoPelaRecepcao = "GET".equalsIgnoreCase(method)
@@ -444,6 +451,12 @@ public class RbacRequestFilter implements ContainerRequestFilter {
         java.util.stream.Stream<String> adicionais = java.util.stream.Stream.empty();
         if (criacaoInicialRecepcao || recuperacaoIdCriadoPelaRecepcao) {
             adicionais = java.util.stream.Stream.concat(adicionais, java.util.stream.Stream.of("krecepcao"));
+        }
+        if (leituraPrescricaoPelaEnfermagem) {
+            adicionais = java.util.stream.Stream.concat(adicionais, java.util.stream.Stream.of("kenfermagem", "ktcenfermagem"));
+        }
+        if (leituraMultidisciplinarPeloMedico) {
+            adicionais = java.util.stream.Stream.concat(adicionais, java.util.stream.Stream.of("kmedico"));
         }
         if (leituraCatalogoMedicamentos || leituraPrescricaoEstruturada || leituraHistoricoEnfermagem) {
             adicionais = java.util.stream.Stream.concat(adicionais, java.util.stream.Stream.of(
