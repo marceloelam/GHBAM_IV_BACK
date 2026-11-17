@@ -71,12 +71,20 @@ public class ConfiguracaoUnidadeService implements Serializable {
 	static void validarMunicipioECnes(ConfiguracaoUnidadeDto dto) {
 		int ibge = dto == null ? 0 : dto.getCodIbge();
 		if (ibge < 100000 || ibge > 9999999) {
-			throw new jakarta.ws.rs.BadRequestException("Informe o codigo IBGE do municipio da unidade (6 ou 7 digitos).");
+			throw recusa("Informe o código IBGE do município da unidade (6 ou 7 dígitos).");
 		}
 		String cnes = dto.getCnesDoHospital() == null ? "" : dto.getCnesDoHospital().trim();
 		if (!cnes.matches("\\d{7}")) {
-			throw new jakarta.ws.rs.BadRequestException("Informe o CNES da unidade (7 digitos).");
+			throw recusa("Informe o CNES da unidade (7 dígitos).");
 		}
+	}
+
+	/** 400 com o motivo no corpo: BadRequestException(String) chega vazio na tela. */
+	private static jakarta.ws.rs.BadRequestException recusa(String motivo) {
+		return new jakarta.ws.rs.BadRequestException(motivo, jakarta.ws.rs.core.Response
+				.status(jakarta.ws.rs.core.Response.Status.BAD_REQUEST)
+				.type(jakarta.ws.rs.core.MediaType.APPLICATION_JSON)
+				.entity(java.util.Map.of("erro", motivo)).build());
 	}
 
 	// Salvar os setores
