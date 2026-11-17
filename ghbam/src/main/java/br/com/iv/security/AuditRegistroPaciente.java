@@ -11,6 +11,9 @@ import br.com.iv.entity.AnamneseInternacao;
 import br.com.iv.entity.AssinaturaClinica;
 import br.com.iv.entity.Bam;
 import br.com.iv.entity.CirurgiaAgendamento;
+import br.com.iv.entity.ControleAssistencialRegistro;
+import br.com.iv.entity.DocumentoAssistencial;
+import br.com.iv.entity.SaeEnfermagem;
 import br.com.iv.entity.GedDocumento;
 import br.com.iv.entity.Internacao;
 import br.com.iv.entity.LeitoReserva;
@@ -98,6 +101,18 @@ final class AuditRegistroPaciente {
         ROTAS.put("leitoreserva", LeitoReserva.class);
         ROTAS.put("nsp/eventos", NspEvento.class);
         ROTAS.put("bam/atualizar", Bam.class);
+        // Rotas por {uuid}: o uuid e coluna propria, nao a chave (int) -> ver POR_UUID.
+        ROTAS.put("controle-assistencial", ControleAssistencialRegistro.class);
+        ROTAS.put("documentos-assistenciais", DocumentoAssistencial.class);
+        ROTAS.put("sae-enfermagem", SaeEnfermagem.class);
+    }
+
+    /** Entidades cujo registro, quando a rota traz um UUID, e buscado pela coluna "uuid". */
+    private static final Set<Class<?>> POR_UUID = Set.of(
+            ControleAssistencialRegistro.class, DocumentoAssistencial.class, SaeEnfermagem.class);
+
+    static boolean buscaPorUuid(Class<?> entidade, String id) {
+        return POR_UUID.contains(entidade) && id != null && id.toLowerCase(Locale.ROOT).matches(UUID);
     }
 
     private static final Set<String> VERBOS = Set.of(
