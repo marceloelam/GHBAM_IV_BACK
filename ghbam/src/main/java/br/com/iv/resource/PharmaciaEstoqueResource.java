@@ -24,7 +24,8 @@ public class PharmaciaEstoqueResource {
         if (unidadeParam != null && !unidadeParam.isEmpty()) {
             return service.findByUnidadeSigla(unidadeParam);
         }
-        return service.listAll();
+        // Sem filtro devolvia o estoque de TODAS as unidades: agora so o da sessao.
+        return service.findByUnidadeSigla(scope.unidadeAtual(request));
     }
 
     @GET
@@ -107,6 +108,9 @@ public class PharmaciaEstoqueResource {
     @GET
     @Path("/estoque-baixo")
     public List<PharmaciaEstoque> findEstoqueBaixo() {
-        return service.findEstoqueBaixo();
+        String unidade = scope.unidadeAtual(request);
+        return service.findEstoqueBaixo().stream()
+                .filter(e -> unidade != null && unidade.equalsIgnoreCase(e.getUnidadeSigla()))
+                .toList();
     }
 }

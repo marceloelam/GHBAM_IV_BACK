@@ -206,9 +206,19 @@ public class ChatMensagemResource {
         AuthenticatedUser user = usuarioDaSessao();
         if (user == null) return naoAutenticado();
         String nome = safeOrDefault(user.nome(), user.matricula());
-        int n = chatMensagemRepository.registrarCiencia(id, user.matricula(), nome, unidadeDaSessao(user.unidade()));
+        String unidadeSessao = unidadeDaSessao(user.unidade());
+        int n = chatMensagemRepository.registrarCiencia(id, user.matricula(), nome, unidadeSessao);
         if (n == 0) {
-            return Response.status(Response.Status.CONFLICT).entity(Map.of("erro", "Mensagem não encontrada, não urgente ou já com ciência.")).build();
+            ChatMensagem atual = buscar(id);
+            // Clique repetido de quem ja deu ciencia nao e erro: devolve o estado atual.
+            if (atual != null && atual.getCienciaEm() != null && nome.equals(atual.getCienciaPor())) {
+                return Response.ok(Map.of("event", "ciencia", "messageId", String.valueOf(id),
+                        "cienciaPor", atual.getCienciaPor(),
+                        "cienciaEm", atual.getCienciaEm().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME),
+                        "jaRegistrada", true)).build();
+            }
+            return Response.status(Response.Status.CONFLICT)
+                    .entity(Map.of("erro", motivoCienciaRecusada(atual, id, user.matricula(), unidadeSessao))).build();
         }
         ChatMensagem mensagem = buscar(id);
         Map<String, Object> evento = new HashMap<>();
@@ -297,6 +307,32 @@ public class ChatMensagemResource {
         if ("private".equals(tipo)) publicar(evento, destinatarioMatricula, remetenteMatricula);
         else publicarUnidade(unidade, evento);
         return Response.ok(dto).build();
+    }
+
+    /** Diz exatamente por que a ciência foi recusada (aparece para o operador e no /logs). */
+    private String motivoCienciaRecusada(ChatMensagem m, int id, String matricula, String unidade) {
+        if (m == null) return "Mensagem " + id + " não encontrada.";
+        if (!"URGENTE".equalsIgnoreCase(String.valueOf(m.getPrioridade()))) {
+            return "Mensagem " + id + " não é urgente (prioridade " + m.getPrioridade() + "); ciência só vale para urgente.";
+        }
+        if (m.getCienciaEm() != null) {
+            return "Mensagem " + id + " já tinha ciência de " + m.getCienciaPor() + " em "
+                    + m.getCienciaEm().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")) + ".";
+        }
+        if ("private".equals(m.getTipo())) {
+            return "Mensagem " + id + " é privada para a matrícula " + m.getDestinatarioMatricula()
+                    + "; só o destinatário pode dar ciência.";
+        }
+        if ("room".equals(m.getTipo())) {
+            if (matricula.equals(m.getRemetenteMatricula())) {
+                return "Mensagem " + id + " foi enviada por você; quem envia não dá ciência da própria urgência.";
+            }
+            if (unidade == null || !unidade.equalsIgnoreCase(String.valueOf(m.getUnidade()))) {
+                return "Mensagem " + id + " é da sala da unidade " + m.getUnidade()
+                        + " e sua sessão está na unidade " + (unidade == null || unidade.isBlank() ? "(vazia)" : unidade) + ".";
+            }
+        }
+        return "Mensagem " + id + " não pôde receber ciência (tipo " + m.getTipo() + ").";
     }
 
     private ChatMensagem buscar(int id) {

@@ -21,10 +21,12 @@ public class PharmaciaLoteResource {
 
     @GET
     public List<PharmaciaLote> listAll(@QueryParam("unidadeId") String unidadeParam) {
+        // Com unidadeId: a permuta consulta os lotes da unidade FORNECEDORA (leitura liberada).
         if (unidadeParam != null && !unidadeParam.isEmpty()) {
             return service.findByUnidadeSigla(unidadeParam);
         }
-        return service.listAll();
+        // Sem filtro devolvia lotes de TODAS as unidades: agora so os da sessao.
+        return service.findByUnidadeSigla(scope.unidadeAtual(request));
     }
 
     @GET
