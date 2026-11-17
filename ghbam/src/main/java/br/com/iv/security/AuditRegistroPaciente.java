@@ -5,7 +5,18 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
+import br.com.iv.cdss.entity.DispositivoInvasivo;
+import br.com.iv.cdss.entity.PassagemPlantao;
 import br.com.iv.entity.AnamneseInternacao;
+import br.com.iv.entity.AssinaturaClinica;
+import br.com.iv.entity.Bam;
+import br.com.iv.entity.CirurgiaAgendamento;
+import br.com.iv.entity.GedDocumento;
+import br.com.iv.entity.Internacao;
+import br.com.iv.entity.LeitoReserva;
+import br.com.iv.entity.NspEvento;
+import br.com.iv.entity.ResumoBalancoHidrico;
+import br.com.iv.odontologia.OdontologiaAtendimento;
 import br.com.iv.entity.AnotacaoEnfermagem;
 import br.com.iv.entity.AtendimentoMedico;
 import br.com.iv.entity.AtendimentoMultidisciplinar;
@@ -70,6 +81,23 @@ final class AuditRegistroPaciente {
         ROTAS.put("anamneseinternacao", AnamneseInternacao.class);
         ROTAS.put("resumodealta", ResumoDeAlta.class);
         ROTAS.put("laudoautorizacao", LaudoAutorizacao.class);
+        // Fase 1 (17/11/2026): gravacoes por id que escapavam do escopo por unidade.
+        // Prefixo mais longo ANTES do curto: localizar() para no primeiro prefixo que casa.
+        ROTAS.put("centro-cirurgico/execucao", CirurgiaAgendamento.class);
+        ROTAS.put("centro-cirurgico/documentacao", CirurgiaAgendamento.class);
+        ROTAS.put("centro-cirurgico", CirurgiaAgendamento.class);
+        ROTAS.put("cdss/plantao/passagem", PassagemPlantao.class);
+        ROTAS.put("cdss/plantao/dispositivo", DispositivoInvasivo.class);
+        ROTAS.put("assinaturas-clinicas", AssinaturaClinica.class);
+        ROTAS.put("api/assinaturas-clinicas", AssinaturaClinica.class);
+        ROTAS.put("api/odontologia", OdontologiaAtendimento.class);
+        ROTAS.put("backend_resumo_balanco", ResumoBalancoHidrico.class);
+        ROTAS.put("ged/documentos", GedDocumento.class);
+        // So "alterar": em internacao/{bam}/restauracao o numero e BAM, nao id da internacao.
+        ROTAS.put("internacao/alterar", Internacao.class);
+        ROTAS.put("leitoreserva", LeitoReserva.class);
+        ROTAS.put("nsp/eventos", NspEvento.class);
+        ROTAS.put("bam/atualizar", Bam.class);
     }
 
     private static final Set<String> VERBOS = Set.of(
