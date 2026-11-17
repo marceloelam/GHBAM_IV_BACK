@@ -30,6 +30,14 @@ public class AuditPacienteResolver {
     @Transactional
     public String[] referenciaDoRegistro(Class<?> entidade, String id) {
         try {
+            if (AuditRegistroPaciente.buscaPorUuid(entidade, id)) {
+                var cb = em.getCriteriaBuilder();
+                jakarta.persistence.criteria.CriteriaQuery<Object> q = cb.createQuery(Object.class);
+                jakarta.persistence.criteria.Root<?> r = q.from(entidade);
+                q.select(r).where(cb.equal(r.get("uuid"), id));
+                java.util.List<Object> achados = em.createQuery(q).setMaxResults(1).getResultList();
+                return achados.isEmpty() ? null : AuditRespostaPaciente.extrair(achados.get(0));
+            }
             Class<?> tipoId = em.getMetamodel().entity(entidade).getIdType().getJavaType();
             Object chave = (tipoId == Integer.class || tipoId == int.class) ? Integer.valueOf(id)
                     : (tipoId == Long.class || tipoId == long.class) ? Long.valueOf(id)
