@@ -109,6 +109,15 @@ public class GerarToken {
 
         Usuario user = authService.validar(username, request.senha, request.senhaMontada);
 
+        // Mesmo endereco para todos os municipios: quem nao autentica no banco desta requisicao pode ser
+        // servidor de outra prefeitura - tenta nos bancos em que a matricula existe.
+        if (user == null && municipioRoteamento.ativa()) {
+            Response outro = loginEmOutroMunicipio(username, request, ip);
+            if (outro != null) {
+                return outro;
+            }
+        }
+
         if (user == null) {
             loginRateLimitService.registrarFalhaMatricula(username);
             loginRateLimitService.registrarFalhaIp(ip);
@@ -197,6 +206,20 @@ public class GerarToken {
         if (unidades.isEmpty() && !atual.unidade().isBlank()) {
             unidades = List.of(atual.unidade());
         }
+        // Banco por municipio: o superusuario tambem ve as unidades dos outros municipios (com banco proprio)
+        // para trocar de municipio pela "Unidade ativa", no mesmo endereco.
+        if (municipioRoteamento.ativa() && ehSuperusuario(atual)
+                && municipioRoteamento.podeAcessarMunicipios(atual.matricula())) {
+            java.util.LinkedHashSet<String> todas = new java.util.LinkedHashSet<>(unidades);
+            Map<String, Boolean> acesso = new java.util.HashMap<>();
+            for (String[] u : municipioRoteamento.unidadesDaPlataforma()) {
+                // So municipios em que este superusuario ja foi ativado (cadastro dele existe naquele banco).
+                if (acesso.computeIfAbsent(u[1], cod -> municipioRoteamento.temAcesso(cod, atual.matricula()))) {
+                    todas.add(u[0].toUpperCase());
+                }
+            }
+            unidades = new java.util.ArrayList<>(todas);
+        }
 
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("unidadeAtual", atual.unidade());
@@ -229,6 +252,13 @@ public class GerarToken {
                     .build();
         }
 
+        // Unidade de outro municipio (banco proprio): so o superusuario, com cadastro ja ativado la.
+        String municipioDestino = municipioRoteamento.ativa() ? municipioRoteamento.municipioDaUnidade(unidadeDestino) : null;
+        if (municipioDestino != null && !municipioDestino.equals(municipioRoteamento.atual())
+                && (municipioRoteamento.ehPadrao(municipioDestino) || municipioRoteamento.temBancoProprio(municipioDestino))) {
+            return trocarMunicipio(atual, unidadeDestino, municipioDestino, authorization, httpHeaders, routingContext);
+        }
+
         int idservidor = Integer.parseInt(atual.idServidor());
         boolean vinculada = unidadeDestino.equalsIgnoreCase(atual.unidade())
                 || servidorUnidadeRepository.pertenceAUnidade(idservidor, unidadeDestino);
@@ -257,6 +287,138 @@ public class GerarToken {
         body.put("tipo", "Bearer");
         body.put("expiraEm", 3600);
         body.put("usuario", montarUsuario(user));
+        return Response.ok(body).build();
+    }
+
+    @Inject
+    br.com.iv.plataforma.municipio.MunicipioRoteamento municipioRoteamento;
+
+    /**
+     * Login de servidor de outro municipio (banco proprio): autentica, emite o token e cria a sessao no
+     * banco de la, numa thread propria (a sessao Hibernate desta requisicao ja esta no banco daqui).
+     * null = a matricula nao existe ou a senha nao confere em nenhum outro municipio (segue o 401 normal).
+     */
+    private Response loginEmOutroMunicipio(String username, Usuario request, String ip) {
+        String daqui = municipioRoteamento.atual();
+        for (String cod : municipioRoteamento.municipios()) {
+            if (cod.equals(daqui) || !municipioRoteamento.existeMatricula(cod, username)) {
+                continue;
+            }
+            Object[] resultado = new Object[3]; // [0]=Usuario, [1]=token, [2]=SessaoJaAtivaException
+            try {
+                municipioRoteamento.executarEmNovaThread(cod, () -> {
+                    Usuario u = authService.validar(username, request.senha, request.senhaMontada);
+                    if (u == null) {
+                        return;
+                    }
+                    String t = tokenService.gerarToken(u);
+                    try {
+                        sessaoAtivaService.criarSessaoSeDisponivel(u.matricula, u.nome, t, ip,
+                                request.computador, u.unidade, request.forcar);
+                    } catch (SessaoJaAtivaException e) {
+                        resultado[2] = e;
+                    }
+                    resultado[0] = u;
+                    resultado[1] = t;
+                });
+            } catch (RuntimeException e) {
+                LOGGER.log(Level.WARNING, "[LOGIN_MUNICIPIO] falha ao autenticar no municipio " + cod, e);
+                continue;
+            }
+            if (resultado[0] == null) {
+                continue;
+            }
+            Usuario u = (Usuario) resultado[0];
+            loginRateLimitService.registrarSucessoMatricula(username);
+            loginRateLimitService.registrarSucessoIp(ip);
+            if (resultado[2] instanceof SessaoJaAtivaException e) {
+                SessaoAtiva sessao = e.getSessao();
+                String computador = sessao.getComputador() != null ? sessao.getComputador()
+                        : (sessao.getIpAddress() != null ? sessao.getIpAddress() : "desconhecido");
+                Map<String, Object> body = new LinkedHashMap<>();
+                body.put("erro", "USUARIO_JA_LOGADO");
+                body.put("mensagem", String.format(
+                        "A matricula %s ja esta em uso por %s em %s. Deseja encerrar a sessao anterior e entrar neste dispositivo?",
+                        u.matricula, u.nome, computador));
+                body.put("matricula", u.matricula);
+                body.put("nome", u.nome);
+                body.put("computador", computador);
+                contarLogin("sessao_ativa");
+                return Response.status(Response.Status.CONFLICT).entity(body).build();
+            }
+            LOGGER.log(Level.INFO, "[LOGIN_MUNICIPIO] matricula={0} municipio={1} unidade={2}",
+                    new Object[] { u.matricula, cod, u.unidade });
+            Map<String, Object> body = new LinkedHashMap<>();
+            body.put("token", resultado[1]);
+            body.put("tipo", "Bearer");
+            body.put("expiraEm", 3600);
+            contarLogin("sucesso");
+            body.put("usuario", montarUsuario(u));
+            return Response.ok(body).build();
+        }
+        return null;
+    }
+
+    private static boolean ehSuperusuario(AuthenticatedUser u) {
+        return u.hasPermission("ksuperusuario") || u.hasPermission("superusuario");
+    }
+
+    /**
+     * Troca de municipio (mesmo endereco): o cadastro, as permissoes e a sessao vem do banco do municipio
+     * destino - o idServidor de la, nunca o daqui. Exige superusuario nos DOIS bancos.
+     */
+    private Response trocarMunicipio(AuthenticatedUser atual, String unidadeDestino, String municipioDestino,
+            String authorization, HttpHeaders httpHeaders, RoutingContext routingContext) {
+        // Superusuario de uma prefeitura nao entra nas outras: so o responsavel ou quem ele designou.
+        if (!ehSuperusuario(atual) || !municipioRoteamento.podeAcessarMunicipios(atual.matricula())) {
+            return Response.status(Response.Status.FORBIDDEN)
+                    .entity(Map.of("erro", "UNIDADE_OUTRO_MUNICIPIO",
+                            "mensagem", "A unidade " + unidadeDestino + " pertence a outro município."))
+                    .build();
+        }
+        String ip = obterIPCliente(httpHeaders, routingContext);
+        Usuario[] userLa = new Usuario[1];
+        String[] tokenLa = new String[1];
+        try {
+            municipioRoteamento.executarEmNovaThread(municipioDestino, () -> {
+                AuthenticatedUser la = securityPermissionService.findByMatricula(atual.matricula());
+                if (la == null || la.matricula().isBlank() || !ehSuperusuario(la)) {
+                    return;
+                }
+                Usuario u = authService.fromAuthenticatedUser(la.comUnidade(unidadeDestino));
+                String t = tokenService.gerarToken(u);
+                try {
+                    sessaoAtivaService.criarSessaoSeDisponivel(u.matricula, u.nome, t, ip, "trocamunicipio",
+                            u.unidade, true);
+                } catch (SessaoJaAtivaException e) {
+                    LOGGER.log(Level.WARNING, "[TROCA_MUNICIPIO] sessao anterior nao liberada matricula={0}: {1}",
+                            new Object[] { u.matricula, e.getMessage() });
+                }
+                userLa[0] = u;
+                tokenLa[0] = t;
+            });
+        } catch (RuntimeException e) {
+            LOGGER.log(Level.WARNING, "[TROCA_MUNICIPIO] falha ao entrar no municipio " + municipioDestino, e);
+            return Response.status(Response.Status.SERVICE_UNAVAILABLE)
+                    .entity(Map.of("mensagem", "Não foi possível acessar o banco do município da unidade "
+                            + unidadeDestino + "."))
+                    .build();
+        }
+        if (tokenLa[0] == null) {
+            return Response.status(Response.Status.FORBIDDEN)
+                    .entity(Map.of("erro", "MUNICIPIO_NAO_ATIVADO",
+                            "mensagem", "Seu acesso de superusuário ainda não existe no município da unidade "
+                                    + unidadeDestino + ". Ative-o em Municípios."))
+                    .build();
+        }
+        tokenRevocationService.revokeAuthorization(authorization);
+        LOGGER.log(Level.INFO, "[TROCA_MUNICIPIO] matricula={0} municipio={1} unidade={2}",
+                new Object[] { atual.matricula(), municipioDestino, unidadeDestino });
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("token", tokenLa[0]);
+        body.put("tipo", "Bearer");
+        body.put("expiraEm", 3600);
+        body.put("usuario", montarUsuario(userLa[0]));
         return Response.ok(body).build();
     }
 

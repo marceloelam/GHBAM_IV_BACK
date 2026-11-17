@@ -138,7 +138,12 @@ public class CdssService implements Serializable {
                     chaves.add(chave);
                 }
             }
-            for (ProntuarioClinicoItem item : prontuarioRepository.listarPorPacienteTipo(request.getIdpaciente(), "ALERGIA", "TODAS")) {
+            // Alergia registrada em qualquer municipio vale aqui (cadastro unico de pacientes).
+            int idpacienteAlergia = request.getIdpaciente();
+            br.com.iv.plataforma.municipio.MunicipioRoteamento municipiosAlergia = io.quarkus.arc.Arc.container()
+                    .instance(br.com.iv.plataforma.municipio.MunicipioRoteamento.class).get();
+            for (ProntuarioClinicoItem item : municipiosAlergia.juntarDeTodos(
+                    () -> prontuarioRepository.listarPorPacienteTipo(idpacienteAlergia, "ALERGIA", "TODAS"))) {
                 if (!"ATIVO".equalsIgnoreCase(item.getStatus())) {
                     continue;
                 }

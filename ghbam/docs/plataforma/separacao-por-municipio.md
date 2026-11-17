@@ -27,3 +27,15 @@ Com um município, a separação gera o mesmo banco de hoje e não há como test
 - 7.937 CPFs com mais de um cadastro ativo (homologação, 16/11): unificar pela opção 5, com conferência humana.
 - 68 entidades sem campo de unidade (levantamento de 30/10): decidir a que município pertencem antes de dividir.
 - Unificação de cadastro nunca vai em migration; dado se corrige pela tela, em cada banco.
+
+## Troca de banco implementada (16/11/2026, desligada)
+
+- Pacote `br.com.iv.plataforma.municipio`. Município vem do endereço da página (X-Forwarded-Host, Host, Origin).
+- Ligar: no config/ghbam-secrets.properties `ghbam.municipios.separacao.ativa=true`, `ghbam.municipios.bancos=330350=municipio_330350`, `ghbam.municipios.faixas=330350=10000000` (runtime). A troca do Hibernate (`quarkus.hibernate-orm.multitenant=DATABASE`) e' de BUILD: ligada so em %dev no application.properties; em producao exige build com GHBAM_MUNICIPIOS_MULTITENANT=DATABASE.
+  `GHBAM_MUNICIPIOS_BANCOS=330350=municipio_330350`, `GHBAM_MUNICIPIOS_HOSTS=<endereço>=330350`.
+- Token leva o claim `municipio`; token usado no endereço de outro município → 401.
+- Jobs agendados rodam só no município padrão. Migrations dos bancos municipais: à mão enquanto `ghbam.municipios.flyway.migrar=false`.
+- Primeira entrada no banco novo: o superusuário, pelo endereço principal, chama
+  `POST /plataforma/municipios/{codibge}/ativar`. Copia as unidades daquele IBGE e o cadastro dele (servidor + servidor2, id novo).
+  Depois entra pelo endereço do município e cadastra servidores, setores e salas.
+- Cadastro de unidades (`/base/unidades`, POST/PUT/DELETE configuracaoUnidade): só superusuário.

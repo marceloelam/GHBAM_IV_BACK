@@ -41,7 +41,7 @@ public final class RegrasCoordenacaoSetor {
             "restaurarpaciente", "nirrestaurarinternacao", "cadleitos", "cadsetor", "limparpainel");
 
     /** Campos de login/situação do cadastro: a coordenação NUNCA altera, nem que a coluna venha a existir em servidor2. */
-    static final Set<String> PROIBIDAS_COORDENACAO = Set.of("ativo", "usuarioad", "pwd", "senha", "superusuario", "ksuperusuario");
+    static final Set<String> PROIBIDAS_COORDENACAO = Set.of("ativo", "usuarioad", "pwd", "senha", "ksuperusuario");
 
     private static final Set<String> CHAVES_SERVIDOR2 = lerChaves();
 

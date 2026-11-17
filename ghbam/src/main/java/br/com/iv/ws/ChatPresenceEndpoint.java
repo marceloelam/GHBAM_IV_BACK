@@ -87,7 +87,12 @@ public class ChatPresenceEndpoint {
         if (session.getUserProperties().get(IDENTITY) != null) return;
         AUTH.submit(() -> {
             try {
-                ChatSocketAuth.Identidade id = chatSocketAuth.autenticar(token);
+                // Sem requisicao HTTP: o municipio vem do proprio token (banco certo para validar a sessao).
+                br.com.iv.plataforma.municipio.MunicipioRoteamento municipios = io.quarkus.arc.Arc.container()
+                        .instance(br.com.iv.plataforma.municipio.MunicipioRoteamento.class).get();
+                ChatSocketAuth.Identidade[] ref = new ChatSocketAuth.Identidade[1];
+                municipios.executarEm(municipios.municipioDoToken(token), () -> ref[0] = chatSocketAuth.autenticar(token));
+                ChatSocketAuth.Identidade id = ref[0];
                 if (id == null) { fechar(session, "auth-invalida"); return; }
                 session.getUserProperties().put(IDENTITY, id.matricula());
                 session.getUserProperties().put("nome", id.nome() == null ? "" : id.nome());

@@ -30,7 +30,6 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.container.ContainerRequestContext;
 import jakarta.ws.rs.core.Context;
-import javax.sql.DataSource;
 import net.sf.jasperreports.engine.JRException;
 import net.sf.jasperreports.engine.JasperCompileManager;
 import net.sf.jasperreports.engine.JasperExportManager;
@@ -65,7 +64,7 @@ public class ReportResource {
 
     /** Fonte oficial da aplicação para a geração de relatórios. */
     @Inject
-    DataSource dataSource;
+    br.com.iv.plataforma.municipio.MunicipioRoteamento municipioRoteamento; // banco do municipio da requisicao
     
     @Inject
     ConfiguracaoUnidadeRepository configuracaoUnidadeRepository;
@@ -114,8 +113,57 @@ public class ReportResource {
             // Sem JWT (chamada legada) ou unidade apontando para 127.0.0.1/localhost (valor
             // padrão do cadastro): usa o banco da aplicação. Em servidor sem Postgres local
             // o localhost da unidade recusa a conexão.
-            if (unidade.isBlank() || (configuracao != null && apontaParaHostLocal(configuracao.getUrlConexao()))) {
-                try (Connection connection = dataSource.getConnection()) {
+            // Unidade sem URL propria ou sessao em municipio com banco proprio: relatorio sai do banco
+            // do municipio da sessao (nunca de uma URL cadastrada que aponte para outro banco).
+            boolean usarBancoDaSessao = unidade.isBlank()
+                    || (configuracao != null && (apontaParaHostLocal(configuracao.getUrlConexao())
+                            || configuracao.getUrlConexao() == null || configuracao.getUrlConexao().isBlank()))
+                    || (municipioRoteamento.ativa() && !municipioRoteamento.ehPadrao(municipioRoteamento.atual()));
+            // Reimpressao de BAM de outro municipio (cadastro unico): so o boletim do BAM, so se o BAM
+            // existir naquele banco; o relatorio sai do banco de origem. Qualquer outro relatorio segue
+            // preso ao banco da sessao.
+            String municipioBanco = params.get("municipioBanco") == null ? "" : params.get("municipioBanco").trim();
+            if (!municipioBanco.isEmpty() && municipioRoteamento.ativa()
+                    && !municipioBanco.equals(municipioRoteamento.atual())) {
+                if (!"bamRelatorio".equals(fileName) || !municipioRoteamento.municipios().contains(municipioBanco)) {
+                    return Response.status(Response.Status.FORBIDDEN)
+                            .entity("Relatório de outro município não permitido.").build();
+                }
+                int idbam;
+                try {
+                    idbam = Integer.parseInt(String.valueOf(params.get("bam")).trim());
+                } catch (NumberFormatException e) {
+                    return Response.status(Response.Status.BAD_REQUEST).entity("BAM inválido.").build();
+                }
+                try (Connection connection = municipioRoteamento.dataSource(municipioBanco).getConnection()) {
+                    // Cabecalho (hospital, prefeitura, logotipo) da unidade de ORIGEM do BAM, nao da sessao.
+                    try (java.sql.PreparedStatement ps = connection.prepareStatement(
+                            "SELECT b.unidade, c.hospital, c.prefeitura, c.logoprefeitura FROM bam b "
+                                    + "LEFT JOIN configurarunidade c ON upper(c.sigla) = upper(b.unidade) "
+                                    + "WHERE b.idbam = ? LIMIT 1")) {
+                        ps.setInt(1, idbam);
+                        try (java.sql.ResultSet rs = ps.executeQuery()) {
+                            if (!rs.next()) {
+                                return Response.status(Response.Status.NOT_FOUND)
+                                        .entity("BAM não localizado no município informado.").build();
+                            }
+                            String origem = rs.getString(1);
+                            parameters.put("sigla", origem);
+                            parameters.put("ssigla", origem);
+                            if (rs.getString(2) != null) parameters.put("hospital", rs.getString(2));
+                            if (rs.getString(3) != null) parameters.put("prefeitura", rs.getString(3));
+                            String logo = rs.getString(4);
+                            if (logo != null && !logo.isBlank()) {
+                                parameters.put("logo", logo.replaceFirst("^data:image/[^;]+;base64,", ""));
+                            }
+                        }
+                    }
+                    LOG.infof("[HISTORICO_MUNICIPIO] reimpressao do BAM %d do municipio=%s pela sessao do municipio=%s unidade=%s",
+                            idbam, municipioBanco, municipioRoteamento.atual(), unidade);
+                    jasperPrint = JasperFillManager.fillReport(jasperReport, parameters, connection);
+                }
+            } else if (usarBancoDaSessao) {
+                try (Connection connection = municipioRoteamento.dataSourceAtual().getConnection()) {
                     jasperPrint = JasperFillManager.fillReport(jasperReport, parameters, connection);
                 }
             } else {
