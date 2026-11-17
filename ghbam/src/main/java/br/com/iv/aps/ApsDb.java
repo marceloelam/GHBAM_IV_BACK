@@ -21,7 +21,6 @@ import java.util.regex.Pattern;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import io.agroal.api.AgroalDataSource;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
@@ -40,7 +39,7 @@ public class ApsDb {
     private static final Pattern PARAM = Pattern.compile("(?<![:\\w]):([a-zA-Z_][a-zA-Z0-9_]*)");
 
     @Inject
-    AgroalDataSource dataSource;
+    br.com.iv.plataforma.municipio.MunicipioRoteamento municipioRoteamento; // banco do municipio da requisicao
 
     @Inject
     ObjectMapper mapper;
@@ -51,7 +50,7 @@ public class ApsDb {
 
     public List<Map<String, Object>> list(String sql, Map<String, ?> params) {
         Parsed parsed = parse(sql);
-        try (Connection c = dataSource.getConnection();
+        try (Connection c = municipioRoteamento.dataSourceAtual().getConnection();
                 PreparedStatement ps = c.prepareStatement(parsed.sql())) {
             bind(ps, parsed.names(), params);
             try (ResultSet rs = ps.executeQuery()) {
@@ -73,7 +72,7 @@ public class ApsDb {
 
     public int exec(String sql, Map<String, ?> params) {
         Parsed parsed = parse(sql);
-        try (Connection c = dataSource.getConnection();
+        try (Connection c = municipioRoteamento.dataSourceAtual().getConnection();
                 PreparedStatement ps = c.prepareStatement(parsed.sql())) {
             bind(ps, parsed.names(), params);
             return ps.executeUpdate();

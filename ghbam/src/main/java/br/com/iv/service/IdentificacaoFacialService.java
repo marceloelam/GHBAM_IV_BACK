@@ -173,9 +173,12 @@ public class IdentificacaoFacialService {
             sincronizando.set(false);
             throw e;
         }
+        br.com.iv.plataforma.municipio.MunicipioRoteamento municipios = io.quarkus.arc.Arc.container()
+                .instance(br.com.iv.plataforma.municipio.MunicipioRoteamento.class).get();
+        String municipio = municipios.atual();
         CompletableFuture.runAsync(() -> {
             try {
-                executarSincronizacao(alvos);
+                municipios.executarEm(municipio, () -> executarSincronizacao(alvos));
             } finally {
                 sincronizando.set(false);
             }

@@ -470,6 +470,14 @@ public class RoutePermissionCatalog {
             // Mais especifico que "interoperabilidade" (abaixo), entao vence no
             // matching por prefixo mais longo.
             entry("interoperabilidade/fhir/destino", "pfhirsumarioalta", "kadm"),
+            // Teste de conexao RNDS (homologacao, paciente ficticio): mesmo publico que configura o destino.
+            entry("interoperabilidade/fhir/teste-rnds", "pfhirsumarioalta", "kadm"),
+            // Sistemas integradores (credencial de API): so o administrador da plataforma.
+            entry("plataforma/clientes-api", "ksuperusuario", "superusuario"),
+            // Ativar municipio (banco por prefeitura): so o administrador da plataforma.
+            entry("plataforma/municipios", "ksuperusuario", "superusuario"),
+            // Quem pode de fato conceder e decidido no SuperusuarioConcessaoService (responsavel + designados).
+            entry("seguranca/superusuario-facial", "kadm", "ksubadm"),
             entry("interoperabilidade/fhir/envios", "pfhirsumarioalta", "kfaturamento", "kadm"),
             // Resultados laboratoriais sao dados clinicos identificaveis: rota
             // protegida por perfil clinico e validacao de unidade no servico.

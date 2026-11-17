@@ -127,22 +127,37 @@ public class Servidor2Controller {
 	
 	
 	@POST
-	public Response salvarSetores(Servidor2Dto dto) {
+	public Response salvarSetores(Servidor2Dto dto,
+			@jakarta.ws.rs.HeaderParam(br.com.iv.plataforma.SuperusuarioFacialResource.CABECALHO) String comprovante,
+			@jakarta.ws.rs.core.Context jakarta.ws.rs.container.ContainerRequestContext ctx) {
 		try {
-			Servidor2 Servidor2 = servidor2Service.salvarServidor2(dto);
+			Servidor2 Servidor2 = servidor2Service.salvarServidor2(dto, usuario(ctx), comprovante);
 			return Response.ok(Servidor2).status(201).build();
+		} catch (br.com.iv.plataforma.SuperusuarioConcessaoService.NegadoException e) {
+			return Response.status(Response.Status.FORBIDDEN).entity(Map.of("erro", e.getMessage())).build();
 		} catch (IllegalStateException e) {
 			return Response.status(Response.Status.CONFLICT)
 				.entity(Map.of("erro", e.getMessage() == null ? "Operacao nao permitida." : e.getMessage()))
 				.build();
 		}
 	}
-	
+
 	@PUT
 	@Path("/atualizar/{id}")
-	public Response atualizarSetor(@PathParam("id") int id, Servidor2Dto dto) {
-		servidor2Service.atualizarServidor2(id, dto);
+	public Response atualizarSetor(@PathParam("id") int id, Servidor2Dto dto,
+			@jakarta.ws.rs.HeaderParam(br.com.iv.plataforma.SuperusuarioFacialResource.CABECALHO) String comprovante,
+			@jakarta.ws.rs.core.Context jakarta.ws.rs.container.ContainerRequestContext ctx) {
+		try {
+			servidor2Service.atualizarServidor2(id, dto, usuario(ctx), comprovante);
+		} catch (br.com.iv.plataforma.SuperusuarioConcessaoService.NegadoException e) {
+			return Response.status(Response.Status.FORBIDDEN).entity(Map.of("erro", e.getMessage())).build();
+		}
 		return Response.status(204).build();
+	}
+
+	private static br.com.iv.security.AuthenticatedUser usuario(jakarta.ws.rs.container.ContainerRequestContext ctx) {
+		Object u = ctx == null ? null : ctx.getProperty("ghbam.user");
+		return u instanceof br.com.iv.security.AuthenticatedUser a ? a : br.com.iv.security.AuthenticatedUser.empty();
 	}
 
 	@DELETE

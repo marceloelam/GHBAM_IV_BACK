@@ -222,7 +222,12 @@ public class ImagemIaService {
         Long id = a.id;
         String urlMonai = urlMonaiUnidade(usuario.unidade());
         // Excecao dentro do runAsync some sem rastro: registra sempre.
-        executor.runAsync(() -> processarTc(id, orthancUrl, serie, descricao, urlMonai))
+        // Sem contexto da requisicao na thread: grava no banco do municipio de quem pediu.
+        br.com.iv.plataforma.municipio.MunicipioRoteamento municipios = io.quarkus.arc.Arc.container()
+                .instance(br.com.iv.plataforma.municipio.MunicipioRoteamento.class).get();
+        String municipio = municipios.atual();
+        executor.runAsync(() -> municipios.executarEm(municipio,
+                () -> processarTc(id, orthancUrl, serie, descricao, urlMonai)))
                 .exceptionally(e -> {
                     LOG.errorf(e, "Analise de TC %d falhou fora do tratamento", id);
                     return null;

@@ -62,9 +62,10 @@ public class HistoricoPacienteController {
                 GROUP BY p.idpaciente, p.nome, p.idade, p.prontuario, p.mae, p.cns
                 LIMIT 1
                 """;
-        List<Map<String, Object>> pacientes = rows(
+        // O BAM pode ter nascido em outro municipio (banco proprio): procura em todos no historico completo.
+        List<Map<String, Object>> pacientes = deTodosMunicipios(unidade, 1, () -> rows(
                 entityManager.createNativeQuery(sql).setParameter("bam", bam),
-                "idpaciente", "nome", "idade", "prontuario", "mae", "cns", "ultimoBam", "ultimaData");
+                "idpaciente", "nome", "idade", "prontuario", "mae", "cns", "ultimoBam", "ultimaData"));
 
         Map<String, Object> response = new LinkedHashMap<>();
         response.put("pacientes", pacientes);
@@ -107,7 +108,141 @@ public class HistoricoPacienteController {
         return Response.ok(response).build();
     }
 
+    @Inject
+    br.com.iv.plataforma.municipio.MunicipioRoteamento municipios;
+
+    @Inject
+    br.com.iv.plataforma.municipio.PacienteEntreMunicipios pacienteEntreMunicipios;
+
+    @Inject
+    jakarta.enterprise.inject.Instance<org.eclipse.microprofile.jwt.JsonWebToken> jwt;
+
+    private static final org.jboss.logging.Logger LOG =
+            org.jboss.logging.Logger.getLogger(HistoricoPacienteController.class);
+
+    /**
+     * Historico do paciente: o deste municipio e, no historico completo (todas as unidades), o mesmo
+     * paciente nos outros municipios (banco por prefeitura) - continuidade do cuidado, como ja era
+     * entre unidades. Somente leitura; cada evento/BAM de fora leva "municipio" e "municipioCodigo".
+     */
     private Map<String, Object> montarHistorico(int idpaciente, String unidade) {
+        Map<String, Object> historico = montarHistoricoLocal(idpaciente, unidade);
+        if (municipios == null || !municipios.ativa() || !isTodas(unidade)) {
+            return historico;
+        }
+        try {
+            juntarOutrosMunicipios(historico, unidade);
+        } catch (RuntimeException e) {
+            // Outro municipio fora do ar nunca derruba o historico local.
+            LOG.warn("[HISTORICO_MUNICIPIO] falha ao juntar historico de outros municipios: " + e.getMessage());
+        }
+        return historico;
+    }
+
+    @SuppressWarnings("unchecked")
+    private void juntarOutrosMunicipios(Map<String, Object> historico, String unidade) {
+        Map<String, Object> paciente = (Map<String, Object>) historico.get("paciente");
+        if (paciente == null || paciente.isEmpty()) {
+            return;
+        }
+        List<Map<String, Object>> origens = new ArrayList<>();
+        for (var v : pacienteEntreMunicipios.localizar(paciente.get("idpaciente"),
+                paciente.get("nome"), paciente.get("prontuario"), paciente.get("cpf"), paciente.get("cns"))) {
+            Map<String, Object>[] la = new Map[1];
+            municipios.executarEmNovaThread(v.codibge(), () -> la[0] = montarHistoricoLocal(v.idpaciente(), unidade));
+            if (la[0] == null) {
+                continue;
+            }
+            List<Map<String, Object>> bamsLa = (List<Map<String, Object>>) la[0].get("bams");
+            List<Map<String, Object>> eventosLa = (List<Map<String, Object>>) la[0].get("eventos");
+            for (Map<String, Object> b : bamsLa) {
+                b.put("municipio", v.municipio());
+                b.put("municipioCodigo", v.codibge());
+            }
+            for (Map<String, Object> e : eventosLa) {
+                e.put("municipio", v.municipio());
+                e.put("municipioCodigo", v.codibge());
+            }
+            ((List<Map<String, Object>>) historico.get("bams")).addAll(bamsLa);
+            ((List<Map<String, Object>>) historico.get("eventos")).addAll(eventosLa);
+            Map<String, Object> resumo = (Map<String, Object>) historico.get("resumo");
+            Map<String, Object> resumoLa = (Map<String, Object>) la[0].get("resumo");
+            for (String k : List.of("totalBams", "totalAtendimentos", "totalPedidos", "totalPrescricoes",
+                    "totalInternacoes", "totalCirurgias", "totalPlanoCuidadosGhbam")) {
+                if (resumo.get(k) instanceof Number a && resumoLa.get(k) instanceof Number b) {
+                    resumo.put(k, a.longValue() + b.longValue());
+                }
+            }
+            if (resumo.get("obito") == null && resumoLa.get("obito") != null) {
+                resumo.put("obito", resumoLa.get("obito"));
+            }
+            Map<String, Object> origem = new LinkedHashMap<>();
+            origem.put("municipio", v.municipio());
+            origem.put("municipioCodigo", v.codibge());
+            origem.put("totalBams", bamsLa.size());
+            origens.add(origem);
+            LOG.info("[HISTORICO_MUNICIPIO] matricula=" + matriculaSessao() + " municipio_sessao=" + municipios.atual()
+                    + " leu historico do municipio=" + v.codibge() + " paciente(local)=" + paciente.get("idpaciente"));
+        }
+        if (!origens.isEmpty()) {
+            historico.put("outrosMunicipios", origens);
+        }
+    }
+
+    /**
+     * BAMs do mesmo paciente nos OUTROS municipios (cadastro unico), so para consulta: a reimpressao
+     * mostra a lista e abre o historico; reimprimir continua sendo da prefeitura de origem.
+     */
+    @GET
+    @Path("/outrosmunicipios/idpaciente/{idpaciente}/bams")
+    public Response bamsEmOutrosMunicipios(@PathParam("idpaciente") int idpaciente) {
+        List<Map<String, Object>> saida = new ArrayList<>();
+        if (municipios == null || !municipios.ativa()) {
+            return Response.ok(saida).build();
+        }
+        Map<String, Object> paciente = buscarPaciente(idpaciente);
+        if (paciente == null || paciente.isEmpty()) {
+            return Response.ok(saida).build();
+        }
+        for (var v : pacienteEntreMunicipios.localizar(paciente.get("idpaciente"), paciente.get("nome"),
+                paciente.get("prontuario"), paciente.get("cpf"), paciente.get("cns"))) {
+            List<Map<String, Object>>[] la = new List[1];
+            try {
+                municipios.executarEmNovaThread(v.codibge(), () -> la[0] = rows(entityManager.createNativeQuery("""
+                        SELECT idbam, CAST(data AS date), hora, unidade, cor
+                        FROM bam WHERE paciente_idpaciente = :id
+                        ORDER BY idbam DESC LIMIT 50
+                        """).setParameter("id", v.idpaciente()), "idbam", "data", "hora", "unidade", "cor"));
+            } catch (RuntimeException e) {
+                LOG.warn("[HISTORICO_MUNICIPIO] BAMs do municipio " + v.codibge() + " indisponiveis: " + e.getMessage());
+                continue;
+            }
+            if (la[0] == null) {
+                continue;
+            }
+            for (Map<String, Object> b : la[0]) {
+                b.put("municipio", v.municipio());
+                b.put("municipioCodigo", v.codibge());
+                b.put("outroMunicipio", true);
+                saida.add(b);
+            }
+            LOG.info("[HISTORICO_MUNICIPIO] matricula=" + matriculaSessao() + " municipio_sessao=" + municipios.atual()
+                    + " listou BAMs do municipio=" + v.codibge() + " paciente(local)=" + idpaciente);
+        }
+        return Response.ok(saida).build();
+    }
+
+    private String matriculaSessao() {
+        try {
+            org.eclipse.microprofile.jwt.JsonWebToken t = br.com.iv.plataforma.municipio.MunicipioRoteamento.tokenDaRequisicao();
+            Object m = t == null ? null : t.getClaim("matricula");
+            return m == null ? "" : m.toString().replace("\"", "");
+        } catch (RuntimeException e) {
+            return "";
+        }
+    }
+
+    private Map<String, Object> montarHistoricoLocal(int idpaciente, String unidade) {
         Map<String, Object> historico = new LinkedHashMap<>();
         List<Map<String, Object>> bams = listarBams(idpaciente, unidade);
         Map<String, Object> paciente = buscarPaciente(idpaciente);
@@ -263,9 +398,36 @@ public class HistoricoPacienteController {
                 ORDER BY ultimo_bam DESC
                 LIMIT 12
                 """;
-        Query query = entityManager.createNativeQuery(sql)
-                .setParameter("nome", nome + "%") ;
-        return rows(query, "idpaciente", "nome", "idade", "prontuario", "mae", "cns", "ultimoBam", "ultimaData");
+        // Cadastro unico: o paciente pode ter BAM so em outro municipio; no historico completo procura em todos.
+        return deTodosMunicipios(unidade, 12, () -> rows(
+                entityManager.createNativeQuery(sql).setParameter("nome", nome + "%"),
+                "idpaciente", "nome", "idade", "prontuario", "mae", "cns", "ultimoBam", "ultimaData"));
+    }
+
+    /**
+     * Separacao por municipio ligada e historico de todas as unidades: roda a busca em cada banco e
+     * junta por idpaciente (cadastro unico), ficando com o BAM mais recente. Caso contrario, so a local.
+     */
+    private List<Map<String, Object>> deTodosMunicipios(String unidade, int limite,
+            java.util.function.Supplier<List<Map<String, Object>>> consulta) {
+        if (municipios == null || !municipios.ativa() || !isTodas(unidade)) {
+            return consulta.get();
+        }
+        Map<Object, Map<String, Object>> porPaciente = new LinkedHashMap<>();
+        for (Map<String, Object> p : municipios.juntarDeTodos(consulta)) {
+            Object id = p.get("idpaciente") instanceof Number n ? n.longValue() : p.get("idpaciente");
+            Map<String, Object> atual = porPaciente.get(id);
+            if (atual == null || numero(p.get("ultimoBam")) > numero(atual.get("ultimoBam"))) {
+                porPaciente.put(id, p);
+            }
+        }
+        List<Map<String, Object>> saida = new ArrayList<>(porPaciente.values());
+        saida.sort((a, b) -> Long.compare(numero(b.get("ultimoBam")), numero(a.get("ultimoBam"))));
+        return saida.size() > limite ? new ArrayList<>(saida.subList(0, limite)) : saida;
+    }
+
+    private static long numero(Object v) {
+        return v instanceof Number n ? n.longValue() : Long.MIN_VALUE;
     }
 
     private List<Map<String, Object>> buscarPacientesPorId(int idpaciente, String unidade) {

@@ -1,13 +1,19 @@
 package br.com.iv.token;
 
+import br.com.iv.plataforma.municipio.MunicipioRoteamento;
 import io.smallrye.jwt.build.Jwt;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 @ApplicationScoped
 public class TokenService {
+
+    // Municipio do endereco em que a sessao foi aberta (MunicipioSessaoFilter confere a cada requisicao).
+    @Inject
+    MunicipioRoteamento municipioRoteamento;
 
     public String gerarToken(Usuario usuario) {
         Set<String> grupos = usuario.permissoes == null
@@ -29,6 +35,7 @@ public class TokenService {
                 .claim("cargo", usuario.cargo)
                 .claim("unidade", usuario.unidade)
                 .claim("senhaInicial", usuario.senhaInicial)
+                .claim(MunicipioRoteamento.CLAIM, municipioRoteamento.atual())
                 .expiresIn(3600)
                 .sign();
     }
