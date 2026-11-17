@@ -101,10 +101,12 @@ public class BamService implements Serializable {
 				"SELECT unificado_em FROM pacientes WHERE idpaciente = :id AND unificado_em IS NOT NULL")
 				.setParameter("id", idpaciente).getResultList();
 		if (!destino.isEmpty()) {
-			throw new jakarta.ws.rs.WebApplicationException(
-					"Este cadastro foi unificado no paciente " + destino.get(0)
-							+ ". Abra o atendimento no cadastro que ficou.",
-					jakarta.ws.rs.core.Response.Status.CONFLICT);
+			String motivo = "Este cadastro foi unificado no paciente " + destino.get(0)
+					+ ". Abra o atendimento no cadastro que ficou.";
+			throw new jakarta.ws.rs.WebApplicationException(motivo, jakarta.ws.rs.core.Response
+					.status(jakarta.ws.rs.core.Response.Status.CONFLICT)
+					.type(jakarta.ws.rs.core.MediaType.APPLICATION_JSON)
+					.entity(java.util.Map.of("erro", motivo)).build());
 		}
 	}
 
