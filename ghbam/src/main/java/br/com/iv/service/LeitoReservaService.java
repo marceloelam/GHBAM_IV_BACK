@@ -98,9 +98,10 @@ public class LeitoReservaService {
     public List<Map<String, Object>> listarAtivas(String unidade) {
         @SuppressWarnings("unchecked")
         List<Object[]> linhas = entityManager.createNativeQuery(
-                "SELECT r.id, r.idleito, c.local, s.setor, r.bam, to_char(r.expira_em, 'DD/MM HH24:MI'), r.criada_por, s.idsetorcenso "
+                "SELECT r.id, r.idleito, c.local, s.setor, r.bam, to_char(r.expira_em, 'DD/MM HH24:MI'), r.criada_por, s.idsetorcenso, sv.nome "
                         + "FROM leito_reserva r JOIN localcenso c ON c.idsetorlocalcenso = r.idleito "
                         + "JOIN setorcenso s ON s.idsetorcenso = c.setorcenso_idsetorcenso "
+                        + "LEFT JOIN servidor sv ON sv.matricula = r.criada_por "
                         + "WHERE r.unidade = :unidade AND r.status = 'ATIVA' AND r.expira_em > LOCALTIMESTAMP "
                         + "ORDER BY r.expira_em")
                 .setParameter("unidade", unidade)
@@ -116,6 +117,7 @@ public class LeitoReservaService {
             reserva.put("expiraEm", linha[5]);
             reserva.put("criadaPor", linha[6]);
             reserva.put("idsetor", ((Number) linha[7]).intValue());
+            reserva.put("criadaPorNome", linha[8]);
             reservas.add(reserva);
         }
         return reservas;

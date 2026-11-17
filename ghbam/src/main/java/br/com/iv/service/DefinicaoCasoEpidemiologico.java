@@ -228,7 +228,7 @@ public final class DefinicaoCasoEpidemiologico {
             int posicao = comEspacos.indexOf(" " + termo + " ");
             if (posicao < 0) continue;
             int inicio = Math.max(0, posicao - margem);
-            int fim = Math.min(texto.length(), posicao + termo.length() + margem);
+            int fim = Math.min(texto.length(), Math.max(posicao + termo.length(), posicao + margem));
             trechos.add((inicio > 0 ? "..." : "") + texto.substring(inicio, fim).trim() + (fim < texto.length() ? "..." : ""));
         }
         return trechos;

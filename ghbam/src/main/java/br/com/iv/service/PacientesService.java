@@ -45,6 +45,53 @@ public class PacientesService implements Serializable {
 	@Inject
 	Event<GeocodificacaoPacienteService.Pedido> geocodificarEndereco;
 
+	// Rastreia qual unidade alterou o cadastro (o paciente e um so para todas as unidades).
+	@Inject
+	AuditoriaAcaoServidor auditoriaAcaoServidor;
+
+	/** Campos do cadastro editados pela recepcao. Idade e coordenada sao calculadas, por isso ficam de fora. */
+	static Map<String, String> retratoCadastro(Pacientes p) {
+		Map<String, String> r = new java.util.LinkedHashMap<>();
+		r.put("nome", p.getNome());
+		r.put("nascimento", p.getNascimento());
+		r.put("sexo", p.getSexo());
+		r.put("etnia", p.getEtnia());
+		r.put("mae", p.getMae());
+		r.put("pai", p.getPai());
+		r.put("cns", p.getCns());
+		r.put("cpf", p.getCpf());
+		r.put("rg", p.getRg());
+		r.put("ecivil", p.getEcivil());
+		r.put("naturalidade", p.getNaturalidade());
+		r.put("endereco", p.getEndereco());
+		r.put("numero", p.getNumero());
+		r.put("bairro", p.getBairro());
+		r.put("cep", p.getCep());
+		r.put("estado", p.getEstado());
+		r.put("municipio", p.getMunicipio());
+		r.put("telefone", p.getTelefone());
+		r.put("sangue", p.getSangue());
+		r.put("profissao", p.getProfissao());
+		r.put("prontuario", p.getProntuario());
+		r.put("pacienteespecial", p.getPacienteespecial());
+		r.put("sic", String.valueOf(p.isSic()));
+		r.put("tempcod", p.getTempcod());
+		return r;
+	}
+
+	/** Nomes dos campos que mudaram (null, vazio e espacos nas pontas contam como iguais). */
+	static List<String> camposAlterados(Map<String, String> antes, Map<String, String> depois) {
+		List<String> campos = new ArrayList<>();
+		for (Map.Entry<String, String> e : depois.entrySet()) {
+			String a = antes.get(e.getKey());
+			String d = e.getValue();
+			if (!(a == null ? "" : a.trim()).equals(d == null ? "" : d.trim())) {
+				campos.add(e.getKey());
+			}
+		}
+		return campos;
+	}
+
 	// Listar tudo
 	public List<Pacientes> listarPacientes() {
 		return Pacientes.listAll();
@@ -454,6 +501,7 @@ public class PacientesService implements Serializable {
 		}
 		validarDuplicidadeNaEdicao(pacientes, dto);
 		String enderecoAntes = GeocodificacaoPacienteService.chaveEndereco(pacientes);
+		Map<String, String> cadastroAntes = retratoCadastro(pacientes);
 		pacientes.setNome(dto.getNome());
 		pacientes.setEndereco(dto.getEndereco());
 		pacientes.setIdade(dto.getIdade());
@@ -498,6 +546,10 @@ public class PacientesService implements Serializable {
 			GeocodificacaoPacienteService.aplicarCoordenadaLocal(pacientes, padrao);
 		}
 		pacientes.persist();
+		if (auditoriaAcaoServidor != null) {
+			auditoriaAcaoServidor.registrarCadastroPaciente(id,
+					camposAlterados(cadastroAntes, retratoCadastro(pacientes)), unidade);
+		}
 		if (recalcular) {
 			geocodificarEndereco.fire(GeocodificacaoPacienteService.pedidoDe(pacientes,
 					!GeocodificacaoPacienteService.semLocalizacaoPropria(pacientes, padrao)));
