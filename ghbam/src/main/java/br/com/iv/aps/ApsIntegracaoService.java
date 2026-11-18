@@ -118,7 +118,11 @@ public class ApsIntegracaoService {
      * Conecta ao banco do PEC em modo SO LEITURA e faz um inventario leve (versao do PostgreSQL e
      * tabelas encontradas). Nao le dados de cidadaos.
      */
-    public Map<String, Object> testarMigracao() {
+    /**
+     * Abre conexao SO LEITURA com o banco do PEC configurado na tela. Quem chama fecha.
+     * socketTimeoutSeg limita consultas longas (a previa percorre tb_cidadao inteira).
+     */
+    public Connection abrirPec(int socketTimeoutSeg) throws java.sql.SQLException {
         Config c = config(MIGRACAO);
         if (c == null || c.host() == null || c.banco() == null || c.usuario() == null) {
             throw new IllegalStateException("Preencha servidor, banco e usuario do banco do PEC e salve antes de testar.");
@@ -130,12 +134,17 @@ public class ApsIntegracaoService {
             pr.setProperty("password", c.senha());
         }
         pr.setProperty("connectTimeout", "10");
-        pr.setProperty("socketTimeout", "30");
+        pr.setProperty("socketTimeout", String.valueOf(socketTimeoutSeg));
         pr.setProperty("readOnly", "true");
         pr.setProperty("ApplicationName", "GHBAM G-PEC migracao (leitura)");
+        Connection con = DriverManager.getConnection(jdbc, pr);
+        con.setReadOnly(true);
+        return con;
+    }
+
+    public Map<String, Object> testarMigracao() {
         Map<String, Object> out = new LinkedHashMap<>();
-        try (Connection con = DriverManager.getConnection(jdbc, pr)) {
-            con.setReadOnly(true);
+        try (Connection con = abrirPec(30)) {
             try (Statement st = con.createStatement()) {
                 try (ResultSet rs = st.executeQuery("SELECT version()")) {
                     if (rs.next()) {
