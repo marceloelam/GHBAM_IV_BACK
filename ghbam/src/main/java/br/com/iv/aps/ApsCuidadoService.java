@@ -121,13 +121,15 @@ public class ApsCuidadoService {
         }
         dados.put("sexoCidadao", cid.get("sexo"));
         if (cid.get("data_nascimento") != null) {
-            dados.put("dataNascimentoCidadao", String.valueOf(ApsLediSerializer.epochMillis(LocalDate.parse((String) cid.get("data_nascimento")))));
+            // XSD cuidadocompartilhado: string no padrao YYYY-MM-DD (epoch como texto o PEC 5.6.1 trata como ausente).
+            dados.put("dataNascimentoCidadao", LocalDate.parse(String.valueOf(cid.get("data_nascimento")).substring(0, 10)).toString());
         }
         dados.put("uuidCuidadoCompartilhado", cc.get("uuid"));
-        dados.put("solicitante", lotacao(null, (String) cc.get("cns_solicitante"), (String) cc.get("cbo_solicitante"),
-                (String) cc.get("ine_solicitante"), lot.cnes(), lot.codIbge()));
-        dados.put("executante", lotacao(null, (String) cc.get("cns_executante"), (String) cc.get("cbo_executante"),
-                (String) cc.get("ine_executante"), lot.cnes(), lot.codIbge()));
+        // PEC 5.6.1 exige CPF e CNS em solicitante/executante/lotacaoEvolucao (18/11/2026).
+        dados.put("solicitante", lotacao(cpfDaLotacao((String) cc.get("matricula_solicitante"), (String) cc.get("cbo_solicitante")),
+                (String) cc.get("cns_solicitante"), (String) cc.get("cbo_solicitante"), (String) cc.get("ine_solicitante"), lot.cnes(), lot.codIbge()));
+        dados.put("executante", lotacao(cpfDaLotacao((String) cc.get("matricula_executante"), (String) cc.get("cbo_executante")),
+                (String) cc.get("cns_executante"), (String) cc.get("cbo_executante"), (String) cc.get("ine_executante"), lot.cnes(), lot.codIbge()));
         dados.put("dataCriacaoCuidado", String.valueOf(cc.get("criado_em")));
         if (cc.get("cid10") != null) {
             dados.put("cid10", cc.get("cid10"));
@@ -173,11 +175,24 @@ public class ApsCuidadoService {
         return obter(idCuidado);
     }
 
+    private String cpfDaLotacao(String matricula, String cbo) {
+        if (matricula == null) {
+            return null;
+        }
+        Map<String, Object> r = db.one("""
+                SELECT cpf FROM aps_lotacao WHERE matricula = :m AND (CAST(:cbo AS varchar) IS NULL OR cbo = CAST(:cbo AS varchar))
+                ORDER BY ativo DESC, id DESC LIMIT 1
+                """, p("m", matricula, "cbo", cbo));
+        return r == null ? null : str(r.get("cpf"));
+    }
+
+    /** LotacaoThrift (common.thrift): cpf e cns sao campos independentes - o PEC 5.6.1 exige os dois. */
     private static Map<String, Object> lotacao(String cpf, String cns, String cbo, String ine, String cnes, String ibge) {
         Map<String, Object> m = new LinkedHashMap<>();
         if (cpf != null) {
             m.put("cpf", cpf);
-        } else if (cns != null) {
+        }
+        if (cns != null) {
             m.put("cns", cns);
         }
         m.put("cboCodigo_2002", cbo);
