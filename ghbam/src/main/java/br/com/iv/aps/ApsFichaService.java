@@ -81,7 +81,70 @@ public class ApsFichaService {
         return detalhe(id);
     }
 
+    /**
+     * FCI: o PEC 5.6 recusa o Cadastro Individual sem identificacaoUsuarioCidadao.stNaoPossuiCpf
+     * ("preenchimento obrigatorio", visto no PEC oficial de treinamento em 18/11/2026). Mesma regra das
+     * outras fichas (ApsLediBuilder): false com CPF ou so CNS; true so sem CPF e com justificativa.
+     * Chamado ao registrar e no envio, para cobrir fichas ja gravadas sem o marcador.
+     */
+    @SuppressWarnings("unchecked")
+    static void marcadorSemCpfFci(int tipo, Map<String, Object> dados) {
+        condicaoMaternalVacina(tipo, dados);
+        if (tipo != 2 || dados == null || !(dados.get("identificacaoUsuarioCidadao") instanceof Map<?, ?> m)) {
+            return;
+        }
+        Map<String, Object> ident = (Map<String, Object>) m;
+        if (ident.get("stNaoPossuiCpf") == null) {
+            Object cpf = ident.get("cpfCidadao");
+            boolean semCpf = (cpf == null || String.valueOf(cpf).isBlank()) && ident.get("justificativaNaoPossuiCpf") != null;
+            ident.put("stNaoPossuiCpf", semCpf);
+        }
+    }
+
+    /**
+     * Ficha de vacinacao (14) gravada antes de 18/11/2026 leva gestante/puerpera, descontinuados no LEDI
+     * 7.2.2 (o PEC 5.6 recusa). Converte para condicaoMaternal pelo sexo do proprio registro: masculino sem
+     * o campo; demais 2 gestante, 3 puerpera, 1 nenhuma.
+     */
+    @SuppressWarnings("unchecked")
+    static void condicaoMaternalVacina(int tipo, Map<String, Object> dados) {
+        if (tipo != 14 || dados == null || !(dados.get("vacinacoes") instanceof List<?> lista)) {
+            return;
+        }
+        for (Object o : lista) {
+            if (!(o instanceof Map<?, ?> m)) {
+                continue;
+            }
+            Map<String, Object> v = (Map<String, Object>) m;
+            boolean gestante = Boolean.TRUE.equals(v.remove("gestante"));
+            boolean puerpera = Boolean.TRUE.equals(v.remove("puerpera"));
+            Object sexo = v.get("sexo");
+            boolean masculino = sexo instanceof Number n && n.intValue() == 0;
+            if (masculino) {
+                v.remove("condicaoMaternal");
+            } else if (v.get("condicaoMaternal") == null) {
+                v.put("condicaoMaternal", gestante ? 2 : puerpera ? 3 : 1);
+            }
+            List<Map<String, Object>> vacinas = v.get("vacinas") instanceof List<?> l ? (List<Map<String, Object>>) l : List.of();
+            // dic-fv #8: comunicanteHanseniase so existe (e e obrigatorio) quando ha dose de BCG (imunobiologico 15).
+            boolean temBcg = vacinas.stream().anyMatch(x -> x.get("imunobiologico") instanceof Number n && n.intValue() == 15);
+            if (!temBcg) {
+                v.remove("comunicanteHanseniase");
+            } else {
+                v.putIfAbsent("comunicanteHanseniase", false);
+            }
+            // dic-fv VacinaRow #2: em registro anterior (transcricao) a estrategia so pode ser 11 - Pesquisa.
+            for (Map<String, Object> x : vacinas) {
+                Object est = x.get("estrategiaVacinacao");
+                if (Boolean.TRUE.equals(x.get("stRegistroAnterior")) && !(est instanceof Number n && n.intValue() == 11)) {
+                    x.remove("estrategiaVacinacao");
+                }
+            }
+        }
+    }
+
     private void preencherIdentificacao(int tipo, Map<String, Object> dados, String uuid, String uuidOriginadora) {
+        marcadorSemCpfFci(tipo, dados);
         switch (tipo) {
             case 2, 3 -> {
                 dados.put("uuid", uuid);

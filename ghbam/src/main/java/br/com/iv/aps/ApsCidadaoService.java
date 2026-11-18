@@ -345,6 +345,16 @@ public class ApsCidadaoService {
             if (ident.get("nacionalidadeCidadao") == null) {
                 throw new IllegalArgumentException("Nacionalidade e obrigatoria.");
             }
+            // LEDI 8.7 (dic-fci #11): celular obrigatorio para brasileiro (1) ou naturalizado (2), so digitos,
+            // 10 ou 11. O PEC 5.6 recusa a FCI sem ele (visto no PEC oficial de treinamento em 18/11/2026).
+            Integer nacionalidade = intOrNull(ident.get("nacionalidadeCidadao"));
+            String celular = ApsValidacao.digitos(str(ident.get("telefoneCelular")));
+            if (nacionalidade != null && (nacionalidade == 1 || nacionalidade == 2)) {
+                if (celular == null || celular.length() < 10 || celular.length() > 11) {
+                    throw new IllegalArgumentException("Celular e obrigatorio para cidadao brasileiro ou naturalizado (DDD + numero, 10 ou 11 digitos).");
+                }
+                ident.put("telefoneCelular", celular);
+            }
             String microarea = str(ident.get("microArea"));
             if (!Boolean.TRUE.equals(ident.get("stForaArea")) && microarea == null) {
                 throw new IllegalArgumentException("Informe a microarea ou marque 'fora de area'.");
