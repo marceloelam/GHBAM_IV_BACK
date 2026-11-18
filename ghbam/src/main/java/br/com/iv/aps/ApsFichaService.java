@@ -90,6 +90,10 @@ public class ApsFichaService {
     @SuppressWarnings("unchecked")
     static void marcadorSemCpfFci(int tipo, Map<String, Object> dados) {
         condicaoMaternalVacina(tipo, dados);
+        if (tipo == 3 && dados != null) {
+            // dic-fcd #17: tipoEndereco obrigatorio, sempre 3 (logradouro) - o PEC 5.6.1 recusa sem ele (18/11/2026).
+            dados.putIfAbsent("tipoEndereco", 3);
+        }
         if (tipo != 2 || dados == null || !(dados.get("identificacaoUsuarioCidadao") instanceof Map<?, ?> m)) {
             return;
         }
