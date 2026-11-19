@@ -20,7 +20,9 @@ public class ProcedimentosSusRepository implements PanacheRepository<Procediment
 	 
 	public ProcedimentosSus filtrarPorUnicoProcedimentoSus(String procedimento) {
 	    List<ProcedimentosSus> result = entityManager.createQuery(
-	            "SELECT p FROM ProcedimentosSus p WHERE CONCAT(p.pa_id, p.pa_dv) = :codigo",
+	            // Sem ORDER BY vinha uma competencia qualquer; telas de consulta usam o SIGTAP
+	            // mais recente. O faturamento usa filtrarPorProcedimentoNaCompetencia.
+	            "SELECT p FROM ProcedimentosSus p WHERE CONCAT(p.pa_id, p.pa_dv) = :codigo ORDER BY p.pa_cmp DESC",
 	            ProcedimentosSus.class)
 	        .setParameter("codigo", procedimento)
 	        .setMaxResults(1)
@@ -33,8 +35,8 @@ public class ProcedimentosSusRepository implements PanacheRepository<Procediment
 	// Mesma busca por codigo, mas ciente da competencia - e a que o motor de faturamento
 	// usa.
 	//
-	// O problema que ela resolve: filtrarPorUnicoProcedimentoSus nao ordena nem filtra
-	// por pa_cmp e devolve "a primeira que o banco entregar". Com varias competencias
+	// O problema que ela resolve: filtrarPorUnicoProcedimentoSus devolve sempre a
+	// competencia mais recente (antes, "a primeira que o banco entregar"). Com varias competencias
 	// SIGTAP instaladas (a base tem de 2020 a 2026), a producao de hoje era classificada
 	// com o pa_tpreg de 2020 - e procedimento que hoje e BPA-I virava NAO_FATURAVEL, isto
 	// e, deixava de faturar. Os campos novos (tp_sexo, faixa etaria) tambem so existem nas
@@ -81,7 +83,7 @@ public class ProcedimentosSusRepository implements PanacheRepository<Procediment
 	}
 	public ProcedimentosSus filtrarPorPaIdDv(String paId, String paDv) {
 	    List<ProcedimentosSus> result = entityManager.createQuery(
-	            "SELECT p FROM ProcedimentosSus p WHERE p.pa_id = :paId AND p.pa_dv = :paDv",
+	            "SELECT p FROM ProcedimentosSus p WHERE p.pa_id = :paId AND p.pa_dv = :paDv ORDER BY p.pa_cmp DESC",
 	            ProcedimentosSus.class)
 	        .setParameter("paId", paId)
 	        .setParameter("paDv", paDv)
@@ -182,7 +184,9 @@ public class ProcedimentosSusRepository implements PanacheRepository<Procediment
 	public List<ProcedimentosSus> procediment(String texto, String cid, String cbo) {
 		String sql = "select distinct on (pa_id) pa_id as pa_id_unico, s_proced.* from s_proced where UPPER(pa_dc) like :texto"
 				+ " and pa_id in (select pacid_pa from s_pacid where pacid_cid in (select cd_cod from s_cid where UPPER(cd_cod) like :cid"
-				+ ")) and pa_id in (select pacbo_pa from s_pacbo where pacbo_cbo = :cbo )";
+				+ ")) and pa_id in (select pacbo_pa from s_pacbo where pacbo_cbo = :cbo )"
+				// distinct on fica com a primeira linha de cada pa_id: a competencia mais recente.
+				+ " order by pa_id, pa_cmp desc";
 
 		return getEntityManager().createNativeQuery(sql, ProcedimentosSus.class)
 				.setParameter("texto", "%" + texto + "%")
@@ -202,7 +206,7 @@ public class ProcedimentosSusRepository implements PanacheRepository<Procediment
 	@SuppressWarnings("unchecked")
 	public List<ProcedimentosSus> procediment2(String texto) {
 		String sql = "select distinct on (pa_id) pa_id as pa_id_unico, s_proced.* from s_proced "
-				+ "where UPPER(pa_dc) like :texto order by pa_id limit 200";
+				+ "where UPPER(pa_dc) like :texto order by pa_id, pa_cmp desc limit 200";
 
 		return getEntityManager().createNativeQuery(sql, ProcedimentosSus.class)
 				.setParameter("texto", "%" + (texto == null ? "" : texto.toUpperCase()) + "%")
