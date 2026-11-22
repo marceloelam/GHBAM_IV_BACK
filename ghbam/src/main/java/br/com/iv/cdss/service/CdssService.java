@@ -257,10 +257,16 @@ public class CdssService implements Serializable {
         String termo = safe(medicamento);
         if (termo.isBlank()) return List.of();
         String semDose = termo.replaceAll("(?i)\\b\\d+[,.]?\\d*\\s*(mg|mcg|g|ml|ui|amp|ampola|comprimido|comp|cp|gota|gotas)\\b", " ").trim();
-        List<Bulario> porNome = bularioRepository.filtarBulario(semDose.isBlank() ? termo : semDose);
-        if (!porNome.isEmpty()) return porNome;
-        String primeiroTermo = semDose.split("\\s+")[0];
-        return primeiroTermo.isBlank() ? List.of() : bularioRepository.filtarBulario(primeiroTermo);
+        String busca = semDose.isBlank() ? termo : semDose;
+        // A busca acha o termo em qualquer campo; BulaCasamento descarta bulas de outros remédios.
+        java.util.Optional<Bulario> bula = BulaCasamento.escolher(busca, bularioRepository.filtarBulario(busca));
+        if (bula.isEmpty()) {
+            String primeiroTermo = busca.split("\\s+")[0];
+            if (!primeiroTermo.isBlank() && !primeiroTermo.equals(busca)) {
+                bula = BulaCasamento.escolher(busca, bularioRepository.filtarBulario(primeiroTermo));
+            }
+        }
+        return bula.map(List::of).orElse(List.of());
     }
 
     private CdssBularioMedicamentoDto toCdssBulario(Bulario bula) {

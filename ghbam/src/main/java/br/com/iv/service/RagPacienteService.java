@@ -451,17 +451,11 @@ public class RagPacienteService {
         if (!temTexto(medicamento)) {
             return null;
         }
-        List<Bulario> resultados = bularioRepository.filtarBulario(medicamento);
-        if (resultados == null || resultados.isEmpty()) {
-            return null;
-        }
-        String normalizado = normalizarSemAcento(medicamento);
-        return resultados.stream()
-            .filter(b -> normalizarSemAcento(b.getNome()).contains(normalizado)
-                || normalizarSemAcento(b.getPrincipioAtivo()).contains(normalizado)
-                || normalizado.contains(normalizarSemAcento(b.getNome())))
-            .findFirst()
-            .orElse(resultados.get(0));
+        // Sem bula compatível devolve null; antes caía em resultados.get(0), que podia
+        // ser a bula de outro remédio que só citava este nas interações.
+        return br.com.iv.cdss.service.BulaCasamento
+            .escolher(medicamento, bularioRepository.filtarBulario(medicamento))
+            .orElse(null);
     }
 
     private String resumirCampo(String texto, int limite) {

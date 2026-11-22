@@ -145,7 +145,10 @@ public class CdssRulesEngine {
         String bulaNome = safe(bula.getNome());
         String principioAtivo = safe(bula.getPrincipioAtivo());
         String referencia = !bulaNome.isBlank() ? bulaNome : request.getMedicamento();
-        String interacoes = normalizar(bula.getInteracoes());
+        // Na tabela bulario, milhares de registros têm a bula inteira copiada em todos os
+        // campos (extração antiga). Campo igual a outro campo não é a seção real e
+        // geraria alerta falso (qualquer remédio citado em qualquer parte da bula).
+        String interacoes = secaoConfiavel(bula.getInteracoes(), bula.getPosologia(), bula.getContraindicacoes(), bula.getPrecaucoes());
         for (String atual : lista(request.getMedicamentosAtuais())) {
             String atualNormalizado = normalizar(atual);
             if (!atualNormalizado.isBlank() && contemTermo(interacoes, atualNormalizado)) {
@@ -155,7 +158,7 @@ public class CdssRulesEngine {
                         List.of("bulario", "interacao")));
             }
         }
-        String contraindicacoes = normalizar(bula.getContraindicacoes());
+        String contraindicacoes = secaoConfiavel(bula.getContraindicacoes(), bula.getPosologia(), bula.getInteracoes(), bula.getPrecaucoes());
         for (String alergia : lista(request.getAlergias())) {
             String alergiaNormalizada = normalizar(alergia);
             if (!alergiaNormalizada.isBlank()
@@ -174,6 +177,19 @@ public class CdssRulesEngine {
                     "A posologia do bulario de " + referencia + " indica calculo por peso.",
                     "Informe o peso antes de liberar a prescricao.", true, List.of("bulario", "peso", "posologia")));
         }
+    }
+
+    private String secaoConfiavel(String secao, String... outrasSecoes) {
+        String texto = secao == null ? "" : secao.trim();
+        if (texto.isEmpty()) {
+            return "";
+        }
+        for (String outra : outrasSecoes) {
+            if (outra != null && texto.equals(outra.trim())) {
+                return "";
+            }
+        }
+        return normalizar(texto);
     }
 
     private boolean interage(String medicamento, String atual) {
