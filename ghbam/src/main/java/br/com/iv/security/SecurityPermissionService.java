@@ -351,7 +351,8 @@ public class SecurityPermissionService {
                 && Boolean.TRUE.equals(servidor.getAtivo())
                 && !UsuarioAdRegras.bloqueado(servidor.getUsuarioad())
                 // 60 dias sem acesso (V265): suspensa até um líder reativar.
-                && !inatividadeAcessoService.suspensa(servidor);
+                // Null só fora do CDI (testes que instanciam com new): aí não há controle de inatividade.
+                && (inatividadeAcessoService == null || !inatividadeAcessoService.suspensa(servidor));
     }
 
     /** Senha confere, mas a conta está suspensa por inatividade: o login mostra o motivo e registra no log. */
@@ -360,7 +361,7 @@ public class SecurityPermissionService {
         Servidor servidor = servidorRepository.localizarMatricula(safe(matricula));
         if (servidor == null || !Boolean.TRUE.equals(servidor.getAtivo())
                 || UsuarioAdRegras.bloqueado(servidor.getUsuarioad())
-                || !inatividadeAcessoService.suspensa(servidor)) {
+                || inatividadeAcessoService == null || !inatividadeAcessoService.suspensa(servidor)) {
             return false;
         }
         String storedPassword = safe(servidor.getPwd());
