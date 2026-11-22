@@ -42,6 +42,9 @@ public class ServidorService implements Serializable {
 	SecurityPermissionService securityPermissionService;
 
 	@Inject
+	PendenciaCadastroService pendenciaCadastroService;
+
+	@Inject
 	ServidorUnidadeRepository servidorUnidadeRepository;
 
 	@Inject
@@ -273,7 +276,7 @@ public class ServidorService implements Serializable {
 		aplicarModeloSourceafis(servidor, dto, null);
 		if(servidor.getCorem().equals("") && !servidor.getCrm().equals(""))
 			servidor.setCorem(servidor.getCrm());
-		
+
 		servidor.setUsuarioad(dto.getUsuarioad());
 		if (dto.getCertificadoPfxBase64() != null && !dto.getCertificadoPfxBase64().isBlank()) {
 			servidor.setCertificadoPfxBase64(dto.getCertificadoPfxBase64());
@@ -283,6 +286,8 @@ public class ServidorService implements Serializable {
 			servidor.setCertificadoValidade(dto.getCertificadoValidade());
 		}
 		servidor.persist();
+		// Cadastro irregular (COREN/CRM de outra pessoa, enfermagem sem COREN) não trava: abre pendência de 30 dias.
+		pendenciaCadastroService.sincronizar(servidor, null);
 
 		// Salvar tambÃ©m em Servidor2
 		Servidor2Dto servidor2Dto = new Servidor2Dto();
@@ -386,6 +391,8 @@ public class ServidorService implements Serializable {
 			servidor.setCertificadoValidade(dto.getCertificadoValidade());
 		}
 		servidor.persist();
+		// Abre, atualiza ou resolve a pendência de cadastro profissional (nunca trava a alteração).
+		pendenciaCadastroService.sincronizar(servidor, null);
 		securityPermissionService.invalidateUserCache(servidor.getMatricula());
 
 	}

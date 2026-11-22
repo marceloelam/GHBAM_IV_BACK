@@ -65,6 +65,9 @@ public class SecurityPermissionService {
     @Inject
     br.com.iv.repository.ServidorUnidadeRepository servidorUnidadeRepository;
 
+    @Inject
+    br.com.iv.service.InatividadeAcessoService inatividadeAcessoService;
+
     /**
      * Coordena algum setor numa unidade a que ainda tem acesso (setor_coordenacao): libera o menu e as rotas de
      * coordenacao-setor. Conta inativa/bloqueada ou transferida para outra unidade nao conta.
@@ -346,7 +349,35 @@ public class SecurityPermissionService {
     public boolean acessoPermitido(Servidor servidor) {
         return servidor != null
                 && Boolean.TRUE.equals(servidor.getAtivo())
-                && !UsuarioAdRegras.bloqueado(servidor.getUsuarioad());
+                && !UsuarioAdRegras.bloqueado(servidor.getUsuarioad())
+                // 60 dias sem acesso (V265): suspensa até um líder reativar.
+                && !inatividadeAcessoService.suspensa(servidor);
+    }
+
+    /** Senha confere, mas a conta está suspensa por inatividade: o login mostra o motivo e registra no log. */
+    @Transactional
+    public boolean senhaConfereMasSuspensaInatividade(String matricula, String senha, String senhaMontada) {
+        Servidor servidor = servidorRepository.localizarMatricula(safe(matricula));
+        if (servidor == null || !Boolean.TRUE.equals(servidor.getAtivo())
+                || UsuarioAdRegras.bloqueado(servidor.getUsuarioad())
+                || !inatividadeAcessoService.suspensa(servidor)) {
+            return false;
+        }
+        String storedPassword = safe(servidor.getPwd());
+        String requestedPassword = safe(senha);
+        boolean confere;
+        if (requestedPassword.isBlank() && !safe(senhaMontada).isBlank()) {
+            requestedPassword = resolvePasswordFromKeypad(storedPassword, senhaMontada);
+            confere = !requestedPassword.isBlank()
+                    && (isBcryptHash(storedPassword) || passwordMatches(storedPassword, requestedPassword));
+        } else {
+            confere = passwordMatches(storedPassword, requestedPassword);
+        }
+        if (confere) {
+            br.com.iv.service.LogSistemaRegistro.registrar(em, servidor.getUnidade(), servidor.getNome(), servidor.getMatricula(),
+                    "Login recusado: conta suspensa por inatividade (60 dias sem acesso)");
+        }
+        return confere;
     }
 
     public void invalidateUserCache(String matricula) {

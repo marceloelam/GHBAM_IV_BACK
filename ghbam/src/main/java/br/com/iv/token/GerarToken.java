@@ -136,6 +136,13 @@ public class GerarToken {
                 semAd.put("mensagem", "Usuário sem AD cadastrado. Procure a administração para cadastrar seu usuário de rede (formato nome.sobrenome).");
                 return Response.status(Response.Status.FORBIDDEN).entity(semAd).build();
             }
+            if (securityPermissionService.senhaConfereMasSuspensaInatividade(username, request.senha, request.senhaMontada)) {
+                // 403 com motivo real; o registro no log é feito no SecurityPermissionService.
+                contarLogin("suspensa_inatividade");
+                Map<String, Object> suspensa = new LinkedHashMap<>();
+                suspensa.put("mensagem", "Sua conta foi suspensa por ficar 60 dias sem acesso. Peça ao coordenador do seu setor ou à administração para reativar.");
+                return Response.status(Response.Status.FORBIDDEN).entity(suspensa).build();
+            }
             Map<String, Object> body = new LinkedHashMap<>();
             contarLogin("falha");
             body.put("mensagem", "Matricula, senha ou usuario ativo nao conferem.");

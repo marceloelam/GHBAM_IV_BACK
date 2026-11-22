@@ -60,7 +60,10 @@ public class RbacRequestFilter implements ContainerRequestFilter {
             "log",
             // Reconfirma a senha do proprio usuario antes de operacoes sensiveis;
             // a matricula e a senha continuam sendo validadas no controller.
-            "servidor/validar-credencial");
+            "servidor/validar-credencial",
+            // Reativar conta suspensa por inatividade / registrar afastamento: o
+            // InatividadeAcessoService exige coordenador do setor, adm da unidade ou super.
+            "pendencia-cadastro");
 
     private static final Set<String> PUBLIC_GET_PATHS = Set.of(
             "tema-visual",
@@ -82,6 +85,8 @@ public class RbacRequestFilter implements ContainerRequestFilter {
     private static final Set<String> AUTHENTICATED_ONLY_GET_PATHS = Set.of(
             // Videos de ajuda das telas: material de treinamento, sem dado de paciente.
             "videos-ajuda",
+            // Alertas de cadastro profissional pendente: o serviço filtra o que cada um vê.
+            "pendencia-cadastro",
             // Setores com coordenador cuja equipe nao inclui o usuario (fecha o menu do setor).
             "coordenacao-setor/meus-setores",
             // Modulos contratados da unidade: o menu de todos le para esconder o que nao foi contratado.
