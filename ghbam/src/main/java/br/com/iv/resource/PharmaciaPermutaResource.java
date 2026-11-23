@@ -31,6 +31,10 @@ public class PharmaciaPermutaResource {
     @GET
     public List<PharmaciaPermuta> listAll(@QueryParam("status") String status, @QueryParam("unidadeId") String sigla) {
         List<PharmaciaPermuta> result;
+        // Sem filtro devolvia permutas de TODAS as unidades: agora as da sessao (origem ou destino).
+        if (sigla == null || sigla.isEmpty()) {
+            sigla = scope.unidadeAtual(requestContext);
+        }
         if (sigla != null && !sigla.isEmpty()) {
             List<PharmaciaPermuta> origem = service.findByUnidadeOrigemSigla(sigla);
             List<PharmaciaPermuta> destino = service.findByUnidadeDestinoSigla(sigla);

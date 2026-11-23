@@ -97,9 +97,19 @@ public class FaturamentoAutomacaoJob {
     br.com.iv.service.FaturamentoAihService aihService;
 
     @Scheduled(cron = "{ghbam.faturamento.automacao.cron:0 20 3 * * ?}", concurrentExecution = Scheduled.ConcurrentExecution.SKIP)
+    void prepararCompetenciasAgendado() {
+        // Em cada municipio (sem requisicao o banco seria sempre o padrao).
+        br.com.iv.plataforma.municipio.MunicipioRoteamento.emCadaMunicipio(FaturamentoAutomacaoJob.class, "prepararCompetencias", b -> b.prepararCompetencias());
+    }
+
     void prepararCompetencias() {
         if (!habilitada) {
             return;
+        }
+        if (importarSigtap) {
+            // CID x procedimento (V263): carrega sozinho a competencia instalada que ainda
+            // nao tem. Ja carregada, nao acessa o FTP. Falha so registra log.
+            sigtapImportacaoService.garantirCidsDaCompetenciaInstalada();
         }
         for (String unidade : unidadesComCnes()) {
             // Quem manda e a competencia aberta da unidade, nao a data de hoje: o
@@ -220,6 +230,11 @@ public class FaturamentoAutomacaoJob {
     // (CNES/CNS-PDQ) e nao de nada que o operador precise decidir antes.
     @Scheduled(cron = "{ghbam.faturamento.automacao.cns-periodico.cron:0 0 */4 * * ?}",
             concurrentExecution = Scheduled.ConcurrentExecution.SKIP)
+    void buscarCnsPeriodicoAgendado() {
+        // Em cada municipio (sem requisicao o banco seria sempre o padrao).
+        br.com.iv.plataforma.municipio.MunicipioRoteamento.emCadaMunicipio(FaturamentoAutomacaoJob.class, "buscarCnsPeriodico", b -> b.buscarCnsPeriodico());
+    }
+
     void buscarCnsPeriodico() {
         if (!habilitada || !cnsPeriodicoHabilitada) {
             return;

@@ -14,7 +14,6 @@ import javax.naming.directory.SearchResult;
 import javax.naming.NamingEnumeration;
 import javax.naming.directory.Attributes;
 import javax.naming.directory.Attribute;
-import io.agroal.api.AgroalDataSource;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.ArrayList;
@@ -28,7 +27,7 @@ public class ActiveDirectoryService {
     private static final Logger LOG = Logger.getLogger(ActiveDirectoryService.class);
 
     @Inject
-    AgroalDataSource dataSource;
+    br.com.iv.plataforma.municipio.MunicipioRoteamento municipioRoteamento; // banco do municipio da requisicao
 
     @ConfigProperty(name = "LDAP_SERVER_URI")
     String ldapServerUri;
@@ -447,7 +446,7 @@ public class ActiveDirectoryService {
             String nomeTrim = nomeMaiusculo != null ? nomeMaiusculo.trim().replaceAll("\\s+", "") : "";
             String usuarioAdTrim = usuarioAd != null ? usuarioAd.trim().replaceAll("\\s+", "") : "";
             // USA O DATASOURCE GERENCIADO EM VEZ DE DRIVERMANAGER
-            conn = dataSource.getConnection();
+            conn = municipioRoteamento.dataSourceAtual().getConnection();
             String sql = "UPDATE servidor SET usuarioad = ? WHERE REPLACE(UPPER(nome), ' ', '') = ?";
             stmt = conn.prepareStatement(sql);
             stmt.setString(1, usuarioAdTrim);
@@ -476,7 +475,7 @@ public class ActiveDirectoryService {
             String nomeTrim = matricula != null ? matricula.trim().replaceAll("\\s+", "") : "";
             String usuarioAdTrim = usuarioAd != null ? usuarioAd.trim().replaceAll("\\s+", "") : "";
             // USA O DATASOURCE GERENCIADO EM VEZ DE DRIVERMANAGER
-            conn = dataSource.getConnection();
+            conn = municipioRoteamento.dataSourceAtual().getConnection();
             String sql = "UPDATE servidor SET usuarioad = ? WHERE REPLACE(UPPER(matricula), ' ', '') = ?";
             stmt = conn.prepareStatement(sql);
             stmt.setString(1, usuarioAdTrim);

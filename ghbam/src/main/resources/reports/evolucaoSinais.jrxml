@@ -3,6 +3,92 @@
 <jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="evolucao" pageWidth="595" pageHeight="842" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20" isFloatColumnFooter="true" uuid="f90ae1c5-b6cd-4c8c-a958-50b845e718d3">
 	<property name="com.jaspersoft.studio.data.sql.tables" value=""/>
 	<property name="com.jaspersoft.studio.data.defaultdataadapter" value="teste"/>
+	<subDataset name="profissionaisSinais" uuid="7c1f3b2e-5a41-4d0b-9e2a-3f6d8b1c4a90">
+		<parameter name="pbam" class="java.lang.String"/>
+		<parameter name="ssigla" class="java.lang.String"/>
+		<queryString language="SQL">
+			<![CDATA[SELECT p.data AS ldata, p.hora AS lhora,
+	COALESCE(
+		CASE WHEN s.nome IS NOT NULL THEN
+			COALESCE(s.abrev || ' ', '') || TRIM(s.nome) || CASE
+				WHEN s.vencida THEN ' - ' || s.conselho || ': pendente de conferência'
+				WHEN s.registro IS NOT NULL THEN ' - ' || s.conselho || ': ' || s.registro
+				WHEN NULLIF(TRIM(s.matricula), '') IS NOT NULL THEN ' - Matrícula: ' || TRIM(s.matricula)
+				ELSE ''
+			END
+		END,
+		NULLIF(TRIM(p.enfermeiro), ''),
+		NULLIF(TRIM(p.tecnico), ''),
+		'Não informado') AS lprofissional
+FROM public.prescricaocont p
+	INNER JOIN public.bam b ON b.idbam = p.bam
+	LEFT JOIN LATERAL (
+		-- O cargo define a função. Entre cadastros homônimos, valem só os de cargo definido;
+		-- prefixo sai se os cargos concordam e o registro sai se os números concordam
+		-- (ignorando zeros à esquerda e sufixo "-TE"/"-ENF"); a matrícula só se houver um cadastro.
+		SELECT c.nome, c.abrev, c.conselho,
+			-- Pendência de cadastro vencida (V264): não imprime número possivelmente errado.
+			EXISTS (SELECT 1 FROM servidor_pendencia_cadastro pc WHERE pc.idservidor = c.idservidor
+				AND pc.resolvida_em IS NULL AND pc.prazo < current_date) AS vencida,
+			CASE WHEN c.reg_min = c.reg_max THEN c.registro END AS registro,
+			CASE WHEN c.n_cad = 1 THEN c.matricula END AS matricula
+		FROM (
+			SELECT k.*,
+				COUNT(*) OVER () AS n_cad,
+				MIN(k.abrev) OVER () AS abrev_min,
+				MAX(k.abrev) OVER () AS abrev_max,
+				MIN(k.reg_norm) OVER () AS reg_min,
+				MAX(k.reg_norm) OVER () AS reg_max
+			FROM (
+				SELECT q.*,
+					COALESCE(q.abrev_cargo,
+						-- Cargo genérico (ex.: SERVIDOR): usa CBO, a coluna do lançamento e o sufixo do COREN.
+						CASE
+							WHEN q.cbo LIKE '2235%' THEN 'Enf.'
+							WHEN q.cbo LIKE '3222%' THEN 'Téc.'
+							WHEN q.cbo LIKE '225%' THEN 'Dr(a).'
+							WHEN NULLIF(TRIM(p.enfermeiro), '') IS NOT NULL AND NULLIF(TRIM(p.tecnico), '') IS NULL THEN 'Enf.'
+							WHEN NULLIF(TRIM(p.tecnico), '') IS NOT NULL AND NULLIF(TRIM(p.enfermeiro), '') IS NULL THEN 'Téc.'
+							WHEN UPPER(q.registro) LIKE '%-ENF%' THEN 'Enf.'
+							WHEN UPPER(q.registro) LIKE '%-TE' OR UPPER(q.registro) LIKE '%-AE' THEN 'Téc.'
+						END) AS abrev,
+					NULLIF(REGEXP_REPLACE(REGEXP_REPLACE(UPPER(q.registro), '-.*$', ''), '^0+', ''), '') AS reg_norm,
+					BOOL_OR(q.abrev_cargo IS NOT NULL) OVER () AS algum_cargo
+				FROM (
+					SELECT sv.idservidor, sv.nome, sv.matricula, TRIM(COALESCE(sv.cbo, '')) AS cbo,
+						CASE
+							WHEN UPPER(COALESCE(sv.cargo, '')) LIKE '%MEDIC%' OR UPPER(COALESCE(sv.cargo, '')) LIKE '%MÉDIC%' THEN 'Dr(a).'
+							WHEN UPPER(COALESCE(sv.cargo, '')) LIKE '%ENFERMEIR%' THEN 'Enf.'
+							WHEN UPPER(COALESCE(sv.cargo, '')) LIKE 'TEC%' OR UPPER(COALESCE(sv.cargo, '')) LIKE 'TÉC%'
+								OR UPPER(COALESCE(sv.cargo, '')) LIKE '%TECNIC%' OR UPPER(COALESCE(sv.cargo, '')) LIKE '%TÉCNIC%'
+								OR UPPER(COALESCE(sv.cargo, '')) LIKE '%ENFERMAGEM%' THEN 'Téc.'
+						END AS abrev_cargo,
+						CASE WHEN UPPER(COALESCE(sv.cargo, '')) LIKE '%MEDIC%' OR UPPER(COALESCE(sv.cargo, '')) LIKE '%MÉDIC%'
+							THEN 'CRM' ELSE 'COREN' END AS conselho,
+						NULLIF(NULLIF(TRIM(CASE WHEN UPPER(COALESCE(sv.cargo, '')) LIKE '%MEDIC%' OR UPPER(COALESCE(sv.cargo, '')) LIKE '%MÉDIC%'
+							THEN sv.crm ELSE sv.corem END), ''), '0') AS registro
+					FROM public.servidor sv
+					WHERE (NULLIF(TRIM(p.criadopor), '') IS NOT NULL
+							AND sv.matricula = TRIM(p.criadopor))
+						-- Registros sem matrícula (antigos/outro sistema) gravaram só o nome.
+						OR (NULLIF(TRIM(p.criadopor), '') IS NULL
+							AND UPPER(TRIM(sv.nome)) = UPPER(TRIM(COALESCE(NULLIF(TRIM(p.enfermeiro), ''), p.tecnico))))
+				) q
+			) k
+			WHERE k.abrev_cargo IS NOT NULL OR NOT k.algum_cargo
+		) c
+		WHERE c.abrev_min IS NOT DISTINCT FROM c.abrev_max
+		ORDER BY (c.registro IS NOT NULL) DESC, c.idservidor DESC
+		LIMIT 1
+	) s ON true
+WHERE p.bam = cast($P{pbam} as integer)
+	AND b.unidade = $P{ssigla}
+ORDER BY cast(p.data as date) desc, cast(p.hora as time) desc]]>
+		</queryString>
+		<field name="ldata" class="java.lang.String"/>
+		<field name="lhora" class="java.lang.String"/>
+		<field name="lprofissional" class="java.lang.String"/>
+	</subDataset>
 	<parameter name="pbam" class="java.lang.String"/>
 	<parameter name="logo" class="java.lang.String"/>
 	<parameter name="hospital" class="java.lang.String"/>
@@ -851,4 +937,76 @@ FROM public.bam
 			</textField>
 		</band>
 	</detail>
+	<summary>
+		<band height="44" splitType="Stretch">
+			<staticText>
+				<reportElement x="0" y="10" width="555" height="14" uuid="b2d4e6f8-1a3c-4e5f-8a7b-9c0d1e2f3a41"/>
+				<textElement verticalAlignment="Middle">
+					<font size="9" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Registrado por]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="0" y="24" width="60" height="12" uuid="b2d4e6f8-1a3c-4e5f-8a7b-9c0d1e2f3a42"/>
+				<box><bottomPen lineWidth="0.5"/></box>
+				<textElement verticalAlignment="Middle">
+					<font size="8" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Data]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="60" y="24" width="40" height="12" uuid="b2d4e6f8-1a3c-4e5f-8a7b-9c0d1e2f3a43"/>
+				<box><bottomPen lineWidth="0.5"/></box>
+				<textElement verticalAlignment="Middle">
+					<font size="8" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Hora]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="100" y="24" width="455" height="12" uuid="b2d4e6f8-1a3c-4e5f-8a7b-9c0d1e2f3a44"/>
+				<box><bottomPen lineWidth="0.5"/></box>
+				<textElement verticalAlignment="Middle">
+					<font size="8" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Profissional]]></text>
+			</staticText>
+			<componentElement>
+				<reportElement x="0" y="36" width="555" height="8" uuid="b2d4e6f8-1a3c-4e5f-8a7b-9c0d1e2f3a45"/>
+				<jr:list xmlns:jr="http://jasperreports.sourceforge.net/jasperreports/components" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports/components http://jasperreports.sourceforge.net/xsd/components.xsd" printOrder="Vertical">
+					<datasetRun subDataset="profissionaisSinais" uuid="b2d4e6f8-1a3c-4e5f-8a7b-9c0d1e2f3a46">
+						<datasetParameter name="pbam">
+							<datasetParameterExpression><![CDATA[$P{pbam}]]></datasetParameterExpression>
+						</datasetParameter>
+						<datasetParameter name="ssigla">
+							<datasetParameterExpression><![CDATA[$P{ssigla}]]></datasetParameterExpression>
+						</datasetParameter>
+						<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
+					</datasetRun>
+					<jr:listContents height="8" width="555">
+						<textField isBlankWhenNull="true">
+							<reportElement x="0" y="0" width="60" height="8" uuid="b2d4e6f8-1a3c-4e5f-8a7b-9c0d1e2f3a47"/>
+							<textElement verticalAlignment="Middle">
+								<font size="6"/>
+							</textElement>
+							<textFieldExpression><![CDATA[$F{ldata}]]></textFieldExpression>
+						</textField>
+						<textField isBlankWhenNull="true">
+							<reportElement x="60" y="0" width="40" height="8" uuid="b2d4e6f8-1a3c-4e5f-8a7b-9c0d1e2f3a48"/>
+							<textElement verticalAlignment="Middle">
+								<font size="6"/>
+							</textElement>
+							<textFieldExpression><![CDATA[$F{lhora}]]></textFieldExpression>
+						</textField>
+						<textField isBlankWhenNull="true">
+							<reportElement x="100" y="0" width="455" height="8" uuid="b2d4e6f8-1a3c-4e5f-8a7b-9c0d1e2f3a49"/>
+							<textElement verticalAlignment="Middle">
+								<font size="6"/>
+							</textElement>
+							<textFieldExpression><![CDATA[$F{lprofissional}]]></textFieldExpression>
+						</textField>
+					</jr:listContents>
+				</jr:list>
+			</componentElement>
+		</band>
+	</summary>
 </jasperReport>

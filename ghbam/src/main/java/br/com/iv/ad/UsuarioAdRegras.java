@@ -7,7 +7,7 @@ import java.util.Locale;
  * services/usuarioAdRules.js.
  *
  * "-" era a antiga isencao de AD e agora impede o acesso ate o cadastro ser
- * regularizado. "semad" e a isencao atual e so superusuario pode conceder.
+ * regularizado. "semad" e a isencao atual e so superusuario ou administrativo (kadm) concede.
  * "admin" e a conta de recuperacao criada pelo proprio sistema.
  */
 public final class UsuarioAdRegras {

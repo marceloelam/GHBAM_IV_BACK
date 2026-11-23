@@ -62,7 +62,7 @@ public class VigilanciaEpidemiologicaController {
         String unidade = unidadeEfetiva(unidadeInformada);
         // A varredura de texto custava ~13 s por abertura; o resultado vale por 10 min e a fila SINAN segue sempre atual.
         String chaveCache = LocalDate.now() + "|" + texto(unidade);
-        Object[] cache = ANALISE_CACHE.get(chaveCache);
+        Object[] cache = ANALISE_CACHE.get(porMunicipio(chaveCache));
         if (cache != null && System.currentTimeMillis() - (Long) cache[0] < ALERTA_CACHE_MS) {
             @SuppressWarnings("unchecked")
             Map<String, Object> resposta = new LinkedHashMap<>((Map<String, Object>) cache[1]);
@@ -114,7 +114,7 @@ public class VigilanciaEpidemiologicaController {
         resposta.put("unidade", texto(unidade));
         resposta.put("sinais", sinais);
         resposta.put("aviso", "Os resultados sao sinais estatisticos e exigem validacao humana pela vigilancia epidemiologica.");
-        ANALISE_CACHE.put(chaveCache, new Object[] { System.currentTimeMillis(), new LinkedHashMap<>(resposta) });
+        ANALISE_CACHE.put(porMunicipio(chaveCache), new Object[] { System.currentTimeMillis(), new LinkedHashMap<>(resposta) });
         carregarPendenciasSinan(resposta, unidade);
         return Response.ok(resposta).build();
         } catch (Exception e) {
@@ -165,7 +165,7 @@ public class VigilanciaEpidemiologicaController {
         // Mesmo prazo do mapa completo (limparCaches tambem zera esta chave): repetir a mesma doenca nao volta ao banco.
         String chave = String.join("|", "DOENCA", unidadeEfetiva(unidade), texto(inicio), texto(fim),
                 texto(origem).toUpperCase(Locale.ROOT), texto(doenca));
-        Object[] cache = MAPA_CACHE.get(chave);
+        Object[] cache = MAPA_CACHE.get(porMunicipio(chave));
         if (cache != null && System.currentTimeMillis() - (Long) cache[0] < MAPA_CACHE_MS) {
             return Response.ok(cache[1]).build();
         }
@@ -179,14 +179,14 @@ public class VigilanciaEpidemiologicaController {
             return Response.status(Response.Status.SERVICE_UNAVAILABLE).entity(Map.of("erro", "Consulta interrompida.")).build();
         }
         try {
-            cache = MAPA_CACHE.get(chave); // outra requisicao pode ter terminado enquanto esperava a vez
+            cache = MAPA_CACHE.get(porMunicipio(chave)); // outra requisicao pode ter terminado enquanto esperava a vez
             if (cache != null && System.currentTimeMillis() - (Long) cache[0] < MAPA_CACHE_MS) {
                 return Response.ok(cache[1]).build();
             }
             Response resposta = mapaInterno(inicio, fim, unidade, origem, doenca, true);
             if (resposta.getStatus() == 200) {
                 if (MAPA_CACHE.size() > 500) MAPA_CACHE.clear();
-                MAPA_CACHE.put(chave, new Object[] { System.currentTimeMillis(), resposta.getEntity() });
+                MAPA_CACHE.put(porMunicipio(chave), new Object[] { System.currentTimeMillis(), resposta.getEntity() });
             }
             return resposta;
         } finally {
@@ -195,14 +195,14 @@ public class VigilanciaEpidemiologicaController {
     }
 
     private Response mapaCompleto(String chaveCache, String inicio, String fim, String unidade, String origem) {
-        Object[] cache = MAPA_CACHE.get(chaveCache);
+        Object[] cache = MAPA_CACHE.get(porMunicipio(chaveCache));
         if (cache != null && System.currentTimeMillis() - (Long) cache[0] < MAPA_CACHE_MS) {
             return Response.ok(cache[1]).build();
         }
         // Consulta igual ja em andamento (tela + alerta do cabecalho): espera e reaproveita, sem dobrar a carga no banco.
         synchronized (MAPA_TRAVAS.computeIfAbsent(chaveCache, chave -> new Object())) {
             try {
-                cache = MAPA_CACHE.get(chaveCache);
+                cache = MAPA_CACHE.get(porMunicipio(chaveCache));
                 if (cache != null && System.currentTimeMillis() - (Long) cache[0] < MAPA_CACHE_MS) {
                     return Response.ok(cache[1]).build();
                 }
@@ -220,7 +220,7 @@ public class VigilanciaEpidemiologicaController {
                 }
                 if (resposta.getStatus() == 200) {
                     if (MAPA_CACHE.size() > 500) MAPA_CACHE.clear();
-                    MAPA_CACHE.put(chaveCache, new Object[] { System.currentTimeMillis(), resposta.getEntity() });
+                    MAPA_CACHE.put(porMunicipio(chaveCache), new Object[] { System.currentTimeMillis(), resposta.getEntity() });
                 }
                 return resposta;
             } catch (InterruptedException e) {
@@ -457,6 +457,12 @@ public class VigilanciaEpidemiologicaController {
     private static final int MINIMO_INVESTIGACAO = 20;
     private static final long MAPA_CACHE_MS = 5 * 60 * 1000L;
     private static final Map<String, Object[]> MAPA_CACHE = new java.util.concurrent.ConcurrentHashMap<>();
+
+    // Banco por municipio: os caches sao estaticos e a chave "todas as unidades" se repete entre municipios.
+    private static String porMunicipio(String chave) {
+        return io.quarkus.arc.Arc.container().instance(br.com.iv.plataforma.municipio.MunicipioRoteamento.class)
+                .get().atual() + "#" + chave;
+    }
 
     /** Texto normalizado do BAM: os mesmos campos no mapa, na legenda, na analise e na lista de casos. */
     static final String TEXTO_BAM_SQL = """
@@ -1342,7 +1348,7 @@ public class VigilanciaEpidemiologicaController {
                 return Response.status(Response.Status.BAD_REQUEST)
                         .entity(Map.of("erro", "Unidade de trabalho nao identificada.")).build();
             }
-            Object[] cache = ALERTA_CACHE.get(chave);
+            Object[] cache = ALERTA_CACHE.get(porMunicipio(chave));
             if (cache != null && cache.length >= 2 && cache[0] instanceof Long geradoEm
                     && System.currentTimeMillis() - geradoEm < ALERTA_CACHE_MS) {
                 return Response.ok(cache[1]).build();
@@ -1377,7 +1383,7 @@ public class VigilanciaEpidemiologicaController {
                 Map<String, Object> desligado = new LinkedHashMap<>();
                 desligado.put("regioes", 0); desligado.put("diagnosticos", 0); desligado.put("total", 0);
                 desligado.put("nivel", "NORMAL"); desligado.put("desativado", true);
-                ALERTA_CACHE.put(chave, new Object[] { System.currentTimeMillis(), desligado });
+                ALERTA_CACHE.put(porMunicipio(chave), new Object[] { System.currentTimeMillis(), desligado });
                 return Response.ok(desligado).build();
             }
             String inicio = LocalDate.now().minusDays(6).toString();
@@ -1412,7 +1418,7 @@ public class VigilanciaEpidemiologicaController {
             resposta.put("nivel", alto ? "ALTO" : (regioes + itens.size() > 0 ? "ATENCAO" : "NORMAL"));
             resposta.put("inicio", inicio);
             resposta.put("fim", fim);
-            ALERTA_CACHE.put(chave, new Object[] { System.currentTimeMillis(), resposta });
+            ALERTA_CACHE.put(porMunicipio(chave), new Object[] { System.currentTimeMillis(), resposta });
             return Response.ok(resposta).build();
         } catch (Exception e) {
             LOG.errorf(e, "Falha ao calcular alerta epidemiologico. unidade=%s", chave);
@@ -1446,7 +1452,7 @@ public class VigilanciaEpidemiologicaController {
                         .entity(Map.of("erro", "Unidade de trabalho nao identificada. Saia e entre novamente selecionando a unidade no login.")).build();
             }
             chave = unidadeSessao + "|" + dataInicio + "|" + dataFim;
-            Object[] cache = SINDROMES_CACHE.get(chave);
+            Object[] cache = SINDROMES_CACHE.get(porMunicipio(chave));
             if (cache != null && cache[0] instanceof Long geradoEm && System.currentTimeMillis() - geradoEm < ALERTA_CACHE_MS) {
                 return Response.ok(cache[1]).build();
             }
@@ -1481,7 +1487,7 @@ public class VigilanciaEpidemiologicaController {
                 Map<String, Object> painel = SindromeEpidemiologica.painel(casos, dataInicio, dataFim,
                         AvaliacaoSinalEpidemiologico.ajustePorAtendimentos(atendimentosAtuais, atendimentosReferencia));
                 painel.put("unidade", unidadeSessao);
-                SINDROMES_CACHE.put(chave, new Object[] { System.currentTimeMillis(), painel });
+                SINDROMES_CACHE.put(porMunicipio(chave), new Object[] { System.currentTimeMillis(), painel });
                 return Response.ok(painel).build();
             } finally {
                 SINDROMES_CALCULANDO.remove(chave);
@@ -1581,6 +1587,64 @@ public class VigilanciaEpidemiologicaController {
         }
     }
 
+    /**
+     * Visao regional (banco por prefeitura): o painel AGREGADO de cada municipio, lado a lado - casos,
+     * variacao, doencas e escala surto/epidemia. Sem paciente, sem ponto no mapa (LGPD). So o responsavel
+     * da plataforma ou quem ele designou (decisao 17/11/2026); a vigilancia de cada prefeitura ve so a sua.
+     */
+    @GET @Path("regional/painel")
+    public Response painelRegional(@QueryParam("inicio") String inicio, @QueryParam("fim") String fim) {
+        br.com.iv.plataforma.municipio.MunicipioRoteamento municipios = io.quarkus.arc.Arc.container()
+                .instance(br.com.iv.plataforma.municipio.MunicipioRoteamento.class).get();
+        var usuario = securityPermissionService.resolve(requestContext);
+        if (usuario == null || !(usuario.hasPermission("ksuperusuario") || usuario.hasPermission("superusuario"))
+                || !municipios.podeAcessarMunicipios(usuario.matricula())) {
+            return Response.status(Response.Status.FORBIDDEN)
+                    .entity(Map.of("erro", "Somente o responsavel pela plataforma, ou quem ele designar, ve todos os municipios."))
+                    .build();
+        }
+        List<Map<String, Object>> lista = new ArrayList<>();
+        for (String cod : municipios.municipios()) {
+            // Separacao desligada: executarEm ignora o codigo e roda no banco padrao. Listar os outros
+            // municipios repetiria os numeros do padrao com outro nome (bug de 18/11/2026).
+            if (!municipios.ativa() && !municipios.ehPadrao(cod)) {
+                continue;
+            }
+            Map<String, Object> item = new LinkedHashMap<>();
+            item.put("codibge", cod);
+            item.put("municipio", municipios.nomeMunicipio(cod));
+            Object[] resultado = new Object[2];
+            try {
+                municipios.executarEmNovaThread(cod, () -> {
+                    CHAMADA_DO_JOB.set(Boolean.TRUE);
+                    try {
+                        Response r = io.quarkus.narayana.jta.QuarkusTransaction.requiringNew()
+                                .call(() -> calcularPainelMunicipio(inicio, fim));
+                        resultado[0] = r.getStatus();
+                        resultado[1] = r.getEntity();
+                    } finally {
+                        CHAMADA_DO_JOB.remove();
+                    }
+                });
+            } catch (RuntimeException e) {
+                LOG.warn("VIGILANCIA-REGIONAL municipio " + cod + " falhou: " + e.getMessage());
+                item.put("erro", "Banco do municipio indisponivel.");
+                lista.add(item);
+                continue;
+            }
+            if (resultado[1] instanceof Map<?, ?> painel && Integer.valueOf(200).equals(resultado[0])) {
+                for (String k : List.of("casos", "anterior", "variacaoPct", "escalaGeral", "escalaDoencas", "doencas", "serie")) {
+                    item.put(k, painel.get(k));
+                }
+            } else {
+                item.put("erro", resultado[1] instanceof Map<?, ?> m && m.get("erro") != null ? m.get("erro") : "Sem dados.");
+            }
+            lista.add(item);
+        }
+        return Response.ok(Map.of("municipios", lista,
+                "aviso", "Somente números agregados de cada município; casos pela definição do catálogo padrão.")).build();
+    }
+
     @SuppressWarnings("unchecked")
     private Response calcularPainelMunicipio(String inicio, String fim) {
         try {
@@ -1596,7 +1660,9 @@ public class VigilanciaEpidemiologicaController {
             }
             long dias = java.time.temporal.ChronoUnit.DAYS.between(dataInicio, dataFim) + 1;
             LocalDate inicioAnterior = dataInicio.minusDays(dias);
-            String chave = dataInicio + "|" + dataFim;
+            // Banco por municipio: o cache e' estatico, entao a chave leva o municipio (senao um via os numeros do outro).
+            String chave = io.quarkus.arc.Arc.container().instance(br.com.iv.plataforma.municipio.MunicipioRoteamento.class)
+                    .get().atual() + "|" + dataInicio + "|" + dataFim;
             Object[] cache = MUNICIPIO_CACHE.get(chave);
             if (cache != null && System.currentTimeMillis() - (Long) cache[0] < ALERTA_CACHE_MS) {
                 return Response.ok(cache[1]).build();
@@ -1813,7 +1879,7 @@ public class VigilanciaEpidemiologicaController {
                 ON CONFLICT (unidade) DO UPDATE SET alerta_cabecalho=EXCLUDED.alerta_cabecalho,
                     atualizado_por=EXCLUDED.atualizado_por, atualizado_em=now()
                 """).setParameter("u", chave).setParameter("a", ativo).setParameter("p", usuario).executeUpdate();
-        ALERTA_CACHE.remove(chave);
+        ALERTA_CACHE.remove(porMunicipio(chave));
         LOG.infof("Alerta epidemiologico do cabecalho %s na unidade %s por %s", ativo ? "ligado" : "desligado", chave, usuario);
         Map<String, Object> resposta = new LinkedHashMap<>();
         resposta.put("unidade", chave);

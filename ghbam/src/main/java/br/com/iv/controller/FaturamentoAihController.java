@@ -72,13 +72,30 @@ public class FaturamentoAihController {
         }
         try {
             ConteudoExportado arquivo = aihService.exportarArquivo(idcompetencia, u);
+            // Contas que ficaram de fora vao no cabecalho (URL-encoded, separadas por "|"):
+            // o corpo e o arquivo do SISAIH01 e nao pode carregar texto extra.
             return Response.ok(arquivo.conteudo())
                     .header("Content-Disposition", "attachment; filename=AIH_SISAIH01_" + idcompetencia + ".txt")
                     .header("X-GHBAM-Layout", arquivo.layout())
+                    .header("X-GHBAM-Pendencias", java.net.URLEncoder.encode(
+                            resumoPendencias(arquivo.pendencias()), java.nio.charset.StandardCharsets.UTF_8))
                     .build();
         } catch (IllegalArgumentException | IllegalStateException e) {
             return Response.status(Response.Status.BAD_REQUEST).entity(e.getMessage()).type(MediaType.TEXT_PLAIN).build();
         }
+    }
+
+    // Cabecalho HTTP grande demais (~8 KB no proxy) derruba o download inteiro. Com quase
+    // todo RN sem CNS, a lista pode ter dezenas de contas: vao as 8 primeiras e o total.
+    static String resumoPendencias(List<String> pendencias) {
+        if (pendencias == null || pendencias.isEmpty()) return "";
+        int limite = 8;
+        List<String> mostradas = new java.util.ArrayList<>(pendencias.subList(0, Math.min(limite, pendencias.size())));
+        if (pendencias.size() > limite) {
+            mostradas.add("... e mais " + (pendencias.size() - limite)
+                    + " conta(s) na mesma situacao (veja a lista de contas da competencia).");
+        }
+        return String.join("|", mostradas);
     }
 
     @POST

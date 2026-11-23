@@ -28,6 +28,8 @@ import jakarta.ws.rs.core.Response;
  */
 @Path("api/aps/relatorios")
 @Produces(MediaType.APPLICATION_JSON)
+// Sem unidade usa a da sessao (ApsHttp.unidade): unidade vazia nao e' "todas".
+@br.com.iv.security.UnidadePadraoSessao
 public class ApsRelatorioController {
 
     @Inject

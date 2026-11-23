@@ -60,6 +60,7 @@ public class ApsCdsService {
             if (c == null) {
                 throw new IllegalArgumentException("Cidadao nao encontrado.");
             }
+            exigirDocumentoValido(c);
             preencherCidadao(tipo, dados, c);
         }
         if (idDomicilio != null && tipo == 8) {
@@ -155,6 +156,28 @@ public class ApsCdsService {
         }
     }
 
+    /**
+     * CPF/CNS do cadastro vao para a ficha como estao; com digito errado o Centralizador rejeita a ficha
+     * inteira dias depois (HTTP 400 "cpfCidadao CPF invalido"). Barrar aqui, onde o profissional ainda
+     * pode corrigir o cadastro.
+     */
+    static void exigirDocumentoValido(Map<String, Object> c) {
+        String nome = c.get("nome") == null ? "o cidadao" : String.valueOf(c.get("nome"));
+        String cpf = c.get("cpf") == null ? null : ApsValidacao.digitos(String.valueOf(c.get("cpf")));
+        if (cpf != null && !cpf.isEmpty()) {
+            if (!ApsValidacao.cpfValido(cpf)) {
+                throw new IllegalArgumentException("CPF " + cpf + " de " + nome
+                        + " e invalido (digito verificador). Corrija o cadastro do cidadao antes de registrar.");
+            }
+            return;
+        }
+        String cns = c.get("cns") == null ? null : String.valueOf(c.get("cns")).replaceAll("\\D", "");
+        if (cns != null && !cns.isEmpty() && !ApsValidacao.cnsValido(cns)) {
+            throw new IllegalArgumentException("CNS " + cns + " de " + nome
+                    + " e invalido. Corrija o cadastro do cidadao antes de registrar.");
+        }
+    }
+
     @SuppressWarnings("unchecked")
     private void preencherCidadao(int tipo, Map<String, Object> dados, Map<String, Object> c) {
         switch (tipo) {
@@ -193,10 +216,61 @@ public class ApsCdsService {
                         }
                     }
                 }
+                elegibilidadeNacionalidadeEndereco(dados, c);
             }
             default -> {
             }
         }
+    }
+
+    /**
+     * Elegibilidade (FAE, dic-fae), regras vistas no PEC oficial 5.6.1 em 18/11/2026:
+     * - #32 paisNascimento: brasileiro (nacionalidade 1) = 31 BRASIL; so estrangeiro (3) leva outro pais;
+     * - #15 endereco: obrigatorio (com ao menos um telefone, #8/#9) quando conclusaoDestinoElegivel = 1 e
+     *   modalidade AD1/AD2/AD3. Vem do domicilio da familia do cidadao.
+     */
+    private void elegibilidadeNacionalidadeEndereco(Map<String, Object> dados, Map<String, Object> c) {
+        Integer nac = ApsCidadaoService.intOrNull(dados.get("nacionalidadeCidadao"));
+        if (nac == null) {
+            nac = 1;
+            dados.put("nacionalidadeCidadao", 1);
+        }
+        if (nac != 3) {
+            dados.put("paisNascimento", 31);
+        }
+        Integer conclusao = ApsCidadaoService.intOrNull(dados.get("conclusaoDestinoElegivel"));
+        Integer modalidade = ApsCidadaoService.intOrNull(dados.get("atencaoDomiciliarModalidade"));
+        if (dados.get("endereco") != null || conclusao == null || conclusao != 1 || modalidade == null || modalidade < 1 || modalidade > 3) {
+            return;
+        }
+        Map<String, Object> d = c.get("id_familia") == null ? null : db.one("""
+                SELECT d.* FROM aps_familia f JOIN aps_domicilio d ON d.id = f.id_domicilio WHERE f.id = :f
+                """, p("f", c.get("id_familia")));
+        String tel = ApsValidacao.digitos(str(c.get("telefone")));
+        if ((tel == null || tel.length() < 10 || tel.length() > 11) && d != null) {
+            tel = ApsValidacao.digitos(str(d.get("telefone_contato")));
+        }
+        if (d == null) {
+            throw new IllegalArgumentException("Admissao em AD1/AD2/AD3 exige o endereco do cidadao: vincule-o a uma familia/domicilio no "
+                    + "cadastro domiciliar antes de registrar a elegibilidade.");
+        }
+        if (tel == null || tel.length() < 10 || tel.length() > 11) {
+            throw new IllegalArgumentException("Admissao em AD1/AD2/AD3 exige um telefone (DDD + numero) no cadastro do cidadao ou do domicilio.");
+        }
+        Map<String, Object> e = new LinkedHashMap<>();
+        e.put("bairro", d.get("bairro"));
+        e.put("cep", ApsValidacao.digitos(str(d.get("cep"))));
+        e.put("codigoIbgeMunicipio", d.get("cod_ibge"));
+        e.put("complemento", d.get("complemento"));
+        e.put("nomeLogradouro", d.get("logradouro"));
+        e.put("numero", Boolean.TRUE.equals(d.get("sem_numero")) ? null : d.get("numero"));
+        e.put("numeroDneUf", d.get("uf_dne"));
+        e.put("telefoneContato", tel);
+        e.put("tipoLogradouroNumeroDne", d.get("tipo_logradouro_dne"));
+        e.put("stSemNumero", Boolean.TRUE.equals(d.get("sem_numero")));
+        e.put("pontoReferencia", d.get("ponto_referencia"));
+        e.values().removeIf(java.util.Objects::isNull);
+        dados.put("endereco", e);
     }
 
     @SuppressWarnings("unchecked")
@@ -227,15 +301,17 @@ public class ApsCdsService {
         if (reuniao && (d.get("temasParaReuniao") == null || ((List<?>) d.get("temasParaReuniao")).isEmpty())) {
             throw new IllegalArgumentException("Reunioes exigem ao menos um tema para reuniao.");
         }
+        // dic-fac #4: numParticipantes e obrigatorio em TODA atividade (inclusive reuniao), 1 a 999, e >= participantes
+        // identificados. O PEC 5.6.1 recusou reuniao sem ele (18/11/2026).
+        List<?> part = reuniao ? List.of() : (List<?>) d.getOrDefault("participantes", List.of());
+        Integer num = ApsCidadaoService.intOrNull(d.get("numParticipantes"));
+        if ((num == null || num < 1) && part.isEmpty()) {
+            throw new IllegalArgumentException("Informe o numero de participantes.");
+        }
+        if (num == null || num < part.size()) {
+            d.put("numParticipantes", part.size());
+        }
         if (!reuniao) {
-            List<?> part = (List<?>) d.getOrDefault("participantes", List.of());
-            Integer num = ApsCidadaoService.intOrNull(d.get("numParticipantes"));
-            if ((num == null || num < 1) && part.isEmpty()) {
-                throw new IllegalArgumentException("Informe o numero de participantes.");
-            }
-            if (num == null) {
-                d.put("numParticipantes", part.size());
-            }
             if (tipoAtv == 6 && str(d.get("procedimento")) == null) {
                 throw new IllegalArgumentException("Atividade 'Avaliacao/Procedimento coletivo' exige o procedimento SIGTAP.");
             }

@@ -52,6 +52,10 @@ public class SecurityPermissionService {
     @Inject
     SessaoAtivaService sessaoAtivaService;
 
+    // Sistemas integradores (token tipo=cliente): nao tem servidor nem sessao de pessoa.
+    @Inject
+    br.com.iv.plataforma.ApiClienteService apiClienteService;
+
     @Inject
     EntityManager em;
 
@@ -60,6 +64,9 @@ public class SecurityPermissionService {
 
     @Inject
     br.com.iv.repository.ServidorUnidadeRepository servidorUnidadeRepository;
+
+    @Inject
+    br.com.iv.service.InatividadeAcessoService inatividadeAcessoService;
 
     /**
      * Coordena algum setor numa unidade a que ainda tem acesso (setor_coordenacao): libera o menu e as rotas de
@@ -200,6 +207,14 @@ public class SecurityPermissionService {
         String bearerToken = bearerToken(authorization);
 
         if (!bearerToken.isBlank()) {
+            String clientId = clienteDoAuthorization(authorization);
+            if (clientId != null) {
+                if (tokenRevocationService.isAuthorizationRevoked(authorization) || apiClienteService == null) {
+                    return AuthenticatedUser.empty();
+                }
+                AuthenticatedUser cliente = apiClienteService.usuarioDoCliente(clientId);
+                return cliente == null ? AuthenticatedUser.empty() : cliente;
+            }
             boolean bearerValido = !tokenRevocationService.isAuthorizationRevoked(authorization) && sessaoAtivaService.tokenAtivo(bearerToken);
             if (bearerValido) {
                 TokenIdentity tokenIdentity = identityFromAuthorization(authorization);
@@ -235,7 +250,42 @@ public class SecurityPermissionService {
         return virgula >= 0 ? safe(raw.substring(0, virgula)) : raw;
     }
 
+    // Claim personalizada pode vir como jakarta.json.JsonString (toString com aspas) ou String.
+    static String textoDoClaim(Object valor) {
+        if (valor == null) {
+            return "";
+        }
+        if (valor instanceof jakarta.json.JsonString js) {
+            return js.getString().trim();
+        }
+        String s = valor.toString().trim();
+        return s.length() >= 2 && s.startsWith("\"") && s.endsWith("\"") ? s.substring(1, s.length() - 1) : s;
+    }
+
+    /** clientId do token de sistema integrador (claim tipo=cliente, assinatura valida), ou null. */
+    String clienteDoAuthorization(String authorization) {
+        if (authorization == null || !authorization.regionMatches(true, 0, "Bearer ", 0, 7)) {
+            return null;
+        }
+        try {
+            JsonWebToken token = jwtParser.parse(authorization.substring(7).trim());
+            if (!"cliente".equals(textoDoClaim(token.getClaim("tipo")))) {
+                return null;
+            }
+            String clientId = textoDoClaim(token.getClaim("clientId"));
+            return clientId.isBlank() ? null : clientId;
+        } catch (ParseException | RuntimeException e) {
+            return null;
+        }
+    }
+
     public boolean isAuthorizationRevokedOrInactive(String authorization) {
+        String clientId = clienteDoAuthorization(authorization);
+        if (clientId != null) {
+            // Cliente nao tem "sessao ativa" de pessoa: vale enquanto nao revogado e o cadastro estiver ativo.
+            return tokenRevocationService.isAuthorizationRevoked(authorization)
+                    || apiClienteService == null || apiClienteService.buscarAtivo(clientId) == null;
+        }
         String bearerToken = bearerToken(authorization);
         return !bearerToken.isBlank()
                 && (tokenRevocationService.isAuthorizationRevoked(authorization) || !sessaoAtivaService.tokenAtivo(bearerToken));
@@ -299,7 +349,36 @@ public class SecurityPermissionService {
     public boolean acessoPermitido(Servidor servidor) {
         return servidor != null
                 && Boolean.TRUE.equals(servidor.getAtivo())
-                && !UsuarioAdRegras.bloqueado(servidor.getUsuarioad());
+                && !UsuarioAdRegras.bloqueado(servidor.getUsuarioad())
+                // 60 dias sem acesso (V265): suspensa até um líder reativar.
+                // Null só fora do CDI (testes que instanciam com new): aí não há controle de inatividade.
+                && (inatividadeAcessoService == null || !inatividadeAcessoService.suspensa(servidor));
+    }
+
+    /** Senha confere, mas a conta está suspensa por inatividade: o login mostra o motivo e registra no log. */
+    @Transactional
+    public boolean senhaConfereMasSuspensaInatividade(String matricula, String senha, String senhaMontada) {
+        Servidor servidor = servidorRepository.localizarMatricula(safe(matricula));
+        if (servidor == null || !Boolean.TRUE.equals(servidor.getAtivo())
+                || UsuarioAdRegras.bloqueado(servidor.getUsuarioad())
+                || inatividadeAcessoService == null || !inatividadeAcessoService.suspensa(servidor)) {
+            return false;
+        }
+        String storedPassword = safe(servidor.getPwd());
+        String requestedPassword = safe(senha);
+        boolean confere;
+        if (requestedPassword.isBlank() && !safe(senhaMontada).isBlank()) {
+            requestedPassword = resolvePasswordFromKeypad(storedPassword, senhaMontada);
+            confere = !requestedPassword.isBlank()
+                    && (isBcryptHash(storedPassword) || passwordMatches(storedPassword, requestedPassword));
+        } else {
+            confere = passwordMatches(storedPassword, requestedPassword);
+        }
+        if (confere) {
+            br.com.iv.service.LogSistemaRegistro.registrar(em, servidor.getUnidade(), servidor.getNome(), servidor.getMatricula(),
+                    "Login recusado: conta suspensa por inatividade (60 dias sem acesso)");
+        }
+        return confere;
     }
 
     public void invalidateUserCache(String matricula) {

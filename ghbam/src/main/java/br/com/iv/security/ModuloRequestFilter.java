@@ -75,7 +75,7 @@ public class ModuloRequestFilter implements ContainerRequestFilter {
         modulo("GED", "ged");
         modulo("BI", "bi-executivo", "producao-medica", "producao-assistencial", "monitoramento");
         modulo("IA", "api/ia", "api/hf", "genai", "api/rag", "rag2", "resumo-clinico", "analise-risco", "ditado",
-                "api/assistant", "imagem-ia");
+                "api/assistant", "imagem-ia", "ia-codificacao");
         modulo("INTEROP", "interoperabilidade", "integracao/pacientes");
         modulo("CHAT", "api/chat");
         modulo("PAINEL_MIDIA", "unidadeVideoConfig", "unidadeVideos", "videoProxy", "video", "listasM3u", "painelVoz");

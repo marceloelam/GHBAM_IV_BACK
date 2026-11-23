@@ -4,6 +4,7 @@ import br.com.iv.cdss.service.DeterioracaoNews2Service;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
+import java.text.Normalizer;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -16,6 +17,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.jboss.logging.Logger;
 
 /**
@@ -40,6 +42,14 @@ public class FluxoPacientesService {
     @Inject
     DeterioracaoNews2Service news2;
 
+    /**
+     * Setores de agenda ambulatorial (trecho do nome, sem acento). Nao fecham o BAM ao fim da consulta
+     * (HMSFX out-nov/2026: GINECOLOGIA 31% fechados, AMBU 22%, 0% de chegadas a noite ou no fim de semana)
+     * e apareciam como "aguardando medico" atrasado. Quem deles estiver internado continua no quadro.
+     */
+    @ConfigProperty(name = "ghbam.fluxo.setores-ambulatoriais", defaultValue = "AMBU,GINECOLOGIA")
+    List<String> setoresAmbulatoriais;
+
     public Map<String, Object> quadro(String unidade) {
         ZoneId zona = ZoneId.systemDefault();
         LocalDateTime agora = LocalDateTime.now(zona);
@@ -48,7 +58,7 @@ public class FluxoPacientesService {
         @SuppressWarnings("unchecked")
         List<Object[]> linhas = em.createQuery(
                 "select b.idbam, b.data, b.hora, b.cor, b.ematendimento, a.cor, a.risco, a.data, a.hora, a.esperando, "
-                        + "t.tratado, t.tipo_alta, t.destino, t.data, t.hora, r.setor, r.atendidopor, p.idpaciente, p.nome, p.idade, p.sexo "
+                        + "t.tratado, t.tipo_alta, t.destino, t.data, t.hora, r.setor, r.atendidopor, p.idpaciente, p.nome, p.idade, p.sexo, p.nascimento "
                         + "from Bam b join b.avaliacao a join b.tratamento t join b.registro r join b.paciente p "
                         // Quem ocupa leito ou saiu dele hoje entra mesmo tendo chegado ha mais tempo que a janela.
                         + "where b.unidade = ?1 and ((b.data >= ?2 and r.eletivo = false) or b.idbam in "
@@ -79,6 +89,7 @@ public class FluxoPacientesService {
 
             boolean encerrado = "SAIU".equals(status);
             boolean noLeito = "INTERNADO".equals(status);
+            if (!noLeito && ambulatorial((String) l[15], setoresAmbulatoriais)) continue;
             // A coluna de saidas e do dia: zera a meia-noite.
             LocalDate diaSaida = internacaoComAlta && ni[5] instanceof LocalDate altaLeito ? altaLeito : data((String) l[13]);
             if (encerrado && !saidaDeHoje(diaSaida, chegada, agora.toLocalDate())) continue;
@@ -87,7 +98,8 @@ public class FluxoPacientesService {
             c.put("idbam", idbam);
             c.put("idpaciente", l[17]);
             c.put("nome", texto((String) l[18]));
-            c.put("idade", l[19]);
+            c.put("idade", idadeExibida(data((String) l[21]), chegada == null ? null : chegada.toLocalDate(),
+                    (String) l[15], numero(l[19]), agora.toLocalDate()));
             c.put("sexo", texto((String) l[20]));
             c.put("etapa", status);
             c.put("cor", cor);
@@ -175,6 +187,28 @@ public class FluxoPacientesService {
             case 1 -> 240;
             default -> null;
         };
+    }
+
+    /**
+     * Idade pela data de nascimento (paciente.idade e gravada no cadastro e envelhece errada).
+     * Sem identificacao, a recepcao grava o nascimento no proprio dia da chegada: fora da
+     * maternidade/pediatria isso e idade desconhecida (null), nao "0 anos". So exibicao; nao trava cadastro.
+     */
+    static Integer idadeExibida(LocalDate nascimento, LocalDate chegada, String setor, int idadeGravada, LocalDate hoje) {
+        if (nascimento == null || nascimento.isAfter(hoje)) return idadeGravada > 0 ? idadeGravada : null;
+        String s = setor == null ? "" : setor.trim().toUpperCase();
+        boolean podeSerRecemNascido = s.equals("MATERNIDADE") || s.equals("PEDIATRIA");
+        if (chegada != null && !nascimento.isBefore(chegada.minusDays(1)) && !podeSerRecemNascido) return null;
+        return java.time.Period.between(nascimento, hoje).getYears();
+    }
+
+    static boolean ambulatorial(String setor, List<String> trechos) {
+        if (setor == null || trechos == null) return false;
+        String s = Normalizer.normalize(setor, Normalizer.Form.NFD).replaceAll("\\p{M}", "").toUpperCase();
+        for (String t : trechos) {
+            if (t != null && !t.isBlank() && s.contains(t.trim().toUpperCase())) return true;
+        }
+        return false;
     }
 
     static int corDoRisco(String risco) {

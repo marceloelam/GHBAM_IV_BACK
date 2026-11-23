@@ -37,17 +37,21 @@ public class AuditCorpoPacienteInterceptor implements ReaderInterceptor {
     static final int LIMITE_BYTES = 512 * 1024;
 
     // Ordem de preferencia: BAM identifica o atendimento; idpaciente/prontuario so o paciente.
-    private static final String[] CAMPOS = { "idbam", "nbam", "numerobam", "bam", "idpaciente", "iddopaciente", "prontuario" };
+    private static final String[] CAMPOS = { "idbam", "nbam", "numerobam", "bamid", "bamnumero", "bam",
+            "idpaciente", "iddopaciente", "pacienteid", "prontuario" };
     private static final Map<String, String> TIPOS = Map.of(
             "idbam", AuditPacienteResolver.TIPO_BAM,
             "nbam", AuditPacienteResolver.TIPO_BAM,
             "numerobam", AuditPacienteResolver.TIPO_BAM,
+            "bamid", AuditPacienteResolver.TIPO_BAM,
+            "bamnumero", AuditPacienteResolver.TIPO_BAM,
             "bam", AuditPacienteResolver.TIPO_BAM,
             "idpaciente", AuditPacienteResolver.TIPO_ID_PACIENTE,
             "iddopaciente", AuditPacienteResolver.TIPO_ID_PACIENTE,
+            "pacienteid", AuditPacienteResolver.TIPO_ID_PACIENTE,
             "prontuario", AuditPacienteResolver.TIPO_PRONTUARIO);
     private static final Pattern CAMPO = Pattern.compile(
-            "\"(idbam|nbam|numerobam|bam|idpaciente|iddopaciente|prontuario)\"\\s*:\\s*\"?(\\d{1,12})\"?",
+            "\"(idbam|nbam|numerobam|bamid|bamnumero|bam|idpaciente|iddopaciente|pacienteid|prontuario)\"\\s*:\\s*\"?(\\d{1,12})\"?",
             Pattern.CASE_INSENSITIVE);
 
     @Override

@@ -134,6 +134,11 @@ public class ApsTransmissaoService {
     }
 
     @Scheduled(every = "15m", delayed = "3m", concurrentExecution = Scheduled.ConcurrentExecution.SKIP)
+    void envioAutomaticoAgendado() {
+        // Em cada municipio (sem requisicao o banco seria sempre o padrao).
+        br.com.iv.plataforma.municipio.MunicipioRoteamento.emCadaMunicipio(ApsTransmissaoService.class, "envioAutomatico", b -> b.envioAutomatico());
+    }
+
     void envioAutomatico() {
         try {
             Map<String, Object> par = contexto.parametros();
@@ -327,7 +332,9 @@ public class ApsTransmissaoService {
                 cpfCnpj.replaceAll("\\D", ""), nome, (String) par.get("fone"), (String) par.get("email"));
         Envelope env = new Envelope((String) ficha.get("uuid"), ((Number) ficha.get("tipo")).intValue(),
                 (String) ficha.get("cnes"), (String) ficha.get("cod_ibge"), (String) ficha.get("ine"), lote);
-        return serializer.serializarTransporte(env, (Map<String, Object>) ficha.get("dados"), inst);
+        Map<String, Object> dados = (Map<String, Object>) ficha.get("dados");
+        ApsFichaService.marcadorSemCpfFci(env.tipo(), dados); // FCI gravada antes da correcao de 18/11
+        return serializer.serializarTransporte(env, dados, inst);
     }
 
     private HttpClient client() {

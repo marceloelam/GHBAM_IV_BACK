@@ -198,10 +198,12 @@ public class ApsVacinacaoService {
         child.put("localAtendimento", body.getOrDefault("localAtendimento", 1));
         child.put("viajante", Boolean.TRUE.equals(body.get("viajante")));
         child.put("comunicanteHanseniase", Boolean.TRUE.equals(body.get("comunicanteHanseniase")));
-        child.put("gestante", gestante);
-        child.put("puerpera", puerpera);
-        if (body.get("condicaoMaternal") != null) {
-            child.put("condicaoMaternal", body.get("condicaoMaternal"));
+        // LEDI 8.7 (dic-fv #13): gestante/puerpera foram descontinuados na 7.2.2 - o PEC 5.6 recusa a ficha
+        // com eles (visto no PEC oficial de treinamento em 18/11/2026). No lugar: condicaoMaternal, proibido
+        // para sexo masculino e obrigatorio nos demais (1 nenhuma, 2 gestante, 3 puerpera).
+        if (!Integer.valueOf(0).equals(cid.get("sexo"))) {
+            Object informada = body.get("condicaoMaternal");
+            child.put("condicaoMaternal", informada != null ? informada : gestante ? 2 : puerpera ? 3 : 1);
         }
         child.put("dataHoraInicialAtendimento", agora.minusMinutes(10).toString());
         child.put("dataHoraFinalAtendimento", agora.toString());

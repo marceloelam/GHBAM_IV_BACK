@@ -81,8 +81,21 @@ public class Servidor2Service implements Serializable {
 	}
 
 	// Salvar os setores
+	@Inject
+	br.com.iv.plataforma.SuperusuarioConcessaoService superusuarioConcessao;
+
 	@Transactional
 	public Servidor2 salvarServidor2(Servidor2Dto dto) {
+		return salvarServidor2(dto, null, null);
+	}
+
+	/** quem/comprovante: Super usuario so liga com confirmacao facial de quem pode conceder. */
+	@Transactional
+	public Servidor2 salvarServidor2(Servidor2Dto dto, br.com.iv.security.AuthenticatedUser quem, String comprovante) {
+		if (Boolean.TRUE.equals(dto.getSuperusuario())) {
+			superusuarioConcessao.exigirConcessao(quem, comprovante, dto.getMatricula());
+			superusuarioConcessao.registrarAlteracao(quem, dto.getMatricula(), true);
+		}
 		// Uma segunda linha para a mesma matricula faz o login ler permissoes de um
 		// registro zerado. Cadastro novo so vale se a matricula ainda nao existir.
 		if (dto.getMatricula() != null && !dto.getMatricula().isBlank()) {
@@ -314,10 +327,21 @@ public class Servidor2Service implements Serializable {
 	// Alterar
 	@Transactional
 	public void atualizarServidor2(int id, Servidor2Dto dto) {
+		atualizarServidor2(id, dto, null, null);
+	}
+
+	@Transactional
+	public void atualizarServidor2(int id, Servidor2Dto dto, br.com.iv.security.AuthenticatedUser quem, String comprovante) {
 		Optional<Servidor2> Servidor2Op = Servidor2.findByIdOptional(id, jakarta.persistence.LockModeType.PESSIMISTIC_WRITE);
 		Servidor2 Servidor2 = Servidor2Op
 				.orElseThrow(() -> new NullPointerException("O Servidor2 nÃ£o foi encontrado..."));
 		boolean eraSuperusuario = Boolean.TRUE.equals(Servidor2.getSuperusuario());
+		boolean seraSuperusuario = dto.getSuperusuario() != null ? dto.getSuperusuario() : eraSuperusuario;
+		// Ligar ou desligar Super usuario: so quem pode conceder, com confirmacao facial.
+		if (seraSuperusuario != eraSuperusuario) {
+			superusuarioConcessao.exigirConcessao(quem, comprovante, Servidor2.getMatricula());
+			superusuarioConcessao.registrarAlteracao(quem, Servidor2.getMatricula(), seraSuperusuario);
+		}
 
 		ServidorMatriculaService.validarMatriculaCadastro(Servidor2.getMatricula(), dto.getMatricula());
 		Servidor2.setNome(dto.getNome());
@@ -645,10 +669,12 @@ public class Servidor2Service implements Serializable {
 
 	}
 
+	@Transactional
 	public void removeServidor2(Long id) {
-		Optional<Servidor2> Servidor2Op = Setores.findByIdOptional(id);
+		// Buscava em Setores (outra tabela): o id nunca batia e a remocao dava 500 (19/11/2026).
+		Optional<Servidor2> Servidor2Op = br.com.iv.entity.Servidor2.findByIdOptional(id);
 		if (Servidor2Op.isEmpty()) {
-			System.out.println("Servidor2 nÃ£o foi encontrado...");
+			throw new jakarta.ws.rs.NotFoundException("Servidor2 " + id + " nao encontrado.");
 		}
 
 		Servidor2 Servidor2 = Servidor2Op.get();

@@ -11,8 +11,8 @@ import br.com.iv.entity.ServidorUnidade;
 @ApplicationScoped
 public class ServidorUnidadeRepository implements PanacheRepository<ServidorUnidade> {
 
-	// Limite de negocio: ate 3 unidades vinculadas por servidor.
-	public static final int LIMITE_UNIDADES_POR_SERVIDOR = 3;
+	// Limite de negocio: ate 6 unidades vinculadas por servidor (principal + 5 adicionais).
+	public static final int LIMITE_UNIDADES_POR_SERVIDOR = 6;
 
 	public List<ServidorUnidade> listarPorServidor(int idservidor) {
 		return list("idservidor", idservidor);

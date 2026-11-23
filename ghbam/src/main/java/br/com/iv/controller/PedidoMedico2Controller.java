@@ -329,10 +329,14 @@ public class PedidoMedico2Controller {
 
 	@DELETE
 	@Path("{id}")
-	public Response remover(@PathParam("id") int id, PedidoMedico2Dto dto) {
+	public Response remover(@PathParam("id") int id, PedidoMedico2Dto dto,
+			@jakarta.ws.rs.core.Context jakarta.ws.rs.container.ContainerRequestContext context) {
 		try {
-			pedidoMedico2Service.remove(id, dto);
+			pedidoMedico2Service.remove(id, dto, usuarioDaSessao(context));
 			return Response.status(Response.Status.NO_CONTENT).build();
+		} catch (br.com.iv.service.PedidoMedico2Service.RetiradaNegadaException e) {
+			// So o medico solicitante, ate 6 h depois do pedido.
+			return Response.status(Response.Status.FORBIDDEN).entity(e.getMessage()).build();
 		} catch (IllegalArgumentException e) {
 			return Response.status(Response.Status.NOT_FOUND).entity(e.getMessage()).build();
 		} catch (IllegalStateException e) {

@@ -103,7 +103,9 @@ public class DiagnosticoSistemaService implements Serializable {
                     if (item.getDuracaoMs() != null) ps.setInt(11, item.getDuracaoMs()); else ps.setNull(11, Types.INTEGER);
                     ps.setString(12, item.getMotivo());
                     ps.setString(13, item.getDetalhes());
-                    ps.setObject(14, LocalDateTime.now());
+                    // Mesma convencao do Hibernate (quarkus.hibernate-orm.jdbc.timezone=UTC): grava em UTC.
+                    // Com a hora local, a leitura pelo Hibernate devolvia o evento 3 h atrasado.
+                    ps.setObject(14, LocalDateTime.now(java.time.ZoneOffset.UTC));
                     ps.addBatch();
                 }
                 ps.executeBatch();

@@ -29,6 +29,12 @@ public class RbacRequestFilter implements ContainerRequestFilter {
             "api/usuarios-conectados/heartbeat",
             // Favoritos do menu do proprio usuario (matricula vem do token); nao concede acesso a telas.
             "api/menu-favoritos",
+            // Log de tutoriais: grava o clique do proprio usuario em "Como usar" (matricula vem do token).
+            // A listagem (api/tutorial-log) segue o RoutePermissionCatalog.
+            "api/tutorial-log/registrar",
+            // Validacao das condutas clinicas: GET para todos; validar/revogar exige CRM + kadm ou
+            // coordenador de setor, conferido no CondutaValidacaoController.
+            "api/conduta-validacao",
             // Executado logo apÃƒÆ’Ã‚Â³s a emissÃƒÆ’Ã‚Â£o do token para confirmar a situaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o
             // da prÃƒÆ’Ã‚Â³pria conta no AD. NÃƒÆ’Ã‚Â£o lista nem altera usuÃƒÆ’Ã‚Â¡rios.
             "ad/verificar-status",
@@ -60,7 +66,10 @@ public class RbacRequestFilter implements ContainerRequestFilter {
             "log",
             // Reconfirma a senha do proprio usuario antes de operacoes sensiveis;
             // a matricula e a senha continuam sendo validadas no controller.
-            "servidor/validar-credencial");
+            "servidor/validar-credencial",
+            // Reativar conta suspensa por inatividade / registrar afastamento: o
+            // InatividadeAcessoService exige coordenador do setor, adm da unidade ou super.
+            "pendencia-cadastro");
 
     private static final Set<String> PUBLIC_GET_PATHS = Set.of(
             "tema-visual",
@@ -82,6 +91,8 @@ public class RbacRequestFilter implements ContainerRequestFilter {
     private static final Set<String> AUTHENTICATED_ONLY_GET_PATHS = Set.of(
             // Videos de ajuda das telas: material de treinamento, sem dado de paciente.
             "videos-ajuda",
+            // Alertas de cadastro profissional pendente: o serviço filtra o que cada um vê.
+            "pendencia-cadastro",
             // Setores com coordenador cuja equipe nao inclui o usuario (fecha o menu do setor).
             "coordenacao-setor/meus-setores",
             // Modulos contratados da unidade: o menu de todos le para esconder o que nao foi contratado.
@@ -338,6 +349,15 @@ public class RbacRequestFilter implements ContainerRequestFilter {
         boolean leituraHistoricoEnfermagem = "GET".equalsIgnoreCase(method)
                 && (normalizedPath.startsWith("evolucaopacienteenf/bam/")
                         || normalizedPath.startsWith("anotacaoenfermagem/bam/"));
+        // Decisao Marcelo 17/11/2026 (negados reais na producao): enfermagem LE a prescricao do BAM
+        // e o medico LE o atendimento multidisciplinar. So GET; gravar continua com as listas do catalogo.
+        // + execucoes de protocolo: o Historico completo do paciente le essa lista.
+        boolean leituraPrescricaoPelaEnfermagem = "GET".equalsIgnoreCase(method)
+                && (normalizedPath.startsWith("prescricao/bam2/")
+                        || "protocolos-fluxograma/execucoes".equals(normalizedPath));
+        boolean leituraMultidisciplinarPeloMedico = "GET".equalsIgnoreCase(method)
+                && (normalizedPath.startsWith("atendimentomultidisciplinar/bam/")
+                        || normalizedPath.startsWith("atendimentomultidisciplinar/paciente/"));
         boolean criacaoInicialRecepcao = "POST".equalsIgnoreCase(method)
                 && ("avaliacao".equals(normalizedPath) || "prontuario".equals(normalizedPath));
         boolean recuperacaoIdCriadoPelaRecepcao = "GET".equalsIgnoreCase(method)
@@ -348,10 +368,20 @@ public class RbacRequestFilter implements ContainerRequestFilter {
                 && "pacientes".equals(pathParts[0])
                 && !pathParts[1].isBlank();
         // Lista de BAMs do paciente na reimpressão (GET bam/idpaciente/{id}): leitura para quem imprime BAM.
-        boolean consultaBamDoPacienteParaImprimir = "GET".equalsIgnoreCase(method)
+        boolean consultaBamDoPacienteParaImprimir = ("GET".equalsIgnoreCase(method)
                 && pathParts.length == 3
                 && "bam".equals(pathParts[0])
-                && "idpaciente".equals(pathParts[1]);
+                && "idpaciente".equals(pathParts[1]))
+                // PDF do BAM (POST report/bamrelatorio): sem isto quem tinha só "Imprimir BAM" via o menu
+                // e recebia "Permissao insuficiente" ao imprimir (Marcelo, 20/11/2026).
+                || ("POST".equalsIgnoreCase(method) && "report/bamrelatorio".equals(normalizedPath))
+                // BAMs do mesmo paciente em outros municípios, listados na reimpressão (só leitura).
+                || ("GET".equalsIgnoreCase(method)
+                        && pathParts.length == 5
+                        && "historicopaciente".equalsIgnoreCase(pathParts[0])
+                        && "outrosmunicipios".equalsIgnoreCase(pathParts[1])
+                        && "idpaciente".equalsIgnoreCase(pathParts[2])
+                        && "bams".equalsIgnoreCase(pathParts[4]));
         boolean consultaPacientePorNome = "GET".equalsIgnoreCase(method)
                 && pathParts.length == 2
                 && "pacientes".equals(pathParts[0])
@@ -444,6 +474,12 @@ public class RbacRequestFilter implements ContainerRequestFilter {
         java.util.stream.Stream<String> adicionais = java.util.stream.Stream.empty();
         if (criacaoInicialRecepcao || recuperacaoIdCriadoPelaRecepcao) {
             adicionais = java.util.stream.Stream.concat(adicionais, java.util.stream.Stream.of("krecepcao"));
+        }
+        if (leituraPrescricaoPelaEnfermagem) {
+            adicionais = java.util.stream.Stream.concat(adicionais, java.util.stream.Stream.of("kenfermagem", "ktcenfermagem"));
+        }
+        if (leituraMultidisciplinarPeloMedico) {
+            adicionais = java.util.stream.Stream.concat(adicionais, java.util.stream.Stream.of("kmedico"));
         }
         if (leituraCatalogoMedicamentos || leituraPrescricaoEstruturada || leituraHistoricoEnfermagem) {
             adicionais = java.util.stream.Stream.concat(adicionais, java.util.stream.Stream.of(

@@ -92,6 +92,7 @@ public class ResumoAltaSolicitacaoController {
     /** Pedidos abertos da unidade do usuario, para o medico atender em /base2/resumodealta. */
     @GET
     @Path("/pendentes")
+    @br.com.iv.security.UnidadePadraoSessao // sem unidade usa a da sessao
     public Response pendentes(@QueryParam("unidade") String unidadeParam) {
         AuthenticatedUser user = currentUser();
         String unidade = normalizarUnidade(user != null && user.unidade() != null && !user.unidade().isBlank()
@@ -136,6 +137,7 @@ public class ResumoAltaSolicitacaoController {
      */
     @GET
     @Path("/bams-com-resumo")
+    @br.com.iv.security.UnidadePadraoSessao // sem unidade usa a da sessao
     public Response bamsComResumo(@QueryParam("unidade") String unidadeParam) {
         AuthenticatedUser user = currentUser();
         String unidade = normalizarUnidade(user != null && user.unidade() != null && !user.unidade().isBlank()

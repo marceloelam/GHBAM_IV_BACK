@@ -130,9 +130,12 @@ public class SituacaoPacienteService {
             boolean emAtendimento, boolean esperando, boolean classificado) {
         String alta = tipoAlta == null ? "" : tipoAlta.trim().toLowerCase();
         if (temInternacao && !internacaoComAlta) return "INTERNADO";
-        if (tratado || internacaoComAlta) return "SAIU";
-        if (alta.startsWith("obs")) return "OBSERVACAO";
+        if (internacaoComAlta) return "SAIU";
+        // Indicar internacao/observacao ja grava tratado=1 (TratamentoRepository.finalizarAtendimentoMedico),
+        // mas o paciente segue na unidade ate o NIR alocar o leito: nao pode cair em "saiu".
         if (alta.startsWith("intern")) return "AGUARDANDO_LEITO";
+        if (alta.startsWith("obs")) return "OBSERVACAO";
+        if (tratado) return "SAIU";
         if (emAtendimento) return "EM_ATENDIMENTO";
         if (esperando) return "EM_ESPERA";
         if (classificado) return "AGUARDANDO_MEDICO";

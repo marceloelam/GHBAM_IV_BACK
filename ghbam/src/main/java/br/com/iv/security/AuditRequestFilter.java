@@ -122,9 +122,27 @@ public class AuditRequestFilter implements ContainerRequestFilter, ContainerResp
     @Inject
     SecurityPermissionService securityPermissionService;
 
+    @Inject
+    AuditPacienteResolver auditPacienteResolver;
+
+    private static final String PROP_REGISTRO = "audit.pacienteRegistro";
+
     @Override
     public void filter(ContainerRequestContext requestContext) throws IOException {
         requestContext.setProperty("audit.start", System.currentTimeMillis());
+        // DELETE/inativar/alterar pelo id do proprio registro: descobre o paciente ANTES do recurso
+        // executar, porque numa exclusao fisica depois nao ha mais registro para consultar.
+        // So quando a thread permite consulta (nunca na IO thread do Vert.x); senao o log tenta depois.
+        String method = requestContext.getMethod().toUpperCase(Locale.ROOT);
+        if (!MUTATING_METHODS.contains(method) || !BlockingOperationControl.isBlockingAllowed()) return;
+        try {
+            AuditRegistroPaciente.Alvo alvo = AuditRegistroPaciente.localizar(normalize(requestContext.getUriInfo().getPath()));
+            if (alvo == null) return;
+            String[] ref = auditPacienteResolver.referenciaDoRegistro(alvo.entidade(), alvo.id());
+            if (ref != null) requestContext.setProperty(PROP_REGISTRO, ref);
+        } catch (RuntimeException ignorado) {
+            // auditoria nunca atrapalha a requisicao
+        }
     }
 
     // Este filtro roda depois de cada resposta e faz duas coisas que dependem do banco:
@@ -188,7 +206,8 @@ public class AuditRequestFilter implements ContainerRequestFilter, ContainerResp
         LogDto dto = new LogDto();
         dto.setData(LocalDate.now());
         dto.setHora(LocalTime.now().format(HORA_FORMAT));
-        dto.setEvento(buildEvent(action, method, path, status, user, clientIp(requestContext)));
+        dto.setEvento(buildEvent(action, method, path, status, user, clientIp(requestContext),
+                status >= 400 ? motivoDaResposta(responseContext.getEntity()) : ""));
         dto.setUnidade(trimTo(user.unidade(), 20));
         String[] referenciaPaciente = extrairReferenciaPaciente(path);
         if (referenciaPaciente == null) {
@@ -198,6 +217,21 @@ public class AuditRequestFilter implements ContainerRequestFilter, ContainerResp
                 && requestContext.getProperty(AuditCorpoPacienteInterceptor.PROPRIEDADE) instanceof String[] doCorpo
                 && doCorpo.length == 2) {
             referenciaPaciente = doCorpo;
+        }
+        if (referenciaPaciente == null && requestContext.getProperty(PROP_REGISTRO) instanceof String[] doRegistro
+                && doRegistro.length == 2) {
+            referenciaPaciente = doRegistro;
+        }
+        if (referenciaPaciente == null) {
+            // Ex.: PUT /evolucaopaciente/123 (id da evolucao): o paciente vem no objeto devolvido.
+            referenciaPaciente = AuditRespostaPaciente.extrair(responseContext.getEntity());
+        }
+        if (referenciaPaciente == null && mutating) {
+            // Ultima tentativa, no log assincrono (vale para inativar/cancelar, que nao apagam).
+            AuditRegistroPaciente.Alvo alvo = AuditRegistroPaciente.localizar(path);
+            if (alvo != null) {
+                referenciaPaciente = new String[] { AuditPacienteResolver.TIPO_REGISTRO, AuditRegistroPaciente.emTexto(alvo) };
+            }
         }
         if (referenciaPaciente != null) {
             dto.setPacienteTipo(referenciaPaciente[0]);
@@ -344,11 +378,29 @@ public class AuditRequestFilter implements ContainerRequestFilter, ContainerResp
         return String.valueOf(path == null ? "" : path).replaceAll("^/+", "").toLowerCase(Locale.ROOT);
     }
 
-    private String buildEvent(String action, String method, String path, int status, AuditUserContext user, String ip) {
+    // Em falha, o log so dizia "status=409": sem o motivo nao dava para saber o que houve.
+    // Pega a mensagem que o proprio endpoint devolveu ao operador (erro/message/mensagem/detail).
+    static String motivoDaResposta(Object entity) {
+        if (entity == null) return "";
+        if (entity instanceof String s) return s.length() <= 300 ? s.trim() : s.substring(0, 300).trim();
+        if (entity instanceof java.util.Map<?, ?> map) {
+            for (String chave : new String[] { "erro", "error", "message", "mensagem", "detail", "detalhe", "motivo" }) {
+                Object valor = map.get(chave);
+                if (valor != null && !String.valueOf(valor).isBlank()) return String.valueOf(valor).trim();
+            }
+        }
+        return "";
+    }
+
+    private String buildEvent(String action, String method, String path, int status, AuditUserContext user, String ip,
+            String motivo) {
         StringBuilder sb = new StringBuilder();
         sb.append(user.nome()).append(" (matricula ").append(user.matricula()).append(") ");
         sb.append(action).append(": ").append(method).append(" /").append(path);
         sb.append(" | status=").append(status);
+        if (motivo != null && !motivo.isBlank()) {
+            sb.append(" | motivo=").append(trimTo(motivo.replaceAll("\\s+", " "), 300));
+        }
         if (!user.cargo().isBlank()) {
             sb.append(" | cargo=").append(user.cargo());
         }

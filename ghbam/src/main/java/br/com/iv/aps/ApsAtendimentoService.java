@@ -400,6 +400,11 @@ public class ApsAtendimentoService {
             if (child.get("tiposEncamOdonto") == null || ((List<?>) child.get("tiposEncamOdonto")).isEmpty()) {
                 throw new IllegalArgumentException("Informe a conduta/desfecho do atendimento odontologico.");
             }
+            // dic-fao #10: vigilancia em saude bucal e obrigatoria (1 a 7 opcoes; 99 = nao identificado).
+            // O PEC 5.6.1 recusou a FAO sem ela (18/11/2026).
+            if (!(child.get("tiposVigilanciaSaudeBucal") instanceof List<?> vig) || vig.isEmpty()) {
+                throw new IllegalArgumentException("Informe a vigilancia em saude bucal (marque 'Nao identificado' se nao houver achado).");
+            }
             Map<String, Object> master = Map.of("atendimentosOdontologicos", List.of(ApsLediBuilder.limpar(child)));
             fichasGeradas.add(idFicha(fichas.registrar(new ApsFichaService.Registro(5, new LinkedHashMap<>(master), lot, ref,
                     idCidadao, null, id, "ATENDIMENTO", null, compartilhada))));

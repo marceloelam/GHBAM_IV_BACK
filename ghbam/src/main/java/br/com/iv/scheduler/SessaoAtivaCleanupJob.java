@@ -24,6 +24,11 @@ public class SessaoAtivaCleanupJob {
     SessaoAtivaRepository sessaoAtivaRepository;
 
     @Scheduled(every = "60s")
+    void cleanupStaleSessionsAgendado() {
+        // Em cada municipio (sem requisicao o banco seria sempre o padrao).
+        br.com.iv.plataforma.municipio.MunicipioRoteamento.emCadaMunicipio(SessaoAtivaCleanupJob.class, "cleanupStaleSessions", b -> b.cleanupStaleSessions());
+    }
+
     @Transactional
     void cleanupStaleSessions() {
         try {

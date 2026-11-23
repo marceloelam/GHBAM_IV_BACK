@@ -35,6 +35,8 @@ import jakarta.ws.rs.core.Response;
 @Path("api/aps")
 @Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)
+// Sem unidade usa a da sessao (ApsHttp.unidade): unidade vazia nao e' "todas".
+@br.com.iv.security.UnidadePadraoSessao
 public class ApsController {
 
     @Inject
@@ -53,6 +55,8 @@ public class ApsController {
     ApsTransmissaoService transmissao;
     @Inject
     ApsIntegracaoService integracoes;
+    @Inject
+    ApsMigracaoPecService migracaoPec;
     @Inject
     ApsDb db;
 
@@ -245,6 +249,56 @@ public class ApsController {
             return proibido("Gestao da APS");
         }
         return executar(() -> integracoes.testarMigracao());
+    }
+
+    /** Previa da migracao de cidadaos do PEC: so leitura, devolve metadados e contagens. */
+    @POST
+    @Path("/config/integracoes/migracao/previa")
+    public Response previaMigracao() {
+        if (!pode(u(), GESTAO)) {
+            return proibido("Gestao da APS");
+        }
+        return executar(() -> migracaoPec.previa());
+    }
+
+    @GET
+    @Path("/config/integracoes/migracao/equipes")
+    public Response equipesPec() {
+        if (!pode(u(), GESTAO)) {
+            return proibido("Gestao da APS");
+        }
+        return executar(() -> migracaoPec.equipes());
+    }
+
+    @POST
+    @Path("/config/integracoes/migracao/equipes")
+    @SuppressWarnings("unchecked")
+    public Response importarEquipesPec(Map<String, Object> body) {
+        if (!pode(u(), GESTAO)) {
+            return proibido("Gestao da APS");
+        }
+        return executar(() -> migracaoPec.importarEquipes((List<Map<String, Object>>) body.get("itens")));
+    }
+
+    /** body: { simular: boolean, unidade?: sigla (vazio = todas as equipes do G-PEC) } */
+    @POST
+    @Path("/config/integracoes/migracao/cidadaos")
+    public Response migrarCidadaos(Map<String, Object> body) {
+        if (!pode(u(), GESTAO)) {
+            return proibido("Gestao da APS");
+        }
+        boolean simular = body == null || !Boolean.FALSE.equals(body.get("simular"));
+        String unidade = body == null ? null : (String) body.get("unidade");
+        return executar(() -> migracaoPec.iniciarCidadaos(simular, unidade));
+    }
+
+    @GET
+    @Path("/config/integracoes/migracao/cidadaos")
+    public Response statusMigracaoCidadaos() {
+        if (!pode(u(), GESTAO)) {
+            return proibido("Gestao da APS");
+        }
+        return executar(() -> migracaoPec.status());
     }
 
     @GET

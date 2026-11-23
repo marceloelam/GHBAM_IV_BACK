@@ -15,6 +15,8 @@ import jakarta.inject.Inject;
 import br.com.iv.dto.ConteudoExportado;
 import br.com.iv.entity.Afaturar;
 import br.com.iv.entity.ConfiguracaoUnidade;
+import br.com.iv.entity.ConsultaPediatrica;
+import br.com.iv.entity.Pacientes;
 import br.com.iv.entity.FaturamentoAih;
 import br.com.iv.entity.FaturamentoCompetencia;
 import br.com.iv.enums.AihStatus;
@@ -87,16 +89,58 @@ public class AihExporter implements FaturamentoExporter {
         String cnesUnidade = config == null ? "" : texto(config.getCnesDoHospital());
         String municipio = config == null ? "" : String.valueOf(config.getCodIbge());
 
+        // Uma conta com problema (tipicamente RN de UTI neonatal ainda sem CNS provisorio)
+        // nao pode segurar as outras: ela fica de fora, com o motivo, e o faturista ve a
+        // lista no aviso do download. Se nenhuma conta passar, a recusa continua.
         StringBuilder arquivo = new StringBuilder();
+        List<String> pendencias = new ArrayList<>();
         int gerados = 0;
         for (FaturamentoAih conta : comNumero) {
             List<Afaturar> daConta = porBam.getOrDefault(digitos(conta.getBam()), List.of());
-            validar(conta, daConta, cnesUnidade, municipio);
+            try {
+                validar(conta, daConta, cnesUnidade, municipio);
+            } catch (IllegalArgumentException e) {
+                pendencias.add(e.getMessage());
+                continue;
+            }
             arquivo.append(registro(conta, daConta, cmp, cnesUnidade, municipio)).append("\r\n");
             gerados++;
         }
+        if (gerados == 0) {
+            throw new IllegalArgumentException(String.join(" ", pendencias));
+        }
 
-        return new ConteudoExportado(arquivo.toString().getBytes(StandardCharsets.ISO_8859_1), gerados, LAYOUT);
+        return new ConteudoExportado(arquivo.toString().getBytes(StandardCharsets.ISO_8859_1), gerados, LAYOUT,
+                pendencias);
+    }
+
+    // --- Dados vindos do cadastro (mae, parto, RN) -------------------------------------
+    // Ficam em metodos proprios para o teste trocar o banco por dados fixos.
+
+    Pacientes pacienteDa(FaturamentoAih conta) {
+        return conta == null || conta.getIdpaciente() <= 0 ? null : Pacientes.findById(conta.getIdpaciente());
+    }
+
+    /**
+     * RNs desta mae. A Admissao do RN grava o prontuario do bebe como numero do RN (1 a 6)
+     * + prontuario da mae ("12026-50771" e o RN 1 de "2026-50771"). Mae com parto anterior
+     * no sistema teria os mesmos prontuarios, por isso o nascimento precisa cair dentro
+     * da internacao.
+     */
+    List<Pacientes> recemNascidosDa(String prontuarioMae) {
+        String p = texto(prontuarioMae);
+        if (p.isBlank()) return List.of();
+        List<String> candidatos = new ArrayList<>();
+        for (int i = 1; i <= 6; i++) candidatos.add(i + p);
+        return Pacientes.list("prontuario in ?1", candidatos);
+    }
+
+    ConsultaPediatrica antecedentesDo(String prontuarioRn) {
+        String p = texto(prontuarioRn);
+        if (p.isBlank()) return null;
+        return ConsultaPediatrica.find(
+                "prontuario = ?1 and (pesoNascimento is not null or idadeGestacionalSemanas is not null) order by id desc",
+                p).firstResult();
     }
 
     List<FaturamentoAih> buscarContas(FaturamentoCompetencia competencia, String unidade) {
@@ -140,13 +184,21 @@ public class AihExporter implements FaturamentoExporter {
             throw new IllegalArgumentException("AIH " + conta.getNumero() + " nao tem nome do paciente.");
         }
         if (cns(base.getCnsdopciente()).isBlank()) {
-            throw new IllegalArgumentException("AIH " + conta.getNumero() + " nao tem CNS do paciente valido.");
+            throw new IllegalArgumentException("AIH " + conta.getNumero()
+                    + (ehRecemNascido(conta.getProntuario(), base.getNomepaciente())
+                            ? " (recem-nascido) ficou de fora: falta o CNS provisorio. Emita no CADSUS pela DNV"
+                                    + " e grave no cadastro do bebe; a proxima geracao ja inclui a conta."
+                            : " ficou de fora: paciente sem CNS valido."));
         }
     }
 
     private String registro(FaturamentoAih conta, List<Afaturar> producoes, String competencia,
             String cnesUnidade, String municipio) {
         Afaturar base = producoes.isEmpty() ? null : producoes.get(0);
+        Pacientes paciente = pacienteDa(conta);
+        boolean recemNascido = ehRecemNascido(conta.getProntuario(), base == null ? "" : base.getNomepaciente());
+        ConsultaPediatrica antecedentes = recemNascido ? antecedentesDo(conta.getProntuario()) : null;
+        int nascidosVivos = ehParto(conta.getProcedimentoPrincipal()) ? nascidosNaInternacao(conta) : 0;
         StringBuilder r = new StringBuilder();
 
         // --- Comum a todos os registros (1 a 12) ---------------------------------------
@@ -202,7 +254,7 @@ public class AihExporter implements FaturamentoExporter {
         r.append(dataTexto(base == null ? "" : base.getDtnascimento()));           // 38 DT_NASC_PAC   339-346
         r.append(sexo(base == null ? "" : base.getSexo()));                        // 39 SEXO_PAC      347
         r.append(num(base == null ? "" : String.valueOf(base.getRaca_cor()), 2));  // 40 RACA/COR      348-349
-        r.append(alfa("", 70));                                 // 41 NM_MAE_PAC     350-419
+        r.append(alfa(nome(nomeMae(paciente)), 70));            // 41 NM_MAE_PAC     350-419
         r.append(alfa("", 70));                                 // 42 NM_RESP_PAC    420-489
         r.append("5");                                          // 43 TP_DOC_PAC      490  5-IGNORADO
         r.append(alfa("", 11));                                 // 44 NU_DOC_PAC      491-501
@@ -243,16 +295,22 @@ public class AihExporter implements FaturamentoExporter {
         }
 
         // --- UTI neonatal, trabalho, parto e demais (70 a 91) --------------------------
+        // Peso e gestacao do RN vem dos antecedentes preenchidos na Admissao do RN. O motivo
+        // de saida da UTI neonatal continua 0: depende do desfecho, que o censo nao registra
+        // de forma que de para traduzir com seguranca.
         r.append("0");                                          // 70 SAIDA_UTINEO    1394
-        r.append(num("", 4));                                   // 71 PESO_UTINEO     1395-1398
-        r.append(num("", 1));                                   // 72 MESGEST_UTINEO  1399
+        r.append(num(pesoEmGramas(antecedentes), 4));           // 71 PESO_UTINEO     1395-1398
+        r.append(num(mesesGestacao(antecedentes), 1));          // 72 MESGEST_UTINEO  1399
         r.append(num("", 14));                                  // 73 CNPJ_EMPREG     1400-1413
         r.append(num("", 6));                                   // 74 CBOR            1414-1419
         r.append(num("", 3));                                   // 75 CNAER           1420-1422
         r.append(num("", 1));                                   // 76 TP_VINCPREV     1423
-        r.append(num("", 1));                                   // 77 QT_VIVOS        1424
+        // Parto: os RNs cadastrados na Admissao do RN contam como nascidos vivos e saem de
+        // alta com a mae. Natimorto nao passa pela Admissao do RN, por isso fica 0.
+        String vivos = nascidosVivos > 0 ? String.valueOf(Math.min(nascidosVivos, 9)) : "";
+        r.append(num(vivos, 1));                                // 77 QT_VIVOS        1424
         r.append(num("", 1));                                   // 78 QT_MORTOS       1425
-        r.append(num("", 1));                                   // 79 QT_ALTA         1426
+        r.append(num(vivos, 1));                                // 79 QT_ALTA         1426
         r.append(num("", 1));                                   // 80 QT_TRANSF       1427
         r.append(num("", 1));                                   // 81 QT_OBITO        1428
         r.append(num("", 10));                                  // 82 FILLER          1429-1438
@@ -326,6 +384,56 @@ public class AihExporter implements FaturamentoExporter {
     private String cns(String valor) {
         String so = digitos(valor);
         return so.length() == 15 ? so : "";
+    }
+
+    // RN da Admissao do RN: prontuario com o numero do bebe na frente do da mae
+    // (5 digitos antes do hifen, "12026-50771") ou nome provisorio "RN ...".
+    boolean ehRecemNascido(String prontuario, String nomePaciente) {
+        return texto(prontuario).matches("[1-6]\\d{4}-\\d+")
+                || texto(nomePaciente).toUpperCase().matches("RN\\b.*");
+    }
+
+    // SIGTAP: 03.10.01 parto normal, 04.11.01 parto cesariano.
+    boolean ehParto(String procedimento) {
+        String p = digitos(procedimento);
+        return p.startsWith("031001") || p.startsWith("041101");
+    }
+
+    private int nascidosNaInternacao(FaturamentoAih conta) {
+        if (conta.getDataInternacao() == null) return 0;
+        String inicio = conta.getDataInternacao().minusDays(1).format(AAAAMMDD);
+        String fim = (conta.getDataAlta() == null ? LocalDateTime.now() : conta.getDataAlta()).format(AAAAMMDD);
+        // Conta prontuario distinto, nao linha: o mesmo RN cadastrado duas vezes e comum
+        // na base real (ate 13 linhas para um parto na simulacao de 23/11/2026).
+        return (int) recemNascidosDa(conta.getProntuario()).stream()
+                .filter(rn -> {
+                    String d = dataTexto(rn.getNascimento());
+                    return !"00000000".equals(d) && d.compareTo(inicio) >= 0 && d.compareTo(fim) <= 0;
+                })
+                .map(rn -> texto(rn.getProntuario()))
+                .distinct()
+                .count();
+    }
+
+    private String nomeMae(Pacientes paciente) {
+        String mae = paciente == null ? "" : texto(paciente.getMae());
+        // Cadastro antigo usa "-", "NAO INFORMADO" e afins no lugar de vazio.
+        return mae.replaceAll("[^A-Za-z]", "").length() < 3 || mae.toUpperCase().startsWith("NAO ")
+                || mae.toUpperCase().startsWith("NÃO ") ? "" : mae;
+    }
+
+    // A tela pede kg; quem digitou em gramas (3200) tambem e aceito.
+    String pesoEmGramas(ConsultaPediatrica antecedentes) {
+        Double peso = antecedentes == null ? null : antecedentes.getPesoNascimento();
+        if (peso == null || peso <= 0) return "";
+        long gramas = Math.round(peso < 50 ? peso * 1000 : peso);
+        return gramas >= 200 && gramas <= 9999 ? String.valueOf(gramas) : "";
+    }
+
+    String mesesGestacao(ConsultaPediatrica antecedentes) {
+        Integer semanas = antecedentes == null ? null : antecedentes.getIdadeGestacionalSemanas();
+        if (semanas == null || semanas < 20 || semanas > 45) return "";
+        return String.valueOf(Math.min(9, (int) Math.floor(semanas * 7 / 30.44)));
     }
 
     private String sexo(String valor) {

@@ -36,6 +36,8 @@ public class ApsCidadaoService {
 
     @Inject
     ApsFichaService fichas;
+    @Inject
+    br.com.iv.service.ConsultaCnsService consultaCns;
 
     public List<Map<String, Object>> buscar(String termo, String unidade, Long idEquipe, String microarea,
             boolean incluirHospital, int limite) {
@@ -152,6 +154,68 @@ public class ApsCidadaoService {
                        atualizado_em = CURRENT_TIMESTAMP, atualizado_por = 'SYNC-HOSPITAL'
                 WHERE id = :id
                 """, p("id", id, "cpf", cpf, "cns", cns, "nasc", nasc));
+    }
+
+    /**
+     * Busca CPF/CNS no CADSUS (a mesma consulta da recepcao, ConsultaCnsService) e completa SO o documento
+     * que esta vazio ou invalido - mesmas travas do completarDoHospital (digito, duplicado) e ainda exige
+     * que o nome devolvido seja o do cadastro, para nao gravar documento de homonimo.
+     */
+    public Map<String, Object> completarDoCadsus(Long id, String unidade) {
+        Map<String, Object> c = db.one("SELECT id, nome, nome_mae, cpf, cns, data_nascimento FROM aps_cidadao WHERE id = :id",
+                p("id", id));
+        if (c == null) {
+            return null;
+        }
+        String cpfAtual = ApsValidacao.digitos(str(c.get("cpf")));
+        String cnsAtual = ApsValidacao.digitos(str(c.get("cns")));
+        boolean cpfOk = cpfAtual != null && ApsValidacao.cpfValido(cpfAtual);
+        boolean cnsOk = cnsAtual != null && !cnsAtual.isEmpty() && ApsValidacao.cnsValido(cnsAtual);
+        if (cpfOk && cnsOk) {
+            return Map.of("atualizado", false, "mensagem", "O cadastro já tem CPF e CNS válidos.");
+        }
+        if (c.get("data_nascimento") == null) {
+            throw new IllegalArgumentException("Informe a data de nascimento no cadastro do cidadão para buscar no CADSUS.");
+        }
+        br.com.iv.dto.ConsultaCnsDto r;
+        try {
+            r = consultaCns.consultar(cpfOk ? cpfAtual : null, String.valueOf(c.get("data_nascimento")),
+                    str(c.get("nome")), str(c.get("nome_mae")), unidade);
+        } catch (IllegalStateException e) {
+            throw new IllegalStateException("CADSUS indisponível agora. Tente mais tarde ou corrija o cadastro manualmente.");
+        }
+        if (r == null || !r.encontrado()) {
+            String motivo = r == null || r.mensagens() == null ? "" : " " + String.join(" ", r.mensagens());
+            return Map.of("atualizado", false, "mensagem", "Não encontrado no CADSUS." + motivo);
+        }
+        if (r.nome() != null && !r.nome().isBlank() && !mesmoNome(r.nome(), str(c.get("nome")))) {
+            return Map.of("atualizado", false, "mensagem", "O CADSUS devolveu outra pessoa (" + r.nome()
+                    + "). Nada foi gravado: confira os dados do cidadão.");
+        }
+        String cpfNovo = cpfOk ? null : ApsValidacao.digitos(r.cpf());
+        String cnsNovo = cnsOk ? null : ApsValidacao.digitos(r.cns());
+        cpfNovo = cpfNovo != null && ApsValidacao.cpfValido(cpfNovo) && duplicado(cpfNovo, null, id) == null ? cpfNovo : null;
+        cnsNovo = cnsNovo != null && ApsValidacao.cnsValido(cnsNovo) && duplicado(null, cnsNovo, id) == null ? cnsNovo : null;
+        if (cpfNovo == null && cnsNovo == null) {
+            return Map.of("atualizado", false, "mensagem",
+                    "O CADSUS respondeu, mas sem CPF/CNS novo válido (ou o número já pertence a outro cidadão do G-PEC).");
+        }
+        db.exec("""
+                UPDATE aps_cidadao SET cpf = COALESCE(CAST(:cpf AS varchar), cpf), cns = COALESCE(CAST(:cns AS varchar), cns),
+                       atualizado_em = CURRENT_TIMESTAMP, atualizado_por = 'CADSUS'
+                WHERE id = :id
+                """, p("id", id, "cpf", cpfNovo, "cns", cnsNovo));
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("atualizado", true);
+        out.put("mensagem", "Cadastro completado pelo CADSUS:" + (cpfNovo != null ? " CPF" : "") + (cnsNovo != null ? " CNS" : "")
+                + ". Revise e salve o Cadastro Individual para o e-SUS receber a atualização.");
+        return out;
+    }
+
+    private static boolean mesmoNome(String a, String b) {
+        java.util.function.UnaryOperator<String> n = s -> java.text.Normalizer.normalize(s == null ? "" : s, java.text.Normalizer.Form.NFD)
+                .replaceAll("\\p{M}", "").replaceAll("[^A-Za-z]", "").toUpperCase();
+        return n.apply(a).equals(n.apply(b));
     }
 
     /**
@@ -280,6 +344,16 @@ public class ApsCidadaoService {
             }
             if (ident.get("nacionalidadeCidadao") == null) {
                 throw new IllegalArgumentException("Nacionalidade e obrigatoria.");
+            }
+            // LEDI 8.7 (dic-fci #11): celular obrigatorio para brasileiro (1) ou naturalizado (2), so digitos,
+            // 10 ou 11. O PEC 5.6 recusa a FCI sem ele (visto no PEC oficial de treinamento em 18/11/2026).
+            Integer nacionalidade = intOrNull(ident.get("nacionalidadeCidadao"));
+            String celular = ApsValidacao.digitos(str(ident.get("telefoneCelular")));
+            if (nacionalidade != null && (nacionalidade == 1 || nacionalidade == 2)) {
+                if (celular == null || celular.length() < 10 || celular.length() > 11) {
+                    throw new IllegalArgumentException("Celular e obrigatorio para cidadao brasileiro ou naturalizado (DDD + numero, 10 ou 11 digitos).");
+                }
+                ident.put("telefoneCelular", celular);
             }
             String microarea = str(ident.get("microArea"));
             if (!Boolean.TRUE.equals(ident.get("stForaArea")) && microarea == null) {

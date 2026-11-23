@@ -15,15 +15,27 @@
 	<parameter name="datafinal" class="java.lang.String"/>
 	<parameter name="pbam" class="java.lang.String"/>
 	<queryString language="SQL">
-		<![CDATA[select s.nome as nservidor, * from   pacientes p
+		<![CDATA[select s.nome as nservidor, *,
+coalesce(sig.pa_sa, a.pa_sa)::float8 as vl_sa,
+coalesce(sig.pa_sp, a.pa_sp)::float8 as vl_sp,
+coalesce(sig.pa_sh, a.pa_sh)::float8 as vl_sh,
+(select max(trim(px.pa_cmp)) from s_proced px) as cmp_sigtap
+from   pacientes p
 inner join bam b on
 p.idpaciente = b.paciente_idpaciente
-inner join afaturar a on 
+inner join afaturar a on
 a.bam = b.idbam
-inner join  registro r on 
+inner join  registro r on
 r.idregistro = b.registro_idregistro
 inner join servidor s on
 s.cns = a.cnsdoprofissional
+left join lateral (
+  select ps.pa_sa, ps.pa_sp, ps.pa_sh
+  from s_proced ps
+  where trim(ps.pa_id) || trim(ps.pa_dv) = trim(a.procedimento)
+  order by ps.pa_cmp desc
+  limit 1
+) sig on true
 
 where a.cnsdoprofissional is not null
 and a.bam = b.idbam  and b.unidade =  $P{ssigla} 
@@ -375,6 +387,10 @@ ORDER BY p.nome, a.cnsdoprofissional, a.procedimento, a.descricao]]>
 		<property name="com.jaspersoft.studio.field.label" value="pa_sp"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="afaturar"/>
 	</field>
+	<field name="vl_sa" class="java.lang.Double"/>
+	<field name="vl_sp" class="java.lang.Double"/>
+	<field name="vl_sh" class="java.lang.Double"/>
+	<field name="cmp_sigtap" class="java.lang.String"/>
 	<field name="procedimento" class="java.lang.String">
 		<property name="com.jaspersoft.studio.field.name" value="procedimento"/>
 		<property name="com.jaspersoft.studio.field.label" value="procedimento"/>
@@ -771,16 +787,16 @@ ORDER BY p.nome, a.cnsdoprofissional, a.procedimento, a.descricao]]>
 		<property name="com.jaspersoft.studio.field.tree.path" value="servidor"/>
 	</field>
 	<variable name="total_parcial" class="java.lang.Double" calculation="Sum">
-		<variableExpression><![CDATA[($F{pa_sh} + $F{pa_sp} + $F{pa_sa})]]></variableExpression>
+		<variableExpression><![CDATA[($F{vl_sh} + $F{vl_sp} + $F{vl_sa})]]></variableExpression>
 	</variable>
 	<variable name="pa_sa1" class="java.lang.Double" resetType="Page" calculation="Sum">
-		<variableExpression><![CDATA[$F{pa_sa}]]></variableExpression>
+		<variableExpression><![CDATA[$F{vl_sa}]]></variableExpression>
 	</variable>
 	<variable name="pa_sp1" class="java.lang.Double" resetType="Page" calculation="Sum">
-		<variableExpression><![CDATA[$F{pa_sp}]]></variableExpression>
+		<variableExpression><![CDATA[$F{vl_sp}]]></variableExpression>
 	</variable>
 	<variable name="pa_sh1" class="java.lang.Double" resetType="Page" calculation="Sum">
-		<variableExpression><![CDATA[$F{pa_sh}]]></variableExpression>
+		<variableExpression><![CDATA[$F{vl_sh}]]></variableExpression>
 	</variable>
 	<variable name="contagem" class="java.lang.Integer" resetType="Group" resetGroup="Group1" calculation="Count">
 		<variableExpression><![CDATA[$F{procedimento}]]></variableExpression>
@@ -977,7 +993,7 @@ ORDER BY p.nome, a.cnsdoprofissional, a.procedimento, a.descricao]]>
 					<textElement textAlignment="Center">
 						<font size="6"/>
 					</textElement>
-					<textFieldExpression><![CDATA[$F{pa_sp}]]></textFieldExpression>
+					<textFieldExpression><![CDATA[$F{vl_sp}]]></textFieldExpression>
 				</textField>
 				<textField pattern="¤#,##0.00;¤-#,##0.00">
 					<reportElement x="422" y="0" width="44" height="9" uuid="78ab9d84-de68-4524-a4a0-69c8314b7c96">
@@ -986,7 +1002,7 @@ ORDER BY p.nome, a.cnsdoprofissional, a.procedimento, a.descricao]]>
 					<textElement textAlignment="Center">
 						<font size="6"/>
 					</textElement>
-					<textFieldExpression><![CDATA[$F{pa_sa}]]></textFieldExpression>
+					<textFieldExpression><![CDATA[$F{vl_sa}]]></textFieldExpression>
 				</textField>
 				<textField pattern="¤#,##0.00;¤-#,##0.00">
 					<reportElement x="467" y="0" width="43" height="9" uuid="eb586483-b96b-4b7a-ad7d-b11af84bfb5d">
@@ -995,7 +1011,7 @@ ORDER BY p.nome, a.cnsdoprofissional, a.procedimento, a.descricao]]>
 					<textElement textAlignment="Center">
 						<font size="6"/>
 					</textElement>
-					<textFieldExpression><![CDATA[$F{pa_sh}]]></textFieldExpression>
+					<textFieldExpression><![CDATA[$F{vl_sh}]]></textFieldExpression>
 				</textField>
 				<textField pattern="¤#,##0.00;¤-#,##0.00">
 					<reportElement x="511" y="0" width="54" height="9" uuid="564916ab-fa42-4fa9-9395-cc12f769d2de">
@@ -1004,7 +1020,7 @@ ORDER BY p.nome, a.cnsdoprofissional, a.procedimento, a.descricao]]>
 					<textElement textAlignment="Right">
 						<font size="6" isBold="true"/>
 					</textElement>
-					<textFieldExpression><![CDATA[($F{pa_sh} + $F{pa_sp} + $F{pa_sa}) * $V{procedimento1}]]></textFieldExpression>
+					<textFieldExpression><![CDATA[($F{vl_sh} + $F{vl_sp} + $F{vl_sa}) * $V{procedimento1}]]></textFieldExpression>
 				</textField>
 				<textField>
 					<reportElement x="2" y="0" width="38" height="9" uuid="737ba519-1c03-40e5-a44a-a57c56527a56"/>
@@ -1072,7 +1088,7 @@ ORDER BY p.nome, a.cnsdoprofissional, a.procedimento, a.descricao]]>
 				<textElement textAlignment="Center">
 					<font isBold="true"/>
 				</textElement>
-				<textFieldExpression><![CDATA["FATURA HOSPITALAR DO PACIENTE"]]></textFieldExpression>
+				<textFieldExpression><![CDATA["FATURA HOSPITALAR DO PACIENTE" + ($F{cmp_sigtap} != null && $F{cmp_sigtap}.length() == 6 ? " - VALORES SIGTAP " + $F{cmp_sigtap}.substring(4) + "/" + $F{cmp_sigtap}.substring(0, 4) : "")]]></textFieldExpression>
 			</textField>
 			<image hAlign="Center" vAlign="Middle" onErrorType="Blank">
 				<reportElement stretchType="RelativeToTallestObject" x="2" y="8" width="79" height="24" uuid="237eb508-1405-4ed3-b512-1995cdffd56e">

@@ -21,6 +21,8 @@ public class ApsConfiguracaoService {
 
     @Inject
     ApsContextoService contexto;
+    @Inject
+    br.com.iv.repository.ServidorUnidadeRepository servidorUnidades;
 
     public List<Map<String, Object>> equipes(String unidade, boolean somenteAtivas) {
         return db.list("""
@@ -311,13 +313,20 @@ public class ApsConfiguracaoService {
         }
     }
 
-    /** Profissional precisa estar cadastrado na unidade logada. */
+    /**
+     * Profissional precisa ser da unidade logada: unidade principal do cadastro OU unidade vinculada
+     * (servidor_unidade, ate 3 por servidor - mesma regra do login/troca de unidade). Sem o vinculo,
+     * quem e do hospital e tambem atende na UBS nao conseguia ser lotado no G-PEC.
+     */
     void exigirServidorDaUnidade(String matricula, String unidade) {
-        Map<String, Object> s = db.one("SELECT unidade FROM servidor WHERE matricula = :m LIMIT 1", p("m", matricula));
+        Map<String, Object> s = db.one("SELECT idservidor, unidade FROM servidor WHERE matricula = :m LIMIT 1", p("m", matricula));
         if (s == null) {
             throw new IllegalArgumentException("Servidor com matricula " + matricula + " nao encontrado.");
         }
-        if (unidade == null || !unidade.equalsIgnoreCase(String.valueOf(s.get("unidade")).trim())) {
+        boolean principal = unidade != null && unidade.equalsIgnoreCase(String.valueOf(s.get("unidade")).trim());
+        boolean vinculada = unidade != null && s.get("idservidor") != null
+                && servidorUnidades.pertenceAUnidade(((Number) s.get("idservidor")).intValue(), unidade);
+        if (!principal && !vinculada) {
             throw new IllegalArgumentException("Profissional " + matricula + " nao e da unidade logada (" + unidade + ").");
         }
     }
