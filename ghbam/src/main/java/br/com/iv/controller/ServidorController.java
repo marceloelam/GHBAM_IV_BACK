@@ -145,7 +145,7 @@ public class ServidorController {
 		return Response.status(204).build();
 	}
 	
-	// Unidades adicionais vinculadas ao servidor (servidor_unidade, V72), ate 3
+	// Unidades adicionais vinculadas ao servidor (servidor_unidade, V72), ate 6
 	// no total incluindo a principal (servidor.unidade). Usado pelo cadastro
 	// (Cad_servidores.jsx) pra permitir trabalhar em mais de uma unidade sem
 	// precisar de um segundo cadastro.
@@ -342,6 +342,9 @@ public class ServidorController {
 	public Response salvarSetores(ServidorDto dto, @Context ContainerRequestContext requestContext) {
 		try {
 			Response recusa = recusaUsuarioAd(dto, null, requestContext);
+			if (recusa == null) {
+				recusa = recusaPerfilAdministracao(dto, false, requestContext);
+			}
 			if (recusa != null) {
 				return recusa;
 			}
@@ -363,6 +366,10 @@ public class ServidorController {
 			}
 			Servidor cadastrado = Servidor.findById(id);
 			Response recusa = recusaUsuarioAd(dto, cadastrado == null ? null : cadastrado.getUsuarioad(), requestContext);
+			if (recusa == null) {
+				recusa = recusaPerfilAdministracao(dto,
+						cadastrado != null && Boolean.TRUE.equals(cadastrado.getAdministracao()), requestContext);
+			}
 			if (recusa != null) {
 				return recusa;
 			}
@@ -385,10 +392,34 @@ public class ServidorController {
 			return null;
 		}
 		AuthenticatedUser logado = (AuthenticatedUser) requestContext.getProperty("ghbam.user");
-		boolean superusuario = logado != null
-				&& (logado.hasPermission("ksuperusuario") || logado.hasPermission("superusuario"));
-		String motivo = UsuarioAdRegras.motivoRecusa(dto.getUsuarioad(), atual, superusuario);
+		// Super usuario ou administrativo concede "semad" (Marcelo, 20/11/2026).
+		boolean podeIsentar = logado != null
+				&& (logado.hasPermission("ksuperusuario") || logado.hasPermission("superusuario")
+						|| logado.hasPermission("kadm"));
+		String motivo = UsuarioAdRegras.motivoRecusa(dto.getUsuarioad(), atual, podeIsentar);
+		String quem = logado != null ? logado.matricula() : "anonimo";
+		if (motivo != null) {
+			LOG.warnf("[USUARIO_AD] valor especial recusado: matricula=%s por=%s", dto.getMatricula(), quem);
+		} else if (UsuarioAdRegras.isento(dto.getUsuarioad()) && !UsuarioAdRegras.isento(atual)) {
+			LOG.warnf("[USUARIO_AD] isencao de AD concedida: matricula=%s por=%s", dto.getMatricula(), quem);
+		}
 		return motivo == null ? null : Response.status(403).entity(Map.of("mensagem", motivo)).build();
+	}
+
+	// Só administrativo ou Super usuário cria alguém já administrativo, ou muda o perfil Administração
+	// (decisão Marcelo 19/11/2026). hasPermission("kadm") já é true para o Super usuário.
+	private Response recusaPerfilAdministracao(ServidorDto dto, boolean atual, ContainerRequestContext requestContext) {
+		if (dto == null || dto.getAdministracao() == null || dto.getAdministracao() == atual) {
+			return null;
+		}
+		AuthenticatedUser logado = (AuthenticatedUser) requestContext.getProperty("ghbam.user");
+		if (logado != null && logado.hasPermission("kadm")) {
+			return null;
+		}
+		LOG.warnf("[ADMINISTRACAO] %s tentou %s o perfil Administração de %s",
+				logado == null ? "?" : logado.matricula(), dto.getAdministracao() ? "conceder" : "retirar", dto.getMatricula());
+		return Response.status(403).entity(Map.of("codigo", "ADMINISTRACAO_PROTEGIDA",
+				"mensagem", "Somente um administrativo ou Super usuário pode conceder ou retirar o perfil Administração.")).build();
 	}
 
 	@DELETE

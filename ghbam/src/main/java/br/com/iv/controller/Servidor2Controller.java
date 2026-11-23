@@ -130,6 +130,13 @@ public class Servidor2Controller {
 	public Response salvarSetores(Servidor2Dto dto,
 			@jakarta.ws.rs.HeaderParam(br.com.iv.plataforma.SuperusuarioFacialResource.CABECALHO) String comprovante,
 			@jakarta.ws.rs.core.Context jakarta.ws.rs.container.ContainerRequestContext ctx) {
+		// Sem matricula a linha fica orfa: o login e a tela nunca a encontram e
+		// cada novo "Alterar os dados" cria outra (caso 51151, 18/11/2026).
+		if (dto == null || dto.getMatricula() == null || dto.getMatricula().isBlank()) {
+			return Response.status(Response.Status.BAD_REQUEST)
+				.entity(Map.of("erro", "Matricula nao informada. Busque a matricula novamente antes de salvar."))
+				.build();
+		}
 		try {
 			Servidor2 Servidor2 = servidor2Service.salvarServidor2(dto, usuario(ctx), comprovante);
 			return Response.ok(Servidor2).status(201).build();

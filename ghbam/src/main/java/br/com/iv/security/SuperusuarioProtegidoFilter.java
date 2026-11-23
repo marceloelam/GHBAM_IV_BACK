@@ -58,6 +58,17 @@ public class SuperusuarioProtegidoFilter implements ContainerRequestFilter {
                     .entity(Map.of("codigo", "SUPERUSUARIO_PROTEGIDO",
                             "mensagem", "Somente um Super usuário pode alterar o cadastro de um Super usuário."))
                     .build());
+            return;
+        }
+        // Usuario comum nao altera o cadastro de um administrativo; administrativo e Super usuario podem
+        // (decisao Marcelo 19/11/2026). hasPermission ja devolve true para o Super usuario.
+        if (!user.hasPermission("kadm") && alvoEhAdministracao(alvo)) {
+            LOG.warn("[ADMINISTRACAO] " + user.matricula() + " tentou alterar um administrativo: "
+                    + ctx.getMethod() + " " + ctx.getUriInfo().getPath());
+            ctx.abortWith(Response.status(Response.Status.FORBIDDEN).type(MediaType.APPLICATION_JSON)
+                    .entity(Map.of("codigo", "ADMINISTRACAO_PROTEGIDA",
+                            "mensagem", "Somente um administrativo ou Super usuário pode alterar o cadastro de um administrativo."))
+                    .build());
         }
     }
 
@@ -101,6 +112,21 @@ public class SuperusuarioProtegidoFilter implements ContainerRequestFilter {
                     + "WHERE s.idservidor = CAST(? AS bigint) AND s2.superusuario";
             default -> "SELECT 1 FROM servidor2 WHERE idservidor2 = CAST(? AS bigint) AND superusuario";
         };
+        return existe(sql, alvo, "SUPERUSUARIO");
+    }
+
+    /** Alvo com perfil Administracao (servidor.administracao, que vira kadm na sessao). */
+    private boolean alvoEhAdministracao(Alvo alvo) {
+        String sql = switch (alvo.tipo()) {
+            case "MATRICULA" -> "SELECT 1 FROM servidor WHERE trim(matricula) = trim(?) AND administracao";
+            case "ID_SERVIDOR" -> "SELECT 1 FROM servidor WHERE idservidor = CAST(? AS bigint) AND administracao";
+            default -> "SELECT 1 FROM servidor2 s2 JOIN servidor s ON trim(s.matricula) = trim(s2.matricula) "
+                    + "WHERE s2.idservidor2 = CAST(? AS bigint) AND s.administracao";
+        };
+        return existe(sql, alvo, "ADMINISTRACAO");
+    }
+
+    private boolean existe(String sql, Alvo alvo, String tag) {
         try (Connection c = roteamento.dataSourceAtual().getConnection();
                 PreparedStatement ps = c.prepareStatement(sql)) {
             ps.setString(1, alvo.valor());
@@ -108,8 +134,8 @@ public class SuperusuarioProtegidoFilter implements ContainerRequestFilter {
                 return rs.next();
             }
         } catch (Exception e) {
-            // Na duvida, protege: sem conseguir conferir, nao deixa quem nao e' superusuario alterar.
-            LOG.warn("[SUPERUSUARIO] nao foi possivel conferir o alvo " + alvo + ": " + e.getMessage());
+            // Na duvida, protege: sem conseguir conferir, recusa a alteracao.
+            LOG.warn("[" + tag + "] nao foi possivel conferir o alvo " + alvo + ": " + e.getMessage());
             return true;
         }
     }

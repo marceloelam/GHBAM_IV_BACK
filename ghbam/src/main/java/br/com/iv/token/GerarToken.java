@@ -217,12 +217,19 @@ public class GerarToken {
         // para trocar de municipio pela "Unidade ativa", no mesmo endereco.
         if (municipioRoteamento.ativa() && ehSuperusuario(atual)
                 && municipioRoteamento.podeAcessarMunicipios(atual.matricula())) {
+            // So as unidades habilitadas para ele em cada OUTRO municipio (servidor_unidade de la); as do
+            // municipio atual ja vieram acima. Antes entravam todas as unidades da plataforma.
             java.util.LinkedHashSet<String> todas = new java.util.LinkedHashSet<>(unidades);
-            Map<String, Boolean> acesso = new java.util.HashMap<>();
+            String daqui = municipioRoteamento.atual();
+            Map<String, List<String>> vinculadas = new java.util.HashMap<>();
             for (String[] u : municipioRoteamento.unidadesDaPlataforma()) {
-                // So municipios em que este superusuario ja foi ativado (cadastro dele existe naquele banco).
-                if (acesso.computeIfAbsent(u[1], cod -> municipioRoteamento.temAcesso(cod, atual.matricula()))) {
-                    todas.add(u[0].toUpperCase());
+                if (u[1].equals(daqui)) {
+                    continue;
+                }
+                String sigla = u[0].toUpperCase();
+                if (vinculadas.computeIfAbsent(u[1], cod -> municipioRoteamento.unidadesVinculadas(cod, atual.matricula()))
+                        .contains(sigla)) {
+                    todas.add(sigla);
                 }
             }
             unidades = new java.util.ArrayList<>(todas);
@@ -381,6 +388,12 @@ public class GerarToken {
             return Response.status(Response.Status.FORBIDDEN)
                     .entity(Map.of("erro", "UNIDADE_OUTRO_MUNICIPIO",
                             "mensagem", "A unidade " + unidadeDestino + " pertence a outro município."))
+                    .build();
+        }
+        if (!municipioRoteamento.unidadesVinculadas(municipioDestino, atual.matricula()).contains(unidadeDestino)) {
+            return Response.status(Response.Status.FORBIDDEN)
+                    .entity(Map.of("erro", "UNIDADE_NAO_VINCULADA",
+                            "mensagem", "Voce nao esta vinculado a unidade " + unidadeDestino + "."))
                     .build();
         }
         String ip = obterIPCliente(httpHeaders, routingContext);

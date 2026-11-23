@@ -645,16 +645,39 @@ public class MunicipioRoteamento {
 
     /** Nome do municipio (configurarunidade.municipiopadrao no registro do banco principal); o codigo se faltar. */
     public String nomeMunicipio(String codibge) {
-        try (java.sql.Connection c = padraoDs.getConnection();
+        // O nome mora no cadastro de unidades do proprio municipio; no banco padrao so existe o padrao.
+        if (temBancoProprio(codibge)) {
+            String proprio = nomeMunicipioEm(dataSourceSemFalha(codibge), codibge);
+            if (proprio != null) {
+                return proprio;
+            }
+        }
+        String noPadrao = nomeMunicipioEm(padraoDs, codibge);
+        return noPadrao != null ? noPadrao : codibge;
+    }
+
+    private AgroalDataSource dataSourceSemFalha(String codibge) {
+        try {
+            return dataSource(codibge);
+        } catch (RuntimeException e) {
+            return null;
+        }
+    }
+
+    private static String nomeMunicipioEm(AgroalDataSource ds, String codibge) {
+        if (ds == null) {
+            return null;
+        }
+        try (java.sql.Connection c = ds.getConnection();
                 java.sql.PreparedStatement ps = c.prepareStatement(
                         "SELECT trim(municipiopadrao) FROM configurarunidade WHERE CAST(codibge AS varchar) = ? "
                                 + "AND coalesce(trim(municipiopadrao), '') <> '' LIMIT 1")) {
             ps.setString(1, codibge);
             try (java.sql.ResultSet rs = ps.executeQuery()) {
-                return rs.next() ? rs.getString(1) : codibge;
+                return rs.next() ? rs.getString(1) : null;
             }
         } catch (java.sql.SQLException e) {
-            return codibge;
+            return null;
         }
     }
 
@@ -683,6 +706,37 @@ public class MunicipioRoteamento {
             LOG.warn("[MUNICIPIO] sem acesso ao banco do municipio " + codibge + ": " + e.getMessage());
             return false;
         }
+    }
+
+    /**
+     * Unidades em que esta matricula esta habilitada no banco do municipio (servidor_unidade + unidade
+     * principal do cadastro), so se for superusuario la. Vazio = sem acesso ou banco fora do ar.
+     */
+    public java.util.List<String> unidadesVinculadas(String codibge, String matricula) {
+        java.util.LinkedHashSet<String> out = new java.util.LinkedHashSet<>();
+        if (matricula == null || matricula.isBlank()) {
+            return new java.util.ArrayList<>(out);
+        }
+        try (java.sql.Connection c = dataSource(codibge).getConnection();
+                java.sql.PreparedStatement ps = c.prepareStatement(
+                        "SELECT upper(trim(x.unidade)) FROM ("
+                                + " SELECT su.unidade FROM servidor s"
+                                + " JOIN servidor2 s2 ON s2.matricula = s.matricula AND s2.superusuario IS TRUE"
+                                + " JOIN servidor_unidade su ON su.idservidor = s.idservidor WHERE s.matricula = ?"
+                                + " UNION SELECT s.unidade FROM servidor s"
+                                + " JOIN servidor2 s2 ON s2.matricula = s.matricula AND s2.superusuario IS TRUE"
+                                + " WHERE s.matricula = ?) x WHERE coalesce(trim(x.unidade), '') <> ''")) {
+            ps.setString(1, matricula.trim());
+            ps.setString(2, matricula.trim());
+            try (java.sql.ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    out.add(rs.getString(1));
+                }
+            }
+        } catch (java.sql.SQLException | RuntimeException e) {
+            LOG.warn("[MUNICIPIO] sem acesso ao banco do municipio " + codibge + ": " + e.getMessage());
+        }
+        return new java.util.ArrayList<>(out);
     }
 
     /** Siglas das unidades do registro (banco principal) de municipios com banco ou do padrao. */

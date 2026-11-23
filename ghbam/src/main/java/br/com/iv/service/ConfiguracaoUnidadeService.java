@@ -117,7 +117,8 @@ public class ConfiguracaoUnidadeService implements Serializable {
 	    configuracaoUnidade.setBrasaoprefeitura(dto.getBrasaoprefeitura());
 		configuracaoUnidade.setUrlconexaolaudopacs(dto.getUrlconexaolaudopacs());
 		configuracaoUnidade.setUrlconexaoimagempacs(dto.getUrlconexaoimagempacs());
-		configuracaoUnidade.setMonaiHabilitado(dto.getMonaiHabilitado());
+		// Coluna NOT NULL: sem o campo no JSON o cadastro dava 500 (MONAI é desligado por padrão).
+		configuracaoUnidade.setMonaiHabilitado(Boolean.TRUE.equals(dto.getMonaiHabilitado()));
 		configuracaoUnidade.setMonaiUrl(dto.getMonaiUrl());
 		configuracaoUnidade.setOrthancUrl(dto.getOrthancUrl());
 		if (dto.getTokenlaudopacs() != null && !dto.getTokenlaudopacs().isBlank()) {
@@ -172,7 +173,8 @@ public class ConfiguracaoUnidadeService implements Serializable {
 		configuracaoUnidade.setBrasaoprefeitura(dto.getBrasaoprefeitura());
 		configuracaoUnidade.setUrlconexaolaudopacs(dto.getUrlconexaolaudopacs());
 		configuracaoUnidade.setUrlconexaoimagempacs(dto.getUrlconexaoimagempacs());
-		configuracaoUnidade.setMonaiHabilitado(dto.getMonaiHabilitado());
+		// Coluna NOT NULL: sem o campo no JSON o cadastro dava 500 (MONAI é desligado por padrão).
+		configuracaoUnidade.setMonaiHabilitado(Boolean.TRUE.equals(dto.getMonaiHabilitado()));
 		configuracaoUnidade.setMonaiUrl(dto.getMonaiUrl());
 		configuracaoUnidade.setOrthancUrl(dto.getOrthancUrl());
 		if (dto.getTokenlaudopacs() != null && !dto.getTokenlaudopacs().isBlank()) {

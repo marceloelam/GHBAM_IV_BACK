@@ -111,6 +111,29 @@ public class ConfiguracaoUnidadeController {
 		return saida;
 	}
 
+	/**
+	 * "Unidade ativa" do cabecalho (decisao Marcelo 17/11): so a unidade principal do superusuario em
+	 * cada municipio onde ele foi ativado. Sem separacao ligada ou sem acesso entre municipios devolve
+	 * vazio, nunca a lista completa de unidades; o frontend so mostra o seletor com 2 ou mais.
+	 */
+	private List<String> principaisPorMunicipio() {
+		List<String> principais = new java.util.ArrayList<>();
+		if (municipios == null || !municipios.ativa()) {
+			return principais;
+		}
+		String[] s = sessao();
+		if (s == null || !Boolean.parseBoolean(s[1]) || !municipios.podeAcessarMunicipios(s[0])) {
+			return principais;
+		}
+		for (String cod : municipios.municipios()) {
+			String principal = municipios.unidadePrincipal(cod, s[0]);
+			if (principal != null && !principais.contains(principal)) {
+				principais.add(principal);
+			}
+		}
+		return principais;
+	}
+
 	@GET
 	public Response listarHospitais() {
 		List<ConfiguracaoUnidade> configuracaoUnidade = configuracaoUnidadeService.listarTodosHospitais();
@@ -119,7 +142,10 @@ public class ConfiguracaoUnidadeController {
 
 	@GET
 	@Path("/hospitalDistintos")
-	public Response listarHospitaisDistintos() {
+	public Response listarHospitaisDistintos(@jakarta.ws.rs.QueryParam("principais") boolean principais) {
+		if (principais) {
+			return Response.ok(principaisPorMunicipio()).build();
+		}
 		List<ConfiguracaoUnidade> configuracaoUnidade = configuracaoUnidadeService.filtarPorSiglaUnidadeHospitalar();
 		return Response.ok(semOutrosMunicipios(configuracaoUnidade)).build();
 	}

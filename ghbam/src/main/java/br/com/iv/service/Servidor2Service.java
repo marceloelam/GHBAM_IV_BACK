@@ -669,10 +669,12 @@ public class Servidor2Service implements Serializable {
 
 	}
 
+	@Transactional
 	public void removeServidor2(Long id) {
-		Optional<Servidor2> Servidor2Op = Setores.findByIdOptional(id);
+		// Buscava em Setores (outra tabela): o id nunca batia e a remocao dava 500 (19/11/2026).
+		Optional<Servidor2> Servidor2Op = br.com.iv.entity.Servidor2.findByIdOptional(id);
 		if (Servidor2Op.isEmpty()) {
-			System.out.println("Servidor2 nÃ£o foi encontrado...");
+			throw new jakarta.ws.rs.NotFoundException("Servidor2 " + id + " nao encontrado.");
 		}
 
 		Servidor2 Servidor2 = Servidor2Op.get();

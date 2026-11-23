@@ -314,6 +314,24 @@ public class UnidadeEscopoFilter implements ContainerRequestFilter {
                 ? "#" + resourceInfo.getResourceMethod().getName() : "";
         requestContext.setProperty(PROP_CORPO_SESSAO, sessao);
         requestContext.setProperty(PROP_CORPO_RECURSO, recurso + metodo);
+        requestContext.setProperty(PROP_CORPO_MATRICULA, user.matricula());
+        // Decisão Marcelo 20/11/2026: relatório em PDF de outra unidade (BAM, histórico, prontuário...) é
+        // VISUALIZAÇÃO, como o histórico completo: não bloqueia, fica no log. Quem pode ver cada relatório
+        // continua no RBAC (RoutePermissionCatalog); gravar/alterar segue exigindo a unidade da sessão.
+        if (ehRelatorioSomenteLeitura(requestContext)) {
+            requestContext.setProperty(PROP_CORPO_SO_REGISTRAR, Boolean.TRUE);
+        }
+    }
+
+    static final String PROP_CORPO_SO_REGISTRAR = "ghbam.unidade.corpo.soRegistrar";
+    static final String PROP_CORPO_MATRICULA = "ghbam.unidade.corpo.matricula";
+
+    static boolean ehRelatorioSomenteLeitura(ContainerRequestContext requestContext) {
+        String path = String.valueOf(requestContext.getUriInfo().getPath()).replaceAll("^/+|/+$", "").toLowerCase(Locale.ROOT);
+        return "POST".equalsIgnoreCase(requestContext.getMethod())
+                && path.startsWith("report/")
+                && !path.startsWith("report/cache/")
+                && !path.startsWith("report/connection/");
     }
 
     /** Parametro de unidade declarado no metodo mas nao enviado: o backend recebe null ("todas"). */

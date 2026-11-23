@@ -57,6 +57,13 @@ public class UnidadeCorpoInterceptor implements ReaderInterceptor {
         if (pedida == null) {
             return corpo;
         }
+        if (Boolean.TRUE.equals(context.getProperty(UnidadeEscopoFilter.PROP_CORPO_SO_REGISTRAR))) {
+            LOGGER.warning("UNIDADE-SHADOW decision=relatorio-outra-unidade recurso="
+                    + context.getProperty(UnidadeEscopoFilter.PROP_CORPO_RECURSO)
+                    + " sessao=" + UnidadeUtil.normalizar(unidadeSessao) + " pedida=" + UnidadeUtil.normalizar(pedida)
+                    + " matricula=" + context.getProperty(UnidadeEscopoFilter.PROP_CORPO_MATRICULA));
+            return corpo;
+        }
         boolean bloqueia = bloquear();
         LOGGER.warning("UNIDADE-SHADOW decision=corpo-divergente recurso="
                 + context.getProperty(UnidadeEscopoFilter.PROP_CORPO_RECURSO)

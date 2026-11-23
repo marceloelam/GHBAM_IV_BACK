@@ -1605,6 +1605,11 @@ public class VigilanciaEpidemiologicaController {
         }
         List<Map<String, Object>> lista = new ArrayList<>();
         for (String cod : municipios.municipios()) {
+            // Separacao desligada: executarEm ignora o codigo e roda no banco padrao. Listar os outros
+            // municipios repetiria os numeros do padrao com outro nome (bug de 18/11/2026).
+            if (!municipios.ativa() && !municipios.ehPadrao(cod)) {
+                continue;
+            }
             Map<String, Object> item = new LinkedHashMap<>();
             item.put("codibge", cod);
             item.put("municipio", municipios.nomeMunicipio(cod));
