@@ -62,7 +62,7 @@ public class PacientesRepository implements PanacheRepository<Pacientes> {
 
 	/**
 	 * Ficha anestesica: so paciente com prontuario (nao vazio e diferente do padrao "0")
-	 * e com BAM na unidade; devolve junto o ultimo BAM, pelo mesmo criterio de
+	 * e INTERNADO (sem alta) no ultimo BAM da unidade; devolve junto esse BAM, pelo mesmo criterio de
 	 * BamRepository.filtrarPorIdDoPcienteUltimoBam (maior idbam, unidade exata).
 	 * Colunas: idpaciente, nome, nascimento, idade, mae, pai, pacienteespecial, prontuario, idbam, databam.
 	 */
@@ -85,6 +85,10 @@ public class PacientesRepository implements PanacheRepository<Pacientes> {
 				  AND p.unificado_em IS NULL
 				  AND p.prontuario IS NOT NULL
 				  AND trim(p.prontuario) NOT IN ('', '0')
+				  AND EXISTS (
+				      SELECT 1 FROM novointernado n
+				      WHERE n.nbam = ub.idbam AND coalesce(n.alta, false) = false
+				  )
 				ORDER BY p.nome
 				LIMIT 100
 				""";
