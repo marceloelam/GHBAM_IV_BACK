@@ -106,6 +106,11 @@ public class FaturamentoAutomacaoJob {
         if (!habilitada) {
             return;
         }
+        if (importarSigtap) {
+            // CID x procedimento (V263): carrega sozinho a competencia instalada que ainda
+            // nao tem. Ja carregada, nao acessa o FTP. Falha so registra log.
+            sigtapImportacaoService.garantirCidsDaCompetenciaInstalada();
+        }
         for (String unidade : unidadesComCnes()) {
             // Quem manda e a competencia aberta da unidade, nao a data de hoje: o
             // faturamento acontece dentro do proprio mes da competencia, e enquanto ela

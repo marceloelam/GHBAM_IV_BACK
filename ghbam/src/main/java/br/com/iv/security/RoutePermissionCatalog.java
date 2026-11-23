@@ -45,6 +45,7 @@ public class RoutePermissionCatalog {
             // Coordenador de setor vê a foto da equipe (busca e cartões da Coordenação de setor).
             entry("log/foto", "kadm", "plogs", "pauditoriaclinica", "pcoordenadorsetor"),
             entry("log", "kadm", "plogs"),
+            entry("api/tutorial-log", "kadm", "plogs"),
             entry("producao-medica", "pproducaomedica", "kadm"),
             entry("producao-assistencial", "kadm"),
             entry("api/assinaturas-clinicas", "kmedico", "kdentista", "kenfermagem", "ktcenfermagem", "kconsultorio_medico", "kfisioterapia", "kassistencia", "knutricao", "kfonoaudiologia", "kpsicologia", "pevolucaomultidisciplinar", "pverificarassinatura", "kadm"),
@@ -74,6 +75,7 @@ public class RoutePermissionCatalog {
             entry("imagem-ia/analisar-exame", "kmedico", "krx", "ktomografia", "kadm"),
             entry("imagem-ia/ciencia", "kmedico", "kenfermagem", "kadm"),
             entry("imagem-ia/status", "kadm"),
+            entry("ia-codificacao", "kmedico", "kfaturamento", "pnir", "kadm"),
             entry("imagem-ia", "kmedico", "kenfermagem", "ktcenfermagem", "krx", "ktomografia", "kadm"),
             // Painel do plantao: so leitura, internados da unidade da sessao.
             entry("cdss/plantao", "kenfermagem", "ktcenfermagem", "kmedico", "pnir", "penfermariaseleitos", "kadm"),
@@ -381,6 +383,10 @@ public class RoutePermissionCatalog {
             entry("faturamento/competencias/reabrir", "pfaturamentosusreabrir", "kadm"),
             entry("faturamento/competencias", "kfaturamento", "kadm"),
             entry("faturamento/dashboard", "kfaturamento", "kadm"),
+            entry("sigtap/importar-datasus-cids", "sigtapimportar", "kadm"),
+            // Leitura da tabela publica SIGTAP CID x procedimento, para quem lanca procedimento.
+            entry("sigtap-cid", "kfisioterapia", "kassistencia", "knutricao", "kfonoaudiologia", "kpsicologia",
+                    "kenfermagem", "pevolucaomultidisciplinar", "kdentista", "kmedico", "kfaturamento", "kadm"),
             entry("sigtap/importar-datasus", "sigtapimportar", "kadm"),
             entry("sigtap/importar", "sigtapimportar", "kadm"),
             entry("sigtap/competencias", "kfaturamento", "sigtapimportar", "kadm"),

@@ -88,6 +88,23 @@ public class SigtapImportacaoController {
         }
     }
 
+    // So os CIDs compativeis (rl_procedimento_cid) de uma competencia ja instalada.
+    @POST
+    @Path("importar-datasus-cids")
+    public Response importarCidsDatasus(@QueryParam("unidade") String unidade, SigtapImportarDatasusRequestDto dto) {
+        AuthenticatedUser u = user();
+        if (!u.hasAnyPermission(List.of("sigtapimportar", "kadm"))) {
+            throw new ForbiddenException();
+        }
+        try {
+            return Response.ok(sigtapImportacaoService.importarCidsDatasus(dto, u, unidade)).build();
+        } catch (IllegalArgumentException e) {
+            return Response.status(Response.Status.BAD_REQUEST).entity(e.getMessage()).build();
+        } catch (IllegalStateException e) {
+            return Response.status(Response.Status.BAD_GATEWAY).entity(e.getMessage()).build();
+        }
+    }
+
     @POST
     @Path("importar-datasus")
     public Response importarDatasus(@QueryParam("unidade") String unidade, SigtapImportarDatasusRequestDto dto) {

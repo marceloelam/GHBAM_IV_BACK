@@ -40,6 +40,9 @@ public class FaturamentoValidationService {
     @Inject
     FaturamentoCompetenciaRepository competenciaRepository;
 
+    @Inject
+    SigtapCidService sigtapCidService;
+
     public List<ValidacaoResultado> validar(Afaturar producao) {
         // O procedimento do SIGTAP e lido uma vez e repassado: tres regras dependem
         // dele (existencia, sexo e faixa etaria) e cada uma buscando por conta
@@ -53,7 +56,42 @@ public class FaturamentoValidationService {
         resultados.add(validarCompetencia(producao));
         resultados.add(validarSexoDoProcedimento(producao, sigtap));
         resultados.add(validarIdadeDoProcedimento(producao, sigtap));
+        resultados.add(validarCidCompativel(producao));
         return resultados;
+    }
+
+    // CID x procedimento (rl_procedimento_cid do SIGTAP, tabela sigtap_procedimento_cid).
+    // So BPA-I: e o instrumento que leva CID por atendimento e onde estava o buraco
+    // (fisioterapia e demais multiprofissionais lancados com CID "0"). AIH/APAC tem
+    // laudo proprio com CID. Procedimento sem lista no SIGTAP, ou tabela ainda nao
+    // carregada para a competencia, nao e criticado.
+    //
+    // ALERTA, e nao ERRO, enquanto a regra e nova: a linha vai para REVISAO_RECOMENDADA,
+    // aparece para conferencia e continua exportavel - avisa sem travar o fechamento.
+    // Visivel no pacote para o teste: validar() inteiro exige o SIGTAP do banco.
+    ValidacaoResultado validarCidCompativel(Afaturar producao) {
+        String instrumento = normalizarInstrumento(producao.getInstrumentoRegistro());
+        String cid = SigtapCidService.normalizarCid(producao.getCid10());
+        if (!"BPAI".equals(instrumento) || sigtapCidService == null) {
+            return new ValidacaoResultado("CID_INCOMPATIVEL", "cid10", ResultadoValidacao.SUCESSO,
+                    "CID por procedimento so e checado em BPA-I.", cid, "nao se aplica");
+        }
+        String competencia = competenciaDa(producao);
+        java.util.Set<String> aceitos = sigtapCidService.cidsAceitos(producao.getProcedimento(), competencia);
+        if (aceitos.isEmpty()) {
+            return new ValidacaoResultado("CID_INCOMPATIVEL", "cid10", ResultadoValidacao.SUCESSO,
+                    "SIGTAP nao restringe CID para este procedimento.", cid, "livre");
+        }
+        if (cid.isEmpty() || cid.matches("0+")) {
+            return new ValidacaoResultado("CID_AUSENTE", "cid10", ResultadoValidacao.ALERTA,
+                    "Procedimento exige CID (SIGTAP) e o lancamento esta sem CID.", "", "CID compativel");
+        }
+        if (!sigtapCidService.compativel(producao.getProcedimento(), competencia, cid)) {
+            return new ValidacaoResultado("CID_INCOMPATIVEL", "cid10", ResultadoValidacao.ALERTA,
+                    "CID " + cid + " nao e aceito pelo SIGTAP para este procedimento.", cid, "CID compativel");
+        }
+        return new ValidacaoResultado("CID_INCOMPATIVEL", "cid10", ResultadoValidacao.SUCESSO,
+                "CID compativel com o procedimento.", cid, "CID compativel");
     }
 
     // O SIGTAP e lido pela competencia da producao, nao "qualquer linha com este codigo":

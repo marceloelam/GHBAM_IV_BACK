@@ -51,6 +51,10 @@ public class SigtapImportacaoService {
     private static final Pattern ARQUIVO_SIGTAP = Pattern.compile(
             "TabelaUnificada_(\\d{6})_(v\\d+)\\.zip", Pattern.CASE_INSENSITIVE);
     private static final int FTP_TIMEOUT_MS = 30000;
+    private static final org.jboss.logging.Logger LOG = org.jboss.logging.Logger.getLogger(SigtapImportacaoService.class);
+
+    @Inject
+    SigtapCidService sigtapCidService;
 
     @Inject
     FaturamentoSigtapImportacaoRepository importacaoRepository;
@@ -115,7 +119,8 @@ public class SigtapImportacaoService {
         String unidade = resolverUnidade(dto.getUnidade(), unidadeParametro, user);
 
         try {
-            List<SigtapProcedimentoImportDto> procedimentos = lerProcedimentosDatasus(baixarArquivoDatasus(nomeArquivo), competencia);
+            byte[] zip = baixarArquivoDatasus(nomeArquivo);
+            List<SigtapProcedimentoImportDto> procedimentos = lerProcedimentosDatasus(zip, competencia);
             SigtapImportacaoRequestDto request = new SigtapImportacaoRequestDto();
             request.setCompetencia(competencia);
             request.setUnidade(unidade);
@@ -124,6 +129,81 @@ public class SigtapImportacaoService {
             Map<String, Object> resumo = importar(request, user, unidade);
             resumo.put("arquivo", nomeArquivo);
             resumo.put("origem", DATASUS_FTP_BASE + nomeArquivo);
+            resumo.put("cidsCompativeis", gravarCidsCompativeis(zip, competencia));
+            return resumo;
+        } catch (IOException e) {
+            throw new IllegalStateException("Nao foi possivel baixar ou processar o arquivo oficial do DATASUS.");
+        }
+    }
+
+    // CIDs aceitos por procedimento (rl_procedimento_cid). Falha aqui nao derruba a
+    // importacao dos procedimentos: o motor so deixa de checar CID, como antes.
+    private int gravarCidsCompativeis(byte[] zip, String competencia) {
+        try {
+            return sigtapCidService.gravar(competencia, sigtapCidService.lerDoZip(zip, competencia));
+        } catch (Exception e) {
+            LOG.errorf("SIGTAP %s: CIDs compativeis nao gravados: %s", competencia, e.getMessage());
+            return -1;
+        }
+    }
+
+    /**
+     * Garante os CIDs compativeis da competencia SIGTAP mais recente instalada neste banco.
+     * Chamado pelo job noturno (em cada municipio): na primeira noite depois da publicacao
+     * da V263 carrega a competencia atual sozinho, sem passo manual na producao. Ja
+     * carregada, nao faz nada (nem acessa o FTP). Nunca lanca: falha vira log.
+     */
+    public void garantirCidsDaCompetenciaInstalada() {
+        try {
+            // Transacao explicita: o job roda fora de requisicao (e em thread propria por
+            // municipio), onde a leitura sem contexto seria recusada pelo Hibernate.
+            String competencia = io.quarkus.narayana.jta.QuarkusTransaction.requiringNew().call(() -> {
+                FaturamentoSigtapImportacao ultima = FaturamentoSigtapImportacao
+                        .find("order by competencia desc").firstResult();
+                String c = ultima == null ? "" : texto(ultima.getCompetencia());
+                sigtapCidService.invalidar(); // le o estado deste banco, nao o cache de outro municipio
+                return c.matches("\\d{6}") && !c.equals(sigtapCidService.competenciaVigente(c)) ? c : "";
+            });
+            if (competencia.isEmpty()) {
+                return;
+            }
+            SigtapArquivoDatasusDto arquivo = listarCompetenciasDatasus().stream()
+                    .filter(a -> competencia.equals(a.getCompetencia()))
+                    .findFirst().orElse(null);
+            if (arquivo == null) {
+                LOG.infof("SIGTAP %s: arquivo nao esta mais no FTP do DATASUS; CIDs compativeis nao carregados", competencia);
+                return;
+            }
+            byte[] zip = baixarArquivoDatasus(arquivo.getNome());
+            int gravados = sigtapCidService.gravar(competencia, sigtapCidService.lerDoZip(zip, competencia));
+            LOG.infof("SIGTAP %s: %d CIDs compativeis carregados automaticamente (%s)", competencia, gravados, arquivo.getNome());
+        } catch (Exception e) {
+            LOG.errorf("SIGTAP: CIDs compativeis nao carregados automaticamente: %s", e.getMessage());
+        }
+    }
+
+    /**
+     * Carrega so os CIDs compativeis de uma competencia ja instalada (a importacao de
+     * procedimentos recusa competencia repetida). Usado uma vez para a competencia atual
+     * quando esta regra entrou; depois a importacao mensal ja traz os CIDs.
+     */
+    public Map<String, Object> importarCidsDatasus(SigtapImportarDatasusRequestDto dto, AuthenticatedUser user, String unidadeParametro) {
+        String nomeArquivo = dto == null ? "" : texto(dto.getArquivo());
+        Matcher matcher = ARQUIVO_SIGTAP.matcher(nomeArquivo);
+        if (!matcher.matches()) {
+            throw new IllegalArgumentException("Arquivo DATASUS invalido.");
+        }
+        String competencia = matcher.group(1);
+        String unidade = resolverUnidade(dto.getUnidade(), unidadeParametro, user);
+        try {
+            byte[] zip = baixarArquivoDatasus(nomeArquivo);
+            int gravados = sigtapCidService.gravar(competencia, sigtapCidService.lerDoZip(zip, competencia));
+            auditService.registrar(unidade, "IMPORTAR_SIGTAP_CID", "SUCESSO", "SigtapProcedimentoCid", competencia,
+                    null, competencia, null, "arquivo=" + nomeArquivo + " cids=" + gravados, user);
+            Map<String, Object> resumo = new LinkedHashMap<>();
+            resumo.put("competencia", competencia);
+            resumo.put("cidsCompativeis", gravados);
+            resumo.put("arquivo", nomeArquivo);
             return resumo;
         } catch (IOException e) {
             throw new IllegalStateException("Nao foi possivel baixar ou processar o arquivo oficial do DATASUS.");
@@ -204,6 +284,7 @@ public class SigtapImportacaoService {
         long procedimentosRemovidos = 0;
         if (importacaoRepository.contarPorCompetencia(competencia) == 0) {
             procedimentosRemovidos = ProcedimentosSus.delete("pa_cmp", competencia);
+            sigtapCidService.remover(competencia);
         }
 
         auditService.registrar(unidade, "REMOVER_SIGTAP", "SUCESSO",
