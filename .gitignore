@@ -1,0 +1,6 @@
+# Workspace do Eclipse: o .history guarda copias de arquivos locais, inclusive segredos.
+.metadata/
+
+# Segredos locais (o .example continua versionado)
+ghbam-secrets.properties
+ghbam-secrets.properties.bak*
