@@ -29,6 +29,9 @@ public class RbacRequestFilter implements ContainerRequestFilter {
             "api/usuarios-conectados/heartbeat",
             // Favoritos do menu do proprio usuario (matricula vem do token); nao concede acesso a telas.
             "api/menu-favoritos",
+            // Log de tutoriais: grava o clique do proprio usuario em "Como usar" (matricula vem do token).
+            // A listagem (api/tutorial-log) segue o RoutePermissionCatalog.
+            "api/tutorial-log/registrar",
             // Executado logo apÃƒÆ’Ã‚Â³s a emissÃƒÆ’Ã‚Â£o do token para confirmar a situaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o
             // da prÃƒÆ’Ã‚Â³pria conta no AD. NÃƒÆ’Ã‚Â£o lista nem altera usuÃƒÆ’Ã‚Â¡rios.
             "ad/verificar-status",
@@ -362,10 +365,20 @@ public class RbacRequestFilter implements ContainerRequestFilter {
                 && "pacientes".equals(pathParts[0])
                 && !pathParts[1].isBlank();
         // Lista de BAMs do paciente na reimpressão (GET bam/idpaciente/{id}): leitura para quem imprime BAM.
-        boolean consultaBamDoPacienteParaImprimir = "GET".equalsIgnoreCase(method)
+        boolean consultaBamDoPacienteParaImprimir = ("GET".equalsIgnoreCase(method)
                 && pathParts.length == 3
                 && "bam".equals(pathParts[0])
-                && "idpaciente".equals(pathParts[1]);
+                && "idpaciente".equals(pathParts[1]))
+                // PDF do BAM (POST report/bamrelatorio): sem isto quem tinha só "Imprimir BAM" via o menu
+                // e recebia "Permissao insuficiente" ao imprimir (Marcelo, 20/11/2026).
+                || ("POST".equalsIgnoreCase(method) && "report/bamrelatorio".equals(normalizedPath))
+                // BAMs do mesmo paciente em outros municípios, listados na reimpressão (só leitura).
+                || ("GET".equalsIgnoreCase(method)
+                        && pathParts.length == 5
+                        && "historicopaciente".equalsIgnoreCase(pathParts[0])
+                        && "outrosmunicipios".equalsIgnoreCase(pathParts[1])
+                        && "idpaciente".equalsIgnoreCase(pathParts[2])
+                        && "bams".equalsIgnoreCase(pathParts[4]));
         boolean consultaPacientePorNome = "GET".equalsIgnoreCase(method)
                 && pathParts.length == 2
                 && "pacientes".equals(pathParts[0])

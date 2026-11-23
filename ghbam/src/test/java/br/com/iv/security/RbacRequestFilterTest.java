@@ -247,6 +247,19 @@ class RbacRequestFilterTest {
         assertFalse(RbacRequestFilter.permissionsForRequest("/pacientes/MARIA/idade/atualizacao", "PATCH", doPaciente).contains("ktcenfermagem"));
     }
 
+    // Regressão 20/11/2026: quem só tinha "Imprimir BAM" via o menu e recebia 403 ao gerar o PDF.
+    @Test
+    void imprimirBamGeraOPdfEListaBamsDeOutrosMunicipios() {
+        RoutePermissionCatalog catalog = new RoutePermissionCatalog();
+        List<String> doReport = catalog.requiredPermissionsFor("/report/bamrelatorio").orElseThrow();
+        List<String> outros = catalog.requiredPermissionsFor("/historicoPaciente/outrosmunicipios/idpaciente/123/bams").orElseThrow();
+
+        assertTrue(RbacRequestFilter.permissionsForRequest("/report/bamrelatorio", "POST", doReport).contains("pimprimirbam"));
+        assertTrue(RbacRequestFilter.permissionsForRequest("/historicoPaciente/outrosmunicipios/idpaciente/123/bams", "GET", outros).contains("pimprimirbam"));
+        // Outros relatórios continuam sem a permissão de imprimir BAM.
+        assertFalse(RbacRequestFilter.permissionsForRequest("/report/historicopacienteatendido", "POST", doReport).contains("pimprimirbam"));
+    }
+
     @Test
     void triagemPodeAtualizarIdadeDaPropriaFilaSemAcessoAmploAPacientes() {
         RoutePermissionCatalog catalog = new RoutePermissionCatalog();
