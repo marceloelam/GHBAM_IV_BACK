@@ -32,6 +32,9 @@ public class RbacRequestFilter implements ContainerRequestFilter {
             // Log de tutoriais: grava o clique do proprio usuario em "Como usar" (matricula vem do token).
             // A listagem (api/tutorial-log) segue o RoutePermissionCatalog.
             "api/tutorial-log/registrar",
+            // Validacao das condutas clinicas: GET para todos; validar/revogar exige CRM + kadm ou
+            // coordenador de setor, conferido no CondutaValidacaoController.
+            "api/conduta-validacao",
             // Executado logo apÃƒÆ’Ã‚Â³s a emissÃƒÆ’Ã‚Â£o do token para confirmar a situaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o
             // da prÃƒÆ’Ã‚Â³pria conta no AD. NÃƒÆ’Ã‚Â£o lista nem altera usuÃƒÆ’Ã‚Â¡rios.
             "ad/verificar-status",
